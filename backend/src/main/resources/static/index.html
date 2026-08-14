@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learning Studio — Examiner</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#EEF1F5;--surface:#fff;--surface-2:#F5F7FB;--surface-3:#EEF2F8;
+    --border:#DCE2EB;--border-strong:#C6CFDC;--ink:#171A21;--ink-2:#535E70;--ink-3:#8A94A6;
+    --accent:#3B62F6;--accent-ink:#fff;--accent-soft:#E5EBFF;--accent-line:#B9C7FF;
+    --pass:#12924A;--pass-soft:#DFF3E6;--pass-line:#A9DDBC;
+    --warn:#B8710A;--warn-soft:#FBEBD1;--warn-line:#E8CB93;
+    --danger:#C6362F;--danger-soft:#FADEDC;--danger-line:#EFB1AC;
+    --shadow:0 1px 2px rgba(20,28,45,.04),0 8px 24px -12px rgba(20,28,45,.14);
+    --f-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --f-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0D1015;--surface:#161A21;--surface-2:#1B2029;--surface-3:#222834;
+    --border:#28303C;--border-strong:#374252;--ink:#E8ECF3;--ink-2:#9EA9BB;--ink-3:#6B7688;
+    --accent:#728DFF;--accent-ink:#0B0E13;--accent-soft:#1B2340;--accent-line:#33406C;
+    --pass:#45C173;--pass-soft:#132B1D;--pass-line:#255A38;
+    --warn:#E1A54C;--warn-soft:#2E240F;--warn-line:#5A481F;
+    --danger:#EB6A66;--danger-soft:#2E1917;--danger-line:#5E322E;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6);
+  }}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;min-height:100vh}
+  .top{display:flex;align-items:center;gap:11px;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .glyph{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800}
+  .top b{letter-spacing:-.01em}.top small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .wrap{max-width:760px;margin:0 auto;padding:30px 22px 70px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:22px}
+  .eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  h1{font-size:23px;letter-spacing:-.02em;margin:4px 0 0}
+  p.sub{color:var(--ink-2);margin:8px 0 0}
+  label{display:block;font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px}
+  select,textarea{width:100%;font:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px}
+  textarea{min-height:120px;resize:vertical;line-height:1.55}
+  select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:10px;font:inherit;font-weight:600;
+    background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:var(--shadow)}
+  .btn:hover{filter:brightness(1.06)}.btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);box-shadow:none}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}
+  .prog{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .progbar{flex:1;height:7px;border-radius:99px;background:var(--surface-3);overflow:hidden}
+  .progbar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+  .qnum{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
+  .qtext{font-size:18px;font-weight:600;letter-spacing:-.01em;margin:6px 0 16px;line-height:1.4}
+  .review{margin-top:18px;border-top:1px solid var(--border);padding-top:18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.04em;padding:5px 11px;border-radius:999px}
+  .pill.correct{background:var(--pass-soft);color:var(--pass);border:1px solid var(--pass-line)}
+  .pill.partial{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
+  .pill.incorrect,.pill.error{background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger-line)}
+  .score{font-family:var(--f-mono);font-weight:700;margin-left:auto}
+  .fb{margin:12px 0 0;color:var(--ink);line-height:1.55}
+  .missing{margin:12px 0 0;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
+  .missing .h{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+  .missing li{margin:3px 0}
+  .result{text-align:center;padding:30px}
+  .seal{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;margin:0 auto 14px;font-size:28px}
+  .result.pass .seal{background:var(--pass-soft);border:1px solid var(--pass-line)}
+  .result.fail .seal{background:var(--warn-soft);border:1px solid var(--warn-line)}
+  .muted{color:var(--ink-3);font-size:13px}
+  .err{background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger);padding:12px 14px;border-radius:10px;margin-top:14px;font-size:13.5px}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <header class="top">
+    <span class="glyph">◑</span>
+    <span><b>Learning Studio</b><small>AI Examiner</small></span>
+  </header>
+  <main class="wrap" id="view"></main>
+
+<script>
+const API = "/api/gate";
+const view = document.getElementById("view");
+let state = { sessionId:null, total:0, index:0, question:null, awaiting:false };
+
+const esc = s => (s||"").replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+async function jf(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+async function renderStart(){
+  view.innerHTML = `<div class="card"><span class="eyebrow">Mastery gate</span>
+    <h1>Prove you understand it</h1>
+    <p class="sub">Pick a module. I'll ask conceptual questions and grade your written answers strictly —
+    like a real interviewer. You pass at an average score of 70+.</p>
+    <div class="row" style="margin-top:22px"><label style="margin:0" for="mod">Module</label></div>
+    <select id="mod" style="margin-top:8px"></select>
+    <div class="row"><button class="btn" id="go">Start the gate →</button></div>
+    <div id="e"></div></div>`;
+  try{
+    const mods = await jf(API + "/modules");
+    const sel = document.getElementById("mod");
+    sel.innerHTML = mods.map(m => `<option value="${m.id}">${esc(m.title)} · ${m.questionCount} questions</option>`).join("");
+  }catch(e){
+    document.getElementById("e").innerHTML = `<div class="err">Can't reach the backend. Is the app running on this port? (${esc(e.message)})</div>`;
+  }
+  document.getElementById("go").onclick = start;
+}
+
+async function start(){
+  const moduleId = document.getElementById("mod").value;
+  try{
+    const d = await jf(API + "/start?moduleId=" + encodeURIComponent(moduleId), {method:"POST"});
+    state = { sessionId:d.sessionId, total:d.total, index:d.index, question:d.question, awaiting:false };
+    renderQuestion();
+  }catch(e){ alert("Could not start: " + e.message); }
+}
+
+function renderQuestion(reviewHtml){
+  const pct = Math.round(state.index / state.total * 100);
+  view.innerHTML = `<div class="card">
+    <div class="prog"><span class="qnum">Question ${state.index+1} of ${state.total}</span>
+      <div class="progbar"><i style="width:${pct}%"></i></div></div>
+    <div class="qtext">${esc(state.question)}</div>
+    <label for="ans">Your answer</label>
+    <textarea id="ans" placeholder="Answer in your own words — vague or buzzword answers won't pass."></textarea>
+    <div class="row"><button class="btn" id="submit">Submit answer</button>
+      <span class="muted">No looking it up — that's the point.</span></div>
+    <div id="review">${reviewHtml||""}</div>
+  </div>`;
+  const ta = document.getElementById("ans"); ta.focus();
+  document.getElementById("submit").onclick = submit;
+}
+
+async function submit(){
+  if(state.awaiting) return;
+  const answer = document.getElementById("ans").value.trim();
+  if(!answer){ document.getElementById("ans").focus(); return; }
+  const btn = document.getElementById("submit");
+  state.awaiting = true; btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Grading…`;
+  try{
+    const d = await jf(API + "/answer", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ sessionId: state.sessionId, answer })});
+    state.awaiting = false;
+    showGrade(d);
+  }catch(e){
+    state.awaiting = false; btn.disabled = false; btn.textContent = "Submit answer";
+    document.getElementById("review").innerHTML = `<div class="err">Grading failed: ${esc(e.message)}</div>`;
+  }
+}
+
+function gradeHtml(g){
+  const v = (g.verdict||"error").toLowerCase();
+  const label = v==="correct"?"Correct":v==="partial"?"Partial":v==="incorrect"?"Not quite":"Error";
+  const miss = (g.missing&&g.missing.length)
+    ? `<div class="missing"><div class="h">Key points to add</div><ul>${g.missing.map(m=>`<li>${esc(m)}</li>`).join("")}</ul></div>` : "";
+  return `<div class="review">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="pill ${v}">${label}</span><span class="score">${g.score}/100</span></div>
+    <p class="fb">${esc(g.feedback)}</p>${miss}</div>`;
+}
+
+function showGrade(d){
+  const rev = gradeHtml(d.grade);
+  renderQuestion(rev); // re-render current (answered) question with review; disable the box
+  const ta = document.getElementById("ans"); ta.disabled = true;
+  const btn = document.getElementById("submit");
+  if(d.done){
+    btn.outerHTML = `<button class="btn" id="fin">See result →</button>`;
+    document.getElementById("fin").onclick = () => renderResult(d);
+  }else{
+    btn.outerHTML = `<button class="btn" id="next">Next question →</button>`;
+    document.getElementById("next").onclick = () => {
+      state.index = d.index; state.total = d.total; state.question = d.question;
+      renderQuestion();
+    };
+  }
+}
+
+function renderResult(d){
+  const pass = d.passed;
+  view.innerHTML = `<div class="card result ${pass?'pass':'fail'}">
+    <div class="seal">${pass?'🏆':'🔁'}</div>
+    <span class="eyebrow">Mastery gate</span>
+    <h1>${pass?'Gate cleared':'Not yet — keep going'}</h1>
+    <p class="sub">${pass
+      ? 'You answered with real understanding across the module. In the full app this would unlock the next module.'
+      : 'You need an average of 70+ to pass. Review the feedback on each question and retry — the grading is fresh each time.'}</p>
+    <p class="score" style="margin:16px auto 0;display:inline-block">Average score ${d.avgScore}/100</p>
+    <div class="row" style="justify-content:center;margin-top:22px">
+      <button class="btn" id="again">Retake gate</button>
+      <button class="btn ghost" id="home">Choose module</button></div>
+  </div>`;
+  document.getElementById("again").onclick = start;
+  document.getElementById("home").onclick = renderStart;
+}
+
+renderStart();
+</script>
+</body>
+</html>
