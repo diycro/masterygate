@@ -1,6 +1,16 @@
 spring:
   application:
     name: learning-studio
+  # We only use the OpenAI-compatible CHAT model. Exclude the other OpenAI model
+  # auto-configs (speech/image/etc.) — they eagerly demand a key at startup even
+  # though we never call them, which would break booting without a key.
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
   datasource:
     url: jdbc:postgresql://localhost:5432/studio
     username: studio
