@@ -36,7 +36,7 @@ public class GateService {
     }
 
     public GateSession start(String moduleId) {
-        ModuleCatalog.GateModule module = catalog.get(moduleId);
+        ModuleCatalog.Module module = catalog.getModule(moduleId);
         if (module == null) throw new IllegalArgumentException("Unknown module: " + moduleId);
         GateSession session = new GateSession(moduleId, module.questions());
         sessions.put(session.id, session);

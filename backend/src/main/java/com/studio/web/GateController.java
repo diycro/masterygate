@@ -22,20 +22,9 @@ import java.util.Map;
 public class GateController {
 
     private final GateService gate;
-    private final ModuleCatalog catalog;
 
-    public GateController(GateService gate, ModuleCatalog catalog) {
+    public GateController(GateService gate) {
         this.gate = gate;
-        this.catalog = catalog;
-    }
-
-    @GetMapping("/modules")
-    public List<Map<String, Object>> modules() {
-        List<Map<String, Object>> out = new ArrayList<>();
-        for (ModuleCatalog.GateModule m : catalog.all()) {
-            out.add(Map.of("id", m.id(), "title", m.title(), "questionCount", m.questions().size()));
-        }
-        return out;
     }
 
     @PostMapping("/start")

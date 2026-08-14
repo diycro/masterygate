@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Learning Studio — Examiner</title>
+<title>Learning Studio</title>
 <style>
   *,*::before,*::after{box-sizing:border-box}
   :root{
@@ -12,10 +12,11 @@
     --accent:#3B62F6;--accent-ink:#fff;--accent-soft:#E5EBFF;--accent-line:#B9C7FF;
     --pass:#12924A;--pass-soft:#DFF3E6;--pass-line:#A9DDBC;
     --warn:#B8710A;--warn-soft:#FBEBD1;--warn-line:#E8CB93;
-    --danger:#C6362F;--danger-soft:#FADEDC;--danger-line:#EFB1AC;
+    --danger:#C6362F;--danger-soft:#FADEDC;--danger-line:#EFB1AC;--locked:#9AA4B4;--locked-soft:#EDF0F5;
     --shadow:0 1px 2px rgba(20,28,45,.04),0 8px 24px -12px rgba(20,28,45,.14);
+    --shadow-lg:0 2px 4px rgba(20,28,45,.05),0 24px 48px -20px rgba(20,28,45,.25);
     --f-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --f-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --f-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;--r:14px;
   }
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
     --bg:#0D1015;--surface:#161A21;--surface-2:#1B2029;--surface-3:#222834;
@@ -23,184 +24,348 @@
     --accent:#728DFF;--accent-ink:#0B0E13;--accent-soft:#1B2340;--accent-line:#33406C;
     --pass:#45C173;--pass-soft:#132B1D;--pass-line:#255A38;
     --warn:#E1A54C;--warn-soft:#2E240F;--warn-line:#5A481F;
-    --danger:#EB6A66;--danger-soft:#2E1917;--danger-line:#5E322E;
+    --danger:#EB6A66;--danger-soft:#2E1917;--danger-line:#5E322E;--locked:#5C6676;--locked-soft:#1B212B;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6);
+    --shadow-lg:0 2px 6px rgba(0,0,0,.4),0 30px 60px -24px rgba(0,0,0,.7);
   }}
   html,body{margin:0}
-  body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.5;
-    -webkit-font-smoothing:antialiased;min-height:100vh}
-  .top{display:flex;align-items:center;gap:11px;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--surface)}
-  .glyph{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800}
-  .top b{letter-spacing:-.01em}.top small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-  .wrap{max-width:760px;margin:0 auto;padding:30px 22px 70px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:22px}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  a{color:var(--accent);text-decoration:none}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  .mono{font-family:var(--f-mono)}
+  .top{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em}
+  .glyph{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;box-shadow:var(--shadow)}
+  .brand small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+  .top .sp{flex:1}
+  .userchip{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:12px}
+  .tbtn{font-size:12.5px;color:var(--ink-2);padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)}
+  .tbtn:hover{border-color:var(--border-strong)}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 22px 70px}
+  .center{max-width:460px;margin:8vh auto 0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+  .pad{padding:22px}
   .eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-  h1{font-size:23px;letter-spacing:-.02em;margin:4px 0 0}
+  h1{font-size:24px;letter-spacing:-.02em;margin:4px 0 0;text-wrap:balance}
+  h2{font-size:16px;margin:0}
   p.sub{color:var(--ink-2);margin:8px 0 0}
   label{display:block;font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px}
-  select,textarea{width:100%;font:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px}
+  input,select,textarea{width:100%;font:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px}
   textarea{min-height:120px;resize:vertical;line-height:1.55}
-  select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:10px;font:inherit;font-weight:600;
-    background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:var(--shadow)}
-  .btn:hover{filter:brightness(1.06)}.btn:disabled{opacity:.5;cursor:not-allowed}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;font-weight:600;font-size:13.5px;background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow)}
+  .btn:hover{filter:brightness(1.06)}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.5;cursor:not-allowed}
   .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);box-shadow:none}
+  .btn.lg{padding:13px 22px;font-size:15px}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}
+  .grid{display:grid;gap:16px}.mt{margin-top:16px}.mt-lg{margin-top:24px}
+  .head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-family:var(--f-mono);font-size:11.5px;padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--ink-2)}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+  .pill.pass{background:var(--pass-soft);color:var(--pass);border:1px solid var(--pass-line)}
+  .pill.current{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
+  .pill.locked{background:var(--locked-soft);color:var(--locked);border:1px solid var(--border)}
+  /* topic cards */
+  .topics{grid-template-columns:1fr}
+  .topic{padding:20px;cursor:pointer;transition:transform .1s,box-shadow .12s,border-color .12s;display:flex;align-items:center;gap:16px}
+  .topic:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);border-color:var(--accent-line)}
+  .topic .ic{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:22px;flex:none}
+  .topic .cta{margin-left:auto;color:var(--accent);font-weight:600;white-space:nowrap}
+  /* path */
+  .prog-head{display:flex;align-items:center;gap:16px}
+  .ring{position:relative;width:56px;height:56px;flex:none}.ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+  .mod{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:16px;padding:16px 18px;transition:transform .1s,box-shadow .12s,border-color .12s}
+  .mod.click{cursor:pointer}.mod.click:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);border-color:var(--border-strong)}
+  .mod.locked{opacity:.7;cursor:not-allowed}
+  .node{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:700;border:1px solid var(--border)}
+  .mod.pass .node{background:var(--pass-soft);color:var(--pass);border-color:var(--pass-line)}
+  .mod.current .node{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .mod.locked .node{background:var(--locked-soft);color:var(--locked)}
+  .mod .ttl{font-weight:600;letter-spacing:-.01em}
+  .mod .meta{color:var(--ink-3);font-size:12.5px;font-family:var(--f-mono);margin-top:3px}
+  .mod .right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  /* resources */
+  .tracks{grid-template-columns:1fr 1fr}
+  .track h3{font-size:12px;font-family:var(--f-mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+  .track h3 .tag{margin-left:auto;font-size:10.5px;padding:3px 8px;border-radius:999px}
+  .track.free .tag{background:var(--pass-soft);color:var(--pass)}.track.paid .tag{background:var(--surface-3);color:var(--ink-3)}
+  .res{display:block;padding:11px 0;border-top:1px solid var(--border)}
+  .res:first-of-type{border-top:0}
+  .res .rt{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+  .res .rm{font-size:11.5px;color:var(--ink-3);font-family:var(--f-mono);margin-top:2px}
+  .res .ext{font-size:11px}
+  .ilist{margin:8px 0 0;padding-left:18px;color:var(--ink-2)}.ilist li{margin:4px 0}
+  /* gate */
   .prog{display:flex;align-items:center;gap:12px;margin-bottom:14px}
   .progbar{flex:1;height:7px;border-radius:99px;background:var(--surface-3);overflow:hidden}
   .progbar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+  .progbar.pass i{background:var(--pass)}
   .qnum{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
   .qtext{font-size:18px;font-weight:600;letter-spacing:-.01em;margin:6px 0 16px;line-height:1.4}
   .review{margin-top:18px;border-top:1px solid var(--border);padding-top:18px}
-  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:700;text-transform:uppercase;
-    letter-spacing:.04em;padding:5px 11px;border-radius:999px}
-  .pill.correct{background:var(--pass-soft);color:var(--pass);border:1px solid var(--pass-line)}
-  .pill.partial{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
-  .pill.incorrect,.pill.error{background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger-line)}
   .score{font-family:var(--f-mono);font-weight:700;margin-left:auto}
-  .fb{margin:12px 0 0;color:var(--ink);line-height:1.55}
+  .fb{margin:12px 0 0;line-height:1.55}
   .missing{margin:12px 0 0;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
   .missing .h{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
-  .missing li{margin:3px 0}
-  .result{text-align:center;padding:30px}
+  .result{text-align:center;padding:32px}
   .seal{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;margin:0 auto 14px;font-size:28px}
-  .result.pass .seal{background:var(--pass-soft);border:1px solid var(--pass-line)}
-  .result.fail .seal{background:var(--warn-soft);border:1px solid var(--warn-line)}
+  .result.pass .seal{background:var(--pass-soft);border:1px solid var(--pass-line)}.result.fail .seal{background:var(--warn-soft);border:1px solid var(--warn-line)}
+  .backlink{display:inline-flex;align-items:center;gap:7px;color:var(--ink-2);font-size:13px;font-weight:500;margin-bottom:14px}.backlink:hover{color:var(--accent)}
   .muted{color:var(--ink-3);font-size:13px}
   .err{background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger);padding:12px 14px;border-radius:10px;margin-top:14px;font-size:13.5px}
   .spin{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:8px}
   @keyframes s{to{transform:rotate(360deg)}}
+  @media (max-width:760px){.tracks{grid-template-columns:1fr}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-  <header class="top">
-    <span class="glyph">◑</span>
-    <span><b>Learning Studio</b><small>AI Examiner</small></span>
-  </header>
-  <main class="wrap" id="view"></main>
+<header class="top" id="top" style="display:none">
+  <div class="brand"><span class="glyph">◑</span><span>Learning Studio<small>mastery-gated</small></span></div>
+  <div class="sp"></div>
+  <button class="tbtn" id="changeTrack" style="display:none">Change track</button>
+  <div class="userchip" id="userchip"></div>
+  <button class="tbtn" id="logout">Log out</button>
+</header>
+<main id="view"></main>
 
 <script>
-const API = "/api/gate";
+const API = "/api";
 const view = document.getElementById("view");
-let state = { sessionId:null, total:0, index:0, question:null, awaiting:false };
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function jf(url,opts){ const r = await fetch(url,opts); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
 
-const esc = s => (s||"").replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// ---------- local store ----------
+const store = {
+  user(){ return localStorage.getItem("studio.user"); },
+  setUser(n){ localStorage.setItem("studio.user", n); },
+  topic(){ return localStorage.getItem("studio.topic"); },
+  setTopic(t){ localStorage.setItem("studio.topic", t); },
+  clearTopic(){ localStorage.removeItem("studio.topic"); },
+  progress(t){ try{ return JSON.parse(localStorage.getItem("studio.progress."+t)) || {passed:{},scores:{}}; }catch(e){ return {passed:{},scores:{}}; } },
+  pass(t, moduleId, score){ const p = store.progress(t); p.passed[moduleId]=true; p.scores[moduleId]=score; localStorage.setItem("studio.progress."+t, JSON.stringify(p)); },
+  logout(){ localStorage.removeItem("studio.user"); localStorage.removeItem("studio.topic"); }
+};
 
-async function jf(url, opts){
-  const r = await fetch(url, opts);
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}
+let state = { view:"login", topics:[], path:null, gate:null };
 
-async function renderStart(){
-  view.innerHTML = `<div class="card"><span class="eyebrow">Mastery gate</span>
-    <h1>Prove you understand it</h1>
-    <p class="sub">Pick a module. I'll ask conceptual questions and grade your written answers strictly —
-    like a real interviewer. You pass at an average score of 70+.</p>
-    <div class="row" style="margin-top:22px"><label style="margin:0" for="mod">Module</label></div>
-    <select id="mod" style="margin-top:8px"></select>
-    <div class="row"><button class="btn" id="go">Start the gate →</button></div>
-    <div id="e"></div></div>`;
-  try{
-    const mods = await jf(API + "/modules");
-    const sel = document.getElementById("mod");
-    sel.innerHTML = mods.map(m => `<option value="${m.id}">${esc(m.title)} · ${m.questionCount} questions</option>`).join("");
-  }catch(e){
-    document.getElementById("e").innerHTML = `<div class="err">Can't reach the backend. Is the app running on this port? (${esc(e.message)})</div>`;
+document.getElementById("logout").onclick = ()=>{ store.logout(); location.reload(); };
+document.getElementById("changeTrack").onclick = ()=>{ store.clearTopic(); go("topics"); };
+
+function chrome(){
+  const on = !!store.user();
+  document.getElementById("top").style.display = on ? "flex" : "none";
+  if(on){
+    const n = store.user();
+    document.getElementById("userchip").innerHTML = `<span class="avatar">${esc(n.slice(0,2).toUpperCase())}</span>${esc(n)}`;
+    document.getElementById("changeTrack").style.display = store.topic() ? "inline-flex" : "none";
   }
-  document.getElementById("go").onclick = start;
 }
 
-async function start(){
-  const moduleId = document.getElementById("mod").value;
+// ---------- views ----------
+function loginView(){
+  view.innerHTML = `<div class="center"><div class="card pad">
+    <span class="glyph" style="width:38px;height:38px;font-size:18px">◑</span>
+    <h1 style="margin-top:14px">Welcome to Learning Studio</h1>
+    <p class="sub">Learn a skill the way an interviewer would test it — a gated path where you only advance once you can defend each topic.</p>
+    <div style="margin-top:20px"><label for="name">Your name</label>
+      <input id="name" placeholder="e.g. Amit" autocomplete="off"></div>
+    <div class="row"><button class="btn lg" id="go">Continue →</button>
+      <span class="muted">Stored locally on this device.</span></div>
+  </div></div>`;
+  const inp = document.getElementById("name"); inp.focus();
+  const submit = ()=>{ const n = inp.value.trim(); if(!n) return inp.focus(); store.setUser(n); go(store.topic()?"path":"topics"); };
+  document.getElementById("go").onclick = submit;
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter") submit(); });
+}
+
+async function topicsView(){
+  view.innerHTML = `<div class="wrap"><span class="eyebrow">Choose a track</span>
+    <h1>What do you want to master?</h1>
+    <p class="sub">Pick a track. You'll get a gated, modular path with the best free courses (and paid options), plus interview prep per module.</p>
+    <div class="grid topics mt-lg" id="tw"><p class="muted">Loading…</p></div></div>`;
   try{
-    const d = await jf(API + "/start?moduleId=" + encodeURIComponent(moduleId), {method:"POST"});
-    state = { sessionId:d.sessionId, total:d.total, index:d.index, question:d.question, awaiting:false };
-    renderQuestion();
-  }catch(e){ alert("Could not start: " + e.message); }
+    const topics = await jf(API+"/curriculum/topics"); state.topics = topics;
+    document.getElementById("tw").innerHTML = topics.map(tp=>`
+      <div class="card topic" data-topic="${tp.id}">
+        <div class="ic">◑</div>
+        <div><div style="font-weight:700;letter-spacing:-.01em;font-size:16px">${esc(tp.title)}</div>
+          <div class="muted" style="margin-top:3px">${esc(tp.subtitle)}</div>
+          <div class="mono" style="font-size:11.5px;color:var(--ink-3);margin-top:6px">${tp.moduleCount} modules · gated</div></div>
+        <span class="cta">Start →</span></div>`).join("");
+    document.querySelectorAll("[data-topic]").forEach(el=>el.onclick=()=>{ store.setTopic(el.dataset.topic); go("path"); });
+  }catch(e){ document.getElementById("tw").innerHTML = `<div class="err">Can't reach the backend (${esc(e.message)}). Is the app running?</div>`; }
 }
 
+function ring(pct){ const r=22,c=2*Math.PI*r,off=c*(1-pct/100);
+  return `<div class="ring"><svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="5"/><circle cx="28" cy="28" r="${r}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><span class="pct">${pct}%</span></div>`; }
+
+async function pathView(){
+  const topic = store.topic();
+  view.innerHTML = `<div class="wrap"><p class="muted">Loading your path…</p></div>`;
+  let data;
+  try{ data = await jf(API+"/curriculum/path?topic="+encodeURIComponent(topic)); }
+  catch(e){ view.innerHTML = `<div class="wrap"><div class="err">Couldn't load the path (${esc(e.message)}).</div></div>`; return; }
+  state.path = data;
+  const mods = data.modules;
+  const prog = store.progress(topic);
+  const passedCount = mods.filter(m=>prog.passed[m.id]).length;
+  const pct = mods.length ? Math.round(passedCount/mods.length*100) : 0;
+  const tp = state.topics.find(x=>x.id===topic);
+  const title = tp ? tp.title : topic;
+
+  // compute states
+  let currentAssigned = false;
+  const rows = mods.map((m,i)=>{
+    const passed = !!prog.passed[m.id];
+    const prevPassed = i===0 || prog.passed[mods[i-1].id];
+    let st = "locked";
+    if(passed) st="pass"; else if(prevPassed && !currentAssigned){ st="current"; currentAssigned=true; }
+    const clickable = st!=="locked";
+    const nodeInner = st==="pass" ? "✓" : st==="locked" ? "🔒" : m.id;
+    const pill = st==="pass" ? `<span class="pill pass">✓ Passed · ${prog.scores[m.id]||0}</span>`
+      : st==="current" ? `<span class="pill current">▶ Available</span>` : `<span class="pill locked">🔒 Locked</span>`;
+    return `<div class="card mod ${st} ${clickable?'click':''}" ${clickable?`data-mod="${m.id}"`:''}>
+      <div class="node">${nodeInner}</div>
+      <div><div class="ttl">${m.id} · ${esc(m.title)}</div>
+        <div class="meta">${m.objectives.length} objectives · ${m.questionCount} gate questions${st==='locked'?' · pass '+mods[i-1].id+' to unlock':''}</div></div>
+      <div class="right">${pill}</div></div>`;
+  }).join("");
+
+  view.innerHTML = `<div class="wrap">
+    <div class="head-row"><div><span class="eyebrow">${esc(title)}</span>
+      <h1>Your learning path</h1><p class="sub">Free-first resources + interview prep, one gated module at a time.</p></div></div>
+    <div class="card pad mt-lg prog-head">${ring(pct)}
+      <div><div style="font-weight:700">${passedCount} of ${mods.length} modules cleared</div>
+      <div class="muted">Clear a module's gate (avg 70+) to unlock the next.</div></div></div>
+    <div class="grid mt" style="gap:12px">${rows}</div></div>`;
+  document.querySelectorAll("[data-mod]").forEach(el=>el.onclick=()=>openModule(el.dataset.mod));
+}
+
+function openModule(id){ state.moduleId = id; go("module"); }
+
+function moduleView(){
+  const m = state.path.modules.find(x=>x.id===state.moduleId);
+  const topic = store.topic(); const prog = store.progress(topic);
+  const passed = !!prog.passed[m.id];
+  const freeR = m.resources.filter(r=>r.free), paidR = m.resources.filter(r=>!r.free);
+  const resHtml = (arr)=> arr.length ? arr.map(r=>`<a class="res" href="${esc(r.url)}" target="_blank" rel="noopener">
+      <div class="rt">${esc(r.title)} <span class="ext">↗</span></div>
+      <div class="rm">${esc(r.provider)} · ${esc(r.meta)}</div></a>`).join("")
+    : `<p class="muted">— none —</p>`;
+  view.innerHTML = `<div class="wrap">
+    <button class="backlink" id="back">← Your path</button>
+    <div class="card pad">
+      <div class="head-row"><div><span class="eyebrow">Module ${m.id}${passed?' · ✓ passed ('+ (prog.scores[m.id]||0) +')':''}</span>
+        <h1>${esc(m.title)}</h1></div></div>
+      <div class="chips mt">${m.objectives.map(o=>`<span class="chip">${esc(o)}</span>`).join("")}</div>
+    </div>
+    <div class="grid tracks mt">
+      <div class="card pad track free"><h3>Free track <span class="tag">preferred</span></h3>${resHtml(freeR)}</div>
+      <div class="card pad track paid"><h3>Paid track <span class="tag">optional</span></h3>${resHtml(paidR)}</div>
+    </div>
+    <div class="card pad mt"><h2>Interview focus</h2>
+      <ul class="ilist">${m.interviewFocus.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>
+    <div class="card pad mt" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div><h2>${passed?'Retake the gate':'Ready to prove it?'}</h2>
+        <p class="sub" style="font-size:13px">${m.questionCount} questions. The AI grades your written answers strictly — pass at avg 70+.</p></div>
+      <button class="btn lg" id="startGate">${passed?'Retake gate':'Start the gate'} →</button></div>
+  </div>`;
+  document.getElementById("back").onclick=()=>go("path");
+  document.getElementById("startGate").onclick=()=>startGate(m.id);
+}
+
+// ---------- gate ----------
+async function startGate(moduleId){
+  try{
+    const d = await jf(API+"/gate/start?moduleId="+encodeURIComponent(moduleId), {method:"POST"});
+    state.gate = { moduleId, sessionId:d.sessionId, total:d.total, index:d.index, question:d.question };
+    go("gate");
+  }catch(e){ alert("Could not start the gate: "+e.message); }
+}
+function gateView(){ renderQuestion(); }
 function renderQuestion(reviewHtml){
-  const pct = Math.round(state.index / state.total * 100);
-  view.innerHTML = `<div class="card">
-    <div class="prog"><span class="qnum">Question ${state.index+1} of ${state.total}</span>
-      <div class="progbar"><i style="width:${pct}%"></i></div></div>
-    <div class="qtext">${esc(state.question)}</div>
-    <label for="ans">Your answer</label>
-    <textarea id="ans" placeholder="Answer in your own words — vague or buzzword answers won't pass."></textarea>
-    <div class="row"><button class="btn" id="submit">Submit answer</button>
-      <span class="muted">No looking it up — that's the point.</span></div>
-    <div id="review">${reviewHtml||""}</div>
-  </div>`;
-  const ta = document.getElementById("ans"); ta.focus();
-  document.getElementById("submit").onclick = submit;
+  const g = state.gate; const pct = Math.round(g.index/g.total*100);
+  view.innerHTML = `<div class="wrap"><button class="backlink" id="back">← ${esc(g.moduleId)}</button>
+    <div class="card pad">
+      <div class="prog"><span class="qnum">Question ${g.index+1} of ${g.total}</span>
+        <div class="progbar"><i style="width:${pct}%"></i></div></div>
+      <div class="qtext">${esc(g.question)}</div>
+      <label for="ans">Your answer</label>
+      <textarea id="ans" placeholder="Answer in your own words — vague or buzzword answers won't pass."></textarea>
+      <div class="row"><button class="btn" id="submit">Submit answer</button>
+        <span class="muted">No looking it up — that's the point.</span></div>
+      <div id="review">${reviewHtml||""}</div></div></div>`;
+  document.getElementById("back").onclick=()=>go("module");
+  const ta=document.getElementById("ans"); ta.focus();
+  document.getElementById("submit").onclick=submitAnswer;
 }
-
-async function submit(){
-  if(state.awaiting) return;
-  const answer = document.getElementById("ans").value.trim();
-  if(!answer){ document.getElementById("ans").focus(); return; }
-  const btn = document.getElementById("submit");
-  state.awaiting = true; btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Grading…`;
+async function submitAnswer(){
+  const ta=document.getElementById("ans"); const answer=ta.value.trim(); if(!answer) return ta.focus();
+  const btn=document.getElementById("submit"); btn.disabled=true; btn.innerHTML=`<span class="spin"></span>Grading…`;
   try{
-    const d = await jf(API + "/answer", {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ sessionId: state.sessionId, answer })});
-    state.awaiting = false;
+    const d = await jf(API+"/gate/answer",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({sessionId:state.gate.sessionId, answer})});
     showGrade(d);
-  }catch(e){
-    state.awaiting = false; btn.disabled = false; btn.textContent = "Submit answer";
-    document.getElementById("review").innerHTML = `<div class="err">Grading failed: ${esc(e.message)}</div>`;
-  }
+  }catch(e){ btn.disabled=false; btn.textContent="Submit answer";
+    document.getElementById("review").innerHTML=`<div class="err">Grading failed: ${esc(e.message)}</div>`; }
 }
-
-function gradeHtml(g){
-  const v = (g.verdict||"error").toLowerCase();
-  const label = v==="correct"?"Correct":v==="partial"?"Partial":v==="incorrect"?"Not quite":"Error";
-  const miss = (g.missing&&g.missing.length)
-    ? `<div class="missing"><div class="h">Key points to add</div><ul>${g.missing.map(m=>`<li>${esc(m)}</li>`).join("")}</ul></div>` : "";
-  return `<div class="review">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="pill ${v}">${label}</span><span class="score">${g.score}/100</span></div>
-    <p class="fb">${esc(g.feedback)}</p>${miss}</div>`;
+function gradeHtml(gr){
+  const v=(gr.verdict||"error").toLowerCase();
+  const label=v==="correct"?"Correct":v==="partial"?"Partial":v==="incorrect"?"Not quite":"Error";
+  const cls=v==="correct"?"pass":v==="partial"?"current":"locked";
+  const pill=`<span class="pill ${cls==='locked'?'locked':cls}">${label}</span>`;
+  const miss=(gr.missing&&gr.missing.length)?`<div class="missing"><div class="h">Key points to add</div><ul>${gr.missing.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+  return `<div class="review"><div style="display:flex;align-items:center;gap:10px">${pill}<span class="score">${gr.score}/100</span></div>
+    <p class="fb">${esc(gr.feedback)}</p>${miss}</div>`;
 }
-
 function showGrade(d){
-  const rev = gradeHtml(d.grade);
-  renderQuestion(rev); // re-render current (answered) question with review; disable the box
-  const ta = document.getElementById("ans"); ta.disabled = true;
-  const btn = document.getElementById("submit");
-  if(d.done){
-    btn.outerHTML = `<button class="btn" id="fin">See result →</button>`;
-    document.getElementById("fin").onclick = () => renderResult(d);
-  }else{
-    btn.outerHTML = `<button class="btn" id="next">Next question →</button>`;
-    document.getElementById("next").onclick = () => {
-      state.index = d.index; state.total = d.total; state.question = d.question;
-      renderQuestion();
-    };
+  renderQuestion(gradeHtml(d.grade));
+  const ta=document.getElementById("ans"); ta.disabled=true;
+  const btn=document.getElementById("submit");
+  if(d.done){ btn.outerHTML=`<button class="btn" id="fin">See result →</button>`;
+    document.getElementById("fin").onclick=()=>resultView(d);
+  }else{ btn.outerHTML=`<button class="btn" id="next">Next question →</button>`;
+    document.getElementById("next").onclick=()=>{ state.gate.index=d.index; state.gate.total=d.total; state.gate.question=d.question; renderQuestion(); }; }
+}
+function resultView(d){
+  const pass=d.passed; const g=state.gate; const topic=store.topic();
+  if(pass) store.pass(topic, g.moduleId, d.avgScore);
+  view.innerHTML = `<div class="wrap"><div class="card result ${pass?'pass':'fail'}">
+    <div class="seal">${pass?'🏆':'🔁'}</div>
+    <span class="eyebrow">${esc(g.moduleId)} · Mastery gate</span>
+    <h1>${pass?'Gate cleared — next module unlocked':'Not yet — keep going'}</h1>
+    <p class="sub">${pass?'You defended this module at interview level. The next module is now open on your path.'
+      :'You need an average of 70+. Review the feedback, study the gaps, and retake — questions are graded fresh each time.'}</p>
+    <p class="score" style="display:inline-block;margin:16px auto 0">Average ${d.avgScore}/100</p>
+    <div class="row" style="justify-content:center;margin-top:22px">
+      ${pass?`<button class="btn lg" id="cont">Back to path →</button>`
+        :`<button class="btn lg" id="retry">Retake gate</button><button class="btn ghost lg" id="back">Back to module</button>`}
+    </div></div></div>`;
+  if(pass) document.getElementById("cont").onclick=()=>go("path");
+  else{ document.getElementById("retry").onclick=()=>startGate(g.moduleId); document.getElementById("back").onclick=()=>go("module"); }
+}
+
+// ---------- router ----------
+function go(v){ state.view=v; render(); }
+function render(){
+  chrome();
+  if(!store.user()) return loginView();
+  switch(state.view){
+    case "topics": return topicsView();
+    case "path": return pathView();
+    case "module": return moduleView();
+    case "gate": return gateView();
+    default: return store.topic()?pathView():topicsView();
   }
 }
-
-function renderResult(d){
-  const pass = d.passed;
-  view.innerHTML = `<div class="card result ${pass?'pass':'fail'}">
-    <div class="seal">${pass?'🏆':'🔁'}</div>
-    <span class="eyebrow">Mastery gate</span>
-    <h1>${pass?'Gate cleared':'Not yet — keep going'}</h1>
-    <p class="sub">${pass
-      ? 'You answered with real understanding across the module. In the full app this would unlock the next module.'
-      : 'You need an average of 70+ to pass. Review the feedback on each question and retry — the grading is fresh each time.'}</p>
-    <p class="score" style="margin:16px auto 0;display:inline-block">Average score ${d.avgScore}/100</p>
-    <div class="row" style="justify-content:center;margin-top:22px">
-      <button class="btn" id="again">Retake gate</button>
-      <button class="btn ghost" id="home">Choose module</button></div>
-  </div>`;
-  document.getElementById("again").onclick = start;
-  document.getElementById("home").onclick = renderStart;
-}
-
-renderStart();
+// boot
+state.view = store.user() ? (store.topic()?"path":"topics") : "login";
+render();
 </script>
 </body>
 </html>
