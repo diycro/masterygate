@@ -1,0 +1,125 @@
+package com.studio.exam;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Fetches highly-viewed, on-topic FREE videos per module via the official YouTube Data API v3
+ * (not scraping). Real view counts let us rank by popularity and filter to well-watched tutorials.
+ * Results are cached per module. If no API key is configured, this returns nothing and the app
+ * falls back to the curated resources — the learning flow never breaks.
+ */
+@Service
+public class YouTubeResourceService {
+
+    /** Curated, on-topic search queries so videos stay aligned to each module. */
+    private static final Map<String, String> QUERIES = Map.of(
+        "M0", "call LLM API python tutorial for beginners",
+        "M1", "how large language models work tokens temperature prompt engineering",
+        "M2", "vector embeddings and semantic search explained",
+        "M3", "retrieval augmented generation RAG tutorial",
+        "M4", "AI agents and tool calling LLM tutorial",
+        "M5", "LLM in production evaluation guardrails cost",
+        "M6", "build a RAG application full project tutorial"
+    );
+    private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
+    private static final int MAX_RESULTS = 4;
+
+    private final String apiKey;
+    private final RestClient rc = RestClient.create();
+    private final Map<String, List<ModuleCatalog.Resource>> cache = new ConcurrentHashMap<>();
+
+    public YouTubeResourceService(@Value("${youtube.api-key:}") String apiKey) {
+        this.apiKey = apiKey;
+    }
+
+    public boolean enabled() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    public List<ModuleCatalog.Resource> topVideos(String moduleId, String fallbackTitle) {
+        if (!enabled()) return List.of();
+        return cache.computeIfAbsent(moduleId, k -> {
+            try {
+                return fetch(QUERIES.getOrDefault(moduleId, fallbackTitle + " tutorial"));
+            } catch (Exception e) {
+                return List.of();  // graceful: curated resources remain
+            }
+        });
+    }
+
+    private List<ModuleCatalog.Resource> fetch(String query) {
+        String searchUrl = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/search")
+                .queryParam("part", "snippet").queryParam("type", "video")
+                .queryParam("maxResults", 15).queryParam("order", "relevance")
+                .queryParam("safeSearch", "strict").queryParam("relevanceLanguage", "en")
+                .queryParam("videoEmbeddable", "true").queryParam("q", query)
+                .queryParam("key", apiKey).toUriString();
+        JsonNode search = rc.get().uri(searchUrl).retrieve().body(JsonNode.class);
+        if (search == null || !search.has("items")) return List.of();
+
+        Map<String, String[]> byId = new LinkedHashMap<>(); // videoId -> [title, channel]
+        for (JsonNode item : search.get("items")) {
+            String vid = item.path("id").path("videoId").asText(null);
+            if (vid != null) {
+                JsonNode sn = item.path("snippet");
+                byId.put(vid, new String[]{sn.path("title").asText(""), sn.path("channelTitle").asText("")});
+            }
+        }
+        if (byId.isEmpty()) return List.of();
+
+        String statsUrl = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/videos")
+                .queryParam("part", "statistics,contentDetails")
+                .queryParam("id", String.join(",", byId.keySet()))
+                .queryParam("key", apiKey).toUriString();
+        JsonNode vids = rc.get().uri(statsUrl).retrieve().body(JsonNode.class);
+        if (vids == null || !vids.has("items")) return List.of();
+
+        record Vid(String id, String title, String channel, long views, String meta) {}
+        List<Vid> list = new ArrayList<>();
+        for (JsonNode v : vids.get("items")) {
+            String vid = v.path("id").asText();
+            String[] meta = byId.get(vid);
+            if (meta == null) continue;
+            long views = v.path("statistics").path("viewCount").asLong(0);
+            if (views < MIN_VIEWS) continue;   // keep only well-watched videos
+            String dur = formatDuration(v.path("contentDetails").path("duration").asText(""));
+            String label = "▶ " + formatViews(views) + (dur.isEmpty() ? "" : " · " + dur);
+            list.add(new Vid(vid, meta[0], meta[1], views, label));
+        }
+        list.sort((a, b) -> Long.compare(b.views(), a.views()));   // most-viewed first
+
+        List<ModuleCatalog.Resource> out = new ArrayList<>();
+        for (Vid v : list.stream().limit(MAX_RESULTS).toList()) {
+            out.add(new ModuleCatalog.Resource(v.title(), v.channel(),
+                    "https://www.youtube.com/watch?v=" + v.id(), v.meta(), true));
+        }
+        return out;
+    }
+
+    private static String formatViews(long v) {
+        if (v >= 1_000_000) return String.format("%.1fM views", v / 1_000_000.0);
+        if (v >= 1_000) return String.format("%.0fK views", v / 1_000.0);
+        return v + " views";
+    }
+
+    private static String formatDuration(String iso) {
+        try {
+            Duration d = Duration.parse(iso);
+            long minutes = d.toMinutes();
+            return minutes >= 60 ? d.toHours() + "h " + (minutes % 60) + "m" : minutes + " min";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+}

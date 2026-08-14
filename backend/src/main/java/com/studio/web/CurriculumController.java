@@ -1,6 +1,7 @@
 package com.studio.web;
 
 import com.studio.exam.ModuleCatalog;
+import com.studio.exam.YouTubeResourceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,9 +21,29 @@ import java.util.Map;
 public class CurriculumController {
 
     private final ModuleCatalog catalog;
+    private final YouTubeResourceService youtube;
 
-    public CurriculumController(ModuleCatalog catalog) {
+    public CurriculumController(ModuleCatalog catalog, YouTubeResourceService youtube) {
         this.catalog = catalog;
+        this.youtube = youtube;
+    }
+
+    /** Highly-viewed free videos for a module, fetched from the YouTube Data API (empty if no key). */
+    @GetMapping("/videos")
+    public List<Map<String, Object>> videos(@RequestParam String moduleId) {
+        ModuleCatalog.Module m = catalog.getModule(moduleId);
+        if (m == null) return List.of();
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (ModuleCatalog.Resource r : youtube.topVideos(moduleId, m.title())) {
+            Map<String, Object> rm = new LinkedHashMap<>();
+            rm.put("title", r.title());
+            rm.put("provider", r.provider());
+            rm.put("url", r.url());
+            rm.put("meta", r.meta());
+            rm.put("free", true);
+            out.add(rm);
+        }
+        return out;
     }
 
     @GetMapping("/topics")

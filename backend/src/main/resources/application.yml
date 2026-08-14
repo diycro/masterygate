@@ -46,3 +46,9 @@ studio:
   llm:
     provider: openai
     daily-call-cap: 200
+
+# Optional: a free YouTube Data API v3 key enables highly-viewed community videos per module.
+# Get one at https://console.cloud.google.com (enable "YouTube Data API v3" -> create API key).
+# Without it, modules simply show the curated resources — nothing breaks.
+youtube:
+  api-key: ${YOUTUBE_API_KEY:}

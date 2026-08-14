@@ -268,6 +268,8 @@ function moduleView(){
       <div class="card pad track free"><h3>Free track <span class="tag">preferred</span></h3>${resHtml(freeR)}</div>
       <div class="card pad track paid"><h3>Paid track <span class="tag">optional</span></h3>${resHtml(paidR)}</div>
     </div>
+    <div class="card pad mt track free"><h3>Popular free videos <span class="tag">community</span></h3>
+      <div id="vids"><span class="spin"></span> <span class="muted">finding highly-viewed tutorials…</span></div></div>
     <div class="card pad mt"><h2>Interview focus</h2>
       <ul class="ilist">${m.interviewFocus.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>
     <div class="card pad mt" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
@@ -277,6 +279,21 @@ function moduleView(){
   </div>`;
   document.getElementById("back").onclick=()=>go("path");
   document.getElementById("startGate").onclick=()=>startGate(m.id);
+  loadVideos(m.id);
+}
+
+async function loadVideos(moduleId){
+  const el = document.getElementById("vids"); if(!el) return;
+  try{
+    const vids = await jf(API+"/curriculum/videos?moduleId="+encodeURIComponent(moduleId));
+    if(!vids.length){
+      el.innerHTML = `<p class="muted">Set a free <span class="mono">YOUTUBE_API_KEY</span> to surface highly-viewed community tutorials here. Until then, the curated tracks above have you covered.</p>`;
+      return;
+    }
+    el.innerHTML = vids.map(r=>`<a class="res" href="${esc(r.url)}" target="_blank" rel="noopener">
+      <div class="rt">${esc(r.title)} <span class="ext">↗</span></div>
+      <div class="rm">${esc(r.provider)} · ${esc(r.meta)}</div></a>`).join("");
+  }catch(e){ el.innerHTML = `<p class="muted">Couldn't load videos right now.</p>`; }
 }
 
 // ---------- gate ----------
