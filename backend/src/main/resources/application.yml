@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: learning-studio
+  datasource:
+    url: jdbc:postgresql://localhost:5432/studio
+    username: studio
+    password: studio
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  ai:
+    openai:
+      # BYOK: leave empty to boot without the model; set it to enable /api/llm/hello.
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+
+server:
+  port: 8080
+
+# App-specific settings (feature flags live in the DB; these are static defaults)
+studio:
+  llm:
+    provider: openai
+    daily-call-cap: 200

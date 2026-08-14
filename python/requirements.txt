@@ -1,0 +1,4 @@
+# Module 0 — pick the SDK for your provider. OpenAI-compatible by default.
+openai>=1.0
+# anthropic>=0.40      # if you use Claude directly
+# boto3>=1.34          # if you use AWS Bedrock
