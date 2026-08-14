@@ -6,6 +6,13 @@ spring:
   # though we never call them, which would break booting without a key.
   autoconfigure:
     exclude:
+      # Nothing persists to Postgres yet (progress is in localStorage, gate sessions in memory),
+      # so skip the database entirely for now — no Docker needed to run. Re-enable in the
+      # persistence sprint by removing these two lines and starting docker compose.
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      # We only use the OpenAI-compatible CHAT model; skip the other model auto-configs that
+      # eagerly demand a key at startup.
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
@@ -20,10 +27,11 @@ spring:
     locations: classpath:db/migration
   ai:
     openai:
-      # BYOK: leave empty to boot without the model; set it to enable /api/llm/hello.
-      # Using Groq's OpenAI-compatible endpoint. base-url stops at /openai — Spring AI
+      # The chat auto-config demands a non-empty key at startup, so we default to a placeholder
+      # ("not-set"): the app always boots, and LLM calls just fail gracefully until you set a real
+      # GROQ_API_KEY. Using Groq's OpenAI-compatible endpoint — base-url stops at /openai, Spring AI
       # appends /v1/chat/completions itself (setting /openai/v1 would double the /v1).
-      api-key: ${GROQ_API_KEY:}
+      api-key: ${GROQ_API_KEY:not-set}
       base-url: https://api.groq.com/openai
       chat:
         options:
