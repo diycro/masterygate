@@ -28,7 +28,7 @@ public class YouTubeResourceService {
     /** Curated, on-topic search queries so videos stay aligned to each module. */
     // Keep queries SHORT and natural — long, specific phrases return 0 YouTube results.
     private static final Map<String, String> QUERIES = Map.of(
-        "M0", "LLM API tutorial python",
+        "M0", "openai api python tutorial",
         "M1", "prompt engineering tutorial",
         "M2", "vector embeddings tutorial",
         "M3", "RAG tutorial",
@@ -139,30 +139,32 @@ public class YouTubeResourceService {
         log.info("YouTube videos.list -> {} items", vidCount);
         if (vids == null || !vids.has("items")) return List.of();
 
+        Map<String, JsonNode> stats = new java.util.HashMap<>();
+        for (JsonNode v : vids.get("items")) stats.put(v.path("id").asText(), v);
+
         record Vid(String id, String title, String channel, long views, String meta) {}
-        List<Vid> all = new ArrayList<>();
-        for (JsonNode v : vids.get("items")) {
-            String vid = v.path("id").asText();
-            String[] meta = byId.get(vid);
-            if (meta == null) continue;
+        // Build in YouTube's RELEVANCE order (byId preserves search order) — keeps videos on-topic.
+        List<Vid> ordered = new ArrayList<>();
+        for (Map.Entry<String, String[]> e : byId.entrySet()) {
+            JsonNode v = stats.get(e.getKey());
+            if (v == null) continue;
             long views = v.path("statistics").path("viewCount").asLong(0);
             String dur = formatDuration(v.path("contentDetails").path("duration").asText(""));
             String label = "▶ " + formatViews(views) + (dur.isEmpty() ? "" : " · " + dur);
-            all.add(new Vid(vid, meta[0], meta[1], views, label));
+            ordered.add(new Vid(e.getKey(), e.getValue()[0], e.getValue()[1], views, label));
         }
-        all.sort((a, b) -> Long.compare(b.views(), a.views()));   // most-viewed first
 
-        // Prefer well-watched videos, but if few clear the bar, still show the top results
-        // (better to surface the best available than nothing).
-        List<Vid> qualified = all.stream().filter(v -> v.views() >= MIN_VIEWS).toList();
-        List<Vid> chosen = qualified.size() >= 2 ? qualified : all;
+        // Relevance-first, but keep only well-viewed videos; if too few clear the bar,
+        // fall back to relevance order so we always surface the best available.
+        List<Vid> qualified = ordered.stream().filter(v -> v.views() >= MIN_VIEWS).toList();
+        List<Vid> chosen = qualified.size() >= 2 ? qualified : ordered;
 
         List<ModuleCatalog.Resource> out = new ArrayList<>();
         for (Vid v : chosen.stream().limit(MAX_RESULTS).toList()) {
             out.add(new ModuleCatalog.Resource(v.title(), v.channel(),
                     "https://www.youtube.com/watch?v=" + v.id(), v.meta(), true));
         }
-        log.info("YouTube module videos: {} chosen (from {} fetched)", out.size(), all.size());
+        log.info("YouTube module videos: {} chosen (from {} fetched, relevance-first)", out.size(), ordered.size());
         return out;
     }
 
