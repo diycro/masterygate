@@ -11,6 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,15 +28,30 @@ public class YouTubeResourceService {
 
     /** Curated, on-topic search queries so videos stay aligned to each module. */
     // Keep queries SHORT and natural — long, specific phrases return 0 YouTube results.
-    private static final Map<String, String> QUERIES = Map.of(
-        "M0", "openai api python tutorial",
-        "M1", "prompt engineering tutorial",
-        "M2", "vector embeddings tutorial",
-        "M3", "RAG tutorial",
-        "M4", "AI agents tutorial",
-        "M5", "LLM in production",
-        "M6", "build RAG application"
-    );
+    private static final Map<String, String> QUERIES = new HashMap<>();
+    static {
+        // GenAI
+        QUERIES.put("M0", "openai api python tutorial");
+        QUERIES.put("M1", "prompt engineering tutorial");
+        QUERIES.put("M2", "vector embeddings tutorial");
+        QUERIES.put("M3", "RAG tutorial");
+        QUERIES.put("M4", "AI agents tutorial");
+        QUERIES.put("M5", "LLM in production");
+        QUERIES.put("M6", "build RAG application");
+        // DSA
+        QUERIES.put("DSA1", "arrays hashing interview");
+        QUERIES.put("DSA2", "sliding window two pointers");
+        QUERIES.put("DSA3", "stack queue linked list interview");
+        QUERIES.put("DSA4", "binary tree bst interview");
+        QUERIES.put("DSA5", "graph algorithms bfs dfs");
+        QUERIES.put("DSA6", "dynamic programming tutorial");
+        // System Design
+        QUERIES.put("SD1", "system design basics");
+        QUERIES.put("SD2", "sql vs nosql system design");
+        QUERIES.put("SD3", "caching message queue system design");
+        QUERIES.put("SD4", "microservices system design");
+        QUERIES.put("SD5", "RAG system design");
+    }
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;
 

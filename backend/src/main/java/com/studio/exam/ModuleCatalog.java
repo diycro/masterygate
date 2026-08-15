@@ -30,6 +30,8 @@ public class ModuleCatalog {
 
     public ModuleCatalog() {
         buildGenAi();
+        buildDsa();
+        buildSystemDesign();
     }
 
     private void add(Module m) {
@@ -210,5 +212,175 @@ public class ModuleCatalog {
                 q("m6q2", "How would you add cost controls and evaluation to your capstone?",
                     "caching, cheaper-model routing, per-session budgets",
                     "an eval set (faithfulness/relevance) run in CI"))));
+    }
+
+    // ------------------------------------------------------------------ DSA track
+    private void buildDsa() {
+        String t = "dsa";
+        topics.put(t, new Topic(t, "Data Structures & Algorithms",
+                "Crack the #1 coding-interview gate — pattern-based, from arrays to graphs to DP."));
+
+        List<Resource> base = List.of(
+                free("NeetCode roadmap + solutions", "NeetCode", "https://neetcode.io/", "practice + videos"),
+                free("Striver's A2Z DSA Sheet", "takeUforward", "https://takeuforward.org/strivers-a2z-dsa-course/strivers-a2z-dsa-course-sheet-2/", "sheet + videos"),
+                free("Grind 75 problem list", "Tech Interview Handbook", "https://www.techinterviewhandbook.org/grind75/", "curated list"),
+                paid("Master the Coding Interview: DSA", "Udemy", "https://www.udemy.com/courses/search/?q=data+structures+algorithms", "search"));
+
+        add(new Module("DSA1", t, 0, "Arrays, Strings & Hashing",
+            List.of("Array/string traversal patterns", "Hashing for O(1) lookup", "Big-O time/space analysis"), base,
+            List.of("Always state complexity", "Hashmap vs sorting trade-offs"),
+            List.of(
+                q("dsa1q1", "When would you use a hash map instead of sorting to solve a problem, and what's the time/space trade-off?",
+                    "hash map gives O(1) average lookup -> often O(n) time but O(n) extra space",
+                    "sorting is O(n log n) time with little/no extra space",
+                    "use hashing when you need fast membership/counts and can afford the space"),
+                q("dsa1q2", "What does Big-O notation describe, and why do interviews focus on the worst case?",
+                    "asymptotic growth of time/space as input grows; constants are ignored",
+                    "worst case gives a guaranteed upper bound regardless of input"),
+                q("dsa1q3", "Give an example where a hash set turns an O(n^2) solution into O(n).",
+                    "e.g. two-sum or detecting duplicates", "store seen elements and check the complement/existence in O(1)"))));
+
+        add(new Module("DSA2", t, 1, "Two Pointers & Sliding Window",
+            List.of("Two-pointer technique", "Fixed & variable sliding windows", "Removing nested loops"), base,
+            List.of("Recognize window vs two-pointer", "Justify the O(n) complexity"),
+            List.of(
+                q("dsa2q1", "What signals in a problem suggest a sliding-window approach?",
+                    "a contiguous subarray/substring", "finding the longest/shortest/optimal window meeting a condition",
+                    "avoids recomputation by expanding/shrinking the window"),
+                q("dsa2q2", "How does a variable-size sliding window achieve O(n) instead of O(n^2)?",
+                    "each element enters and leaves the window at most once", "both pointers only move forward"),
+                q("dsa2q3", "Two pointers vs sliding window — when would you use each?",
+                    "two pointers: often sorted arrays / both ends (pair sums, partitioning)",
+                    "sliding window: optimize over a contiguous range"))));
+
+        add(new Module("DSA3", t, 2, "Stacks, Queues & Linked Lists",
+            List.of("Stack/queue use-cases", "Linked-list manipulation", "Choosing the right structure"), base,
+            List.of("Match structure to access pattern", "State complexity + space"),
+            List.of(
+                q("dsa3q1", "Give a problem where a stack is the natural fit, and why.",
+                    "matching parentheses / monotonic stack / undo", "LIFO — the most recent item is what you need next"),
+                q("dsa3q2", "How do you detect a cycle in a linked list, and what's the complexity?",
+                    "Floyd's fast & slow pointers", "O(n) time, O(1) space; the pointers meet inside the cycle"),
+                q("dsa3q3", "Array vs linked list — the key trade-offs?",
+                    "array: O(1) index access, contiguous, costly mid insert/delete",
+                    "linked list: O(1) insert/delete at a node, O(n) access, extra pointer memory"))));
+
+        add(new Module("DSA4", t, 3, "Trees & Binary Search Trees",
+            List.of("Tree traversals (DFS/BFS)", "BST properties", "Recursion on trees"), base,
+            List.of("When BST degrades", "In-order = sorted for a BST"),
+            List.of(
+                q("dsa4q1", "What property makes BST search O(log n), and when does it degrade to O(n)?",
+                    "left < root < right ordering enables binary search",
+                    "degrades to O(n) when the tree is unbalanced/skewed; balanced trees (AVL/Red-Black) keep O(log n)"),
+                q("dsa4q2", "BFS vs DFS traversal of a tree — difference and when to use each?",
+                    "BFS = level-order (queue), good for shortest path / level info",
+                    "DFS = deep (stack/recursion), good for path/subtree problems, less memory on wide trees"),
+                q("dsa4q3", "How would you check whether a binary tree is a valid BST?",
+                    "in-order traversal must be strictly increasing, OR recurse carrying min/max bounds",
+                    "a simple parent-child check is not sufficient"))));
+
+        add(new Module("DSA5", t, 4, "Graphs (BFS/DFS)",
+            List.of("Graph representations", "BFS/DFS on graphs", "Shortest-path basics"), base,
+            List.of("Sparse vs dense representation", "Avoiding infinite loops"),
+            List.of(
+                q("dsa5q1", "Adjacency list vs adjacency matrix — trade-offs?",
+                    "list: O(V+E) space, efficient for sparse graphs",
+                    "matrix: O(V^2) space, O(1) edge lookup, better for dense graphs"),
+                q("dsa5q2", "When do you use BFS vs DFS on a graph?",
+                    "BFS: shortest path in an unweighted graph, level exploration",
+                    "DFS: cycle detection, topological sort, connectivity, path existence"),
+                q("dsa5q3", "How do you avoid infinite loops when traversing a graph?",
+                    "keep a visited set/array and mark nodes as you go", "graphs can have cycles, unlike trees"))));
+
+        add(new Module("DSA6", t, 5, "Recursion & Dynamic Programming",
+            List.of("Recursion & base cases", "Memoization vs tabulation", "Spotting DP problems"), base,
+            List.of("Identify overlapping subproblems", "Explain the complexity win"),
+            List.of(
+                q("dsa6q1", "What signals that a problem can be solved with dynamic programming?",
+                    "overlapping subproblems AND optimal substructure",
+                    "the same subproblems recur and can be cached/reused"),
+                q("dsa6q2", "Memoization vs tabulation — what's the difference?",
+                    "memoization: top-down recursion with a cache",
+                    "tabulation: bottom-up iterative table; both remove recomputation"),
+                q("dsa6q3", "How does memoization change naive recursive Fibonacci's complexity?",
+                    "naive is O(2^n) exponential", "memoized is O(n) time and O(n) space by caching subresults"))));
+    }
+
+    // ------------------------------------------------------------------ System Design track
+    private void buildSystemDesign() {
+        String t = "sysdesign";
+        topics.put(t, new Topic(t, "System Design",
+                "Design scalable systems — the senior-level gate, ending with AI system design."));
+
+        List<Resource> base = List.of(
+                free("System Design Primer", "GitHub", "https://github.com/donnemartin/system-design-primer", "reference"),
+                free("Hello Interview — System Design", "Hello Interview", "https://www.hellointerview.com/learn/system-design", "guides"),
+                free("Gaurav Sen — System Design", "YouTube", "https://www.youtube.com/@gkcs", "videos"),
+                paid("ByteByteGo (Alex Xu)", "ByteByteGo", "https://bytebytego.com/", "course/book"));
+
+        add(new Module("SD1", t, 0, "Fundamentals: Scaling & Load Balancing",
+            List.of("Vertical vs horizontal scaling", "Load balancing & statelessness", "Latency vs throughput"), base,
+            List.of("Drive requirements first", "Back-of-envelope scale estimates"),
+            List.of(
+                q("sd1q1", "Vertical vs horizontal scaling — the trade-offs?",
+                    "vertical = bigger machine: simple but limited/expensive, single point of failure",
+                    "horizontal = more machines: scales far but needs load balancing and stateless servers"),
+                q("sd1q2", "What does a load balancer do, and why is statelessness important behind it?",
+                    "distributes traffic across servers", "stateless servers let any server handle any request (session in shared store), enabling scale and failover"),
+                q("sd1q3", "Define latency and throughput, and give a trade-off between them.",
+                    "latency = time per request; throughput = requests per second",
+                    "batching can raise throughput but increase per-request latency"))));
+
+        add(new Module("SD2", t, 1, "Databases & Data Modeling",
+            List.of("SQL vs NoSQL", "Sharding & replication", "Indexing & consistency (CAP)"), base,
+            List.of("Justify the DB choice", "Explain a consistency trade-off"),
+            List.of(
+                q("sd2q1", "When would you choose NoSQL over a relational database?",
+                    "flexible/large-scale/denormalized data, high write throughput, easy horizontal scaling, few complex joins",
+                    "choose SQL for strong consistency, relations, and ACID transactions"),
+                q("sd2q2", "Sharding vs replication — what does each solve?",
+                    "sharding splits data across nodes for scale / write throughput",
+                    "replication copies data for read scaling and availability/failover"),
+                q("sd2q3", "State the CAP theorem in one sentence, with a practical implication.",
+                    "under a network partition you must choose consistency or availability",
+                    "e.g. pick AP (eventual consistency) or CP depending on the use case"))));
+
+        add(new Module("SD3", t, 2, "Caching, Queues & Async",
+            List.of("Caching strategies & invalidation", "Message queues", "Async processing"), base,
+            List.of("Cache invalidation trade-offs", "Why decouple with a queue"),
+            List.of(
+                q("sd3q1", "Why cache, and name a hard problem caching introduces.",
+                    "reduces latency and DB load", "cache invalidation is hard — stale data, TTL vs write-through/write-back trade-offs"),
+                q("sd3q2", "What problem does a message queue solve?",
+                    "decouples producers from consumers", "smooths load spikes and enables async processing, retries, and resilience"),
+                q("sd3q3", "Cache-aside vs write-through — what's the difference?",
+                    "cache-aside: app loads on miss, writes DB then invalidates cache",
+                    "write-through: write cache and DB together — fresher reads, higher write latency"))));
+
+        add(new Module("SD4", t, 3, "Scalable APIs & Microservices",
+            List.of("API design & rate limiting", "Monolith vs microservices", "Resilience patterns"), base,
+            List.of("Trade-offs, not buzzwords", "Name concrete resilience patterns"),
+            List.of(
+                q("sd4q1", "Monolith vs microservices — the key trade-offs?",
+                    "monolith: simpler to build/deploy but harder to scale teams and parts independently",
+                    "microservices: independent scaling/deploy but network complexity, data consistency, and ops overhead"),
+                q("sd4q2", "Why and how do you rate-limit an API?",
+                    "protect from abuse/overload, ensure fairness, control cost",
+                    "algorithms like token bucket or leaky bucket, applied per API key/user"),
+                q("sd4q3", "Name two resilience patterns for service-to-service calls and what they prevent.",
+                    "timeouts and retries with backoff", "circuit breaker (stop calling a failing service), bulkhead, fallback"))));
+
+        add(new Module("SD5", t, 4, "AI System Design",
+            List.of("Design a RAG pipeline", "LLM gateway (cache/route/limit)", "Scale a vector DB"), base,
+            List.of("Reuse your GenAI edge", "Cost & latency at scale"),
+            List.of(
+                q("sd5q1", "Sketch the high-level components of a RAG system.",
+                    "ingestion: chunk -> embed -> store in a vector DB", "retrieval (optionally re-rank) -> augment the prompt -> LLM generates",
+                    "plus caching, evals, and guardrails"),
+                q("sd5q2", "What does an LLM gateway do in production?",
+                    "a central layer for caching, model routing (cheap vs strong), rate limiting, retries/fallback",
+                    "and cost/usage tracking + key management"),
+                q("sd5q3", "How would you scale a vector DB to 100M vectors with low latency?",
+                    "an ANN index (HNSW/IVF)", "sharding/partitioning + read replicas, cache hot queries, tune the recall/latency trade-off"))));
     }
 }
