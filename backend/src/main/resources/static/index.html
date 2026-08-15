@@ -115,6 +115,15 @@
   .res .rm{font-size:11.5px;color:var(--ink-3);font-family:var(--f-mono);margin-top:2px}
   .res .ext{font-size:11px}
   .ilist{margin:8px 0 0;padding-left:18px;color:var(--ink-2)}.ilist li{margin:4px 0}
+  /* checkable curated resources */
+  .reschk{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-top:1px solid var(--border)}
+  .reschk:first-child{border-top:0}
+  .reschk .box{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--border-strong);flex:none;margin-top:1px;
+    display:grid;place-items:center;cursor:pointer;background:var(--surface);color:transparent;font-size:12px;font-weight:800}
+  .reschk .box:hover{border-color:var(--accent)}
+  .reschk[data-done="true"] .box{background:var(--pass);border-color:var(--pass);color:#fff}
+  .reschk[data-done="true"] .rt{color:var(--ink-3);text-decoration:line-through}
+  .reschk .rbody{flex:1;min-width:0}
   .vhero{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--border-strong);
     border-radius:12px;background:var(--surface-2);text-decoration:none;transition:border-color .12s,box-shadow .12s,transform .1s}
   .vhero:hover{border-color:var(--accent-line);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
@@ -427,14 +436,21 @@ async function pathView(){
 
 function openModule(id){ state.moduleId = id; go("module"); }
 
-function moduleView(){
+async function moduleView(){
   const m = state.path.modules.find(x=>x.id===state.moduleId);
   const prog = state.progress || {passed:{}, scores:{}};
   const passed = !!prog.passed[m.id];
   const freeR = m.resources.filter(r=>r.free), paidR = m.resources.filter(r=>!r.free);
-  const resHtml = (arr)=> arr.length ? arr.map(r=>`<a class="res" href="${esc(r.url)}" target="_blank" rel="noopener">
-      <div class="rt">${esc(r.title)} <span class="ext">↗</span></div>
-      <div class="rm">${esc(r.provider)} · ${esc(r.meta)}</div></a>`).join("")
+  let doneMap = {};
+  try{ doneMap = await jf(API+"/resource-progress?userId="+encodeURIComponent(store.userId())+"&moduleId="+encodeURIComponent(m.id)); }catch(e){}
+  const resHtml = (arr)=> arr.length ? arr.map(r=>{
+      const done = !!doneMap[r.url];
+      return `<div class="reschk" data-done="${done}" data-url="${esc(r.url)}">
+        <span class="box" role="checkbox" aria-checked="${done}" tabindex="0">✓</span>
+        <a class="rbody" href="${esc(r.url)}" target="_blank" rel="noopener">
+          <div class="rt">${esc(r.title)} <span class="ext">↗</span></div>
+          <div class="rm">${esc(r.provider)} · ${esc(r.meta)}</div></a></div>`;
+    }).join("")
     : `<p class="muted">— none —</p>`;
   view.innerHTML = `<div class="wrap">
     <button class="backlink" id="back">← Your path</button>
@@ -471,6 +487,29 @@ function moduleView(){
   loadVideos(m.id);
   loadQABank(m);
   document.getElementById("moreQ").onclick=()=>generateMoreQA(m);
+  wireResourceChecks(m.id);
+}
+
+function wireResourceChecks(moduleId){
+  document.querySelectorAll(".reschk .box").forEach(box=>{
+    const row = box.closest(".reschk");
+    const toggle = ()=>toggleResource(moduleId, row);
+    box.onclick = toggle;
+    box.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } };
+  });
+}
+async function toggleResource(moduleId, row){
+  const next = row.dataset.done !== "true";
+  row.dataset.done = String(next);
+  row.querySelector(".box").setAttribute("aria-checked", String(next));
+  try{
+    await jf(API+"/resource-progress", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({userId:Number(store.userId()), moduleId, url:row.dataset.url, done:next})});
+  }catch(e){
+    row.dataset.done = String(!next);   // revert on failure
+    row.querySelector(".box").setAttribute("aria-checked", String(!next));
+    toast("Couldn't save that — try again.", "error");
+  }
 }
 
 async function loadVideos(moduleId){
