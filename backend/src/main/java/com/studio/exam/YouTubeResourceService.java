@@ -26,14 +26,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class YouTubeResourceService {
 
     /** Curated, on-topic search queries so videos stay aligned to each module. */
+    // Keep queries SHORT and natural — long, specific phrases return 0 YouTube results.
     private static final Map<String, String> QUERIES = Map.of(
-        "M0", "call LLM API python tutorial for beginners",
-        "M1", "how large language models work tokens temperature prompt engineering",
-        "M2", "vector embeddings and semantic search explained",
-        "M3", "retrieval augmented generation RAG tutorial",
-        "M4", "AI agents and tool calling LLM tutorial",
-        "M5", "LLM in production evaluation guardrails cost",
-        "M6", "build a RAG application full project tutorial"
+        "M0", "LLM API tutorial python",
+        "M1", "prompt engineering tutorial",
+        "M2", "vector embeddings tutorial",
+        "M3", "RAG tutorial",
+        "M4", "AI agents tutorial",
+        "M5", "LLM in production",
+        "M6", "build RAG application"
     );
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;
