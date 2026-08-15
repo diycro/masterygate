@@ -47,6 +47,9 @@ public class YouTubeResourceService {
 
     public YouTubeResourceService(@Value("${youtube.api-key:}") String apiKey) {
         this.apiKey = apiKey;
+        log.info("YouTube integration {}", (apiKey != null && !apiKey.isBlank())
+                ? "ENABLED (API key detected, length=" + apiKey.length() + ")"
+                : "DISABLED (no YOUTUBE_API_KEY seen by the app)");
     }
 
     public boolean enabled() {
