@@ -53,3 +53,36 @@ export interface MockAnswerResponse {
 export interface MockReportRound {
   type: string; label: string; question: string; answer: string; score: number; feedback: string;
 }
+
+// ---- interactive course ----
+export interface DiagramNode { label: string; sub: string | null; }
+export interface CompareColumn { heading: string; points: string[]; }
+export interface Diagram {
+  kind: 'flow' | 'cycle' | 'stack' | 'compare';
+  caption: string | null;
+  nodes: DiagramNode[] | null;
+  columns: CompareColumn[] | null;
+}
+export type SegmentType = 'CONCEPT' | 'DIAGRAM' | 'CODE' | 'STORY' | 'CALLOUT';
+export interface CourseSegment {
+  id: string; type: SegmentType; title: string; narration: string;
+  diagram: Diagram | null; code: string | null; codeLang: string | null;
+}
+export interface CheckView { question: string; options: string[]; }
+export interface LessonView {
+  id: string; order: number; title: string; subtitle: string; minutes: number;
+  segments: CourseSegment[]; checks: CheckView[]; completed: boolean; lastSegmentIndex: number;
+}
+export interface CourseView { moduleId: string; lessons: LessonView[]; courseComplete: boolean; }
+
+export interface CheckResult { correct: boolean; correctIndex: number; explanation: string; }
+export interface GradeChecksResponse { results: CheckResult[]; allCorrect: boolean; lessonCompleted: boolean; }
+
+export interface InterviewRound {
+  name: string; duration: string; whatTheyTest: string; sampleQuestions: string[]; proTip: string;
+}
+export interface CompanyTrack { company: string; levelNote: string; rounds: InterviewRound[]; }
+export interface InterviewPlaybook {
+  topicId: string; title: string; intro: string; companies: CompanyTrack[];
+  commonPitfalls: string[]; prepChecklist: string[];
+}

@@ -1,9 +1,11 @@
 package com.studio.web;
 
+import com.studio.course.CourseService;
 import com.studio.exam.GateService;
 import com.studio.exam.GateSession;
 import com.studio.exam.GradeResult;
 import com.studio.exam.ModuleCatalog;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,18 +26,26 @@ public class GateController {
     private final GateService gate;
     private final com.studio.persist.ProgressService progressService;
     private final com.studio.persist.ActivityService activityService;
+    private final CourseService courseService;
 
     public GateController(GateService gate, com.studio.persist.ProgressService progressService,
-                          com.studio.persist.ActivityService activityService) {
+                          com.studio.persist.ActivityService activityService, CourseService courseService) {
         this.gate = gate;
         this.progressService = progressService;
         this.activityService = activityService;
+        this.courseService = courseService;
     }
 
     @PostMapping("/start")
-    public Map<String, Object> start(@RequestParam String moduleId,
+    public ResponseEntity<Map<String, Object>> start(@RequestParam String moduleId,
                                      @RequestParam(defaultValue = "false") boolean dynamic,
                                      @RequestParam(required = false) Long userId) {
+        // Modules with an authored interactive course require it finished first — only enforced
+        // when we can identify the user and the module actually has a course to finish.
+        if (userId != null && courseService.hasCourse(moduleId) && !courseService.isCourseComplete(moduleId, userId)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Finish the course for this module before starting the mastery gate."));
+        }
         activityService.recordToday(userId);
         GateSession s = gate.start(moduleId, dynamic, userId);
         Map<String, Object> out = new LinkedHashMap<>();
@@ -44,7 +54,7 @@ public class GateController {
         out.put("total", s.questions.size());
         out.put("index", s.index);
         out.put("question", s.current().text());
-        return out;
+        return ResponseEntity.ok(out);
     }
 
     public record AnswerRequest(String sessionId, String answer) {}

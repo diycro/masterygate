@@ -6,7 +6,7 @@ import { ApiService } from '../../services/api.service';
 import { StoreService } from '../../services/store.service';
 import { AppStateService } from '../../services/app-state.service';
 import { ToastService } from '../../services/toast.service';
-import { ModuleSummary, Resource } from '../../models';
+import { CourseView, ModuleSummary, Resource } from '../../models';
 import { QaBankComponent } from './qa-bank.component';
 import { CodePracticeComponent } from './code-practice.component';
 
@@ -29,6 +29,7 @@ export class ModuleComponent implements OnInit {
   videos: VideoItem[] = [];
   dynGate = false;
   gateStarting = false;
+  course: CourseView | null = null;
 
   constructor(
     public state: AppStateService,
@@ -52,6 +53,23 @@ export class ModuleComponent implements OnInit {
       error: () => this.buildResources({})
     });
     this.loadVideos();
+    this.loadCourse();
+  }
+
+  loadCourse() {
+    if (!this.m) return;
+    this.api.course(this.m.id, this.store.userId()).subscribe({
+      next: c => { if (c.lessons.length) this.course = c; },
+      error: () => {}
+    });
+  }
+
+  get courseLessonsDone(): number { return this.course ? this.course.lessons.filter(l => l.completed).length : 0; }
+
+  openCourse() {
+    if (!this.m) return;
+    this.state.moduleId = this.m.id;
+    this.router.navigate(['/course']);
   }
 
   private buildResources(doneMap: Record<string, boolean>) {
@@ -87,8 +105,12 @@ export class ModuleComponent implements OnInit {
 
   back() { this.router.navigate(['/path']); }
 
+  get gateLocked(): boolean {
+    return !!this.course && this.course.lessons.length > 0 && !this.course.courseComplete;
+  }
+
   startGate() {
-    if (!this.m) return;
+    if (!this.m || this.gateLocked) return;
     this.gateStarting = true;
     this.api.gateStart(this.m.id, this.dynGate, this.store.userId()).subscribe({
       next: d => {
@@ -96,7 +118,11 @@ export class ModuleComponent implements OnInit {
         this.state.gate = { moduleId: this.m!.id, sessionId: d.sessionId, total: d.total, index: d.index, question: d.question };
         this.router.navigate(['/gate']);
       },
-      error: e => { this.gateStarting = false; this.toast.show('Could not start the gate: ' + e.message, 'error'); }
+      error: e => {
+        this.gateStarting = false;
+        const serverMsg = e?.error?.error;
+        this.toast.show(serverMsg || ('Could not start the gate: ' + e.message), 'error');
+      }
     });
   }
 }

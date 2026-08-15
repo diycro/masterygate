@@ -7,6 +7,7 @@ export const routes: Routes = [
   { path: 'topics', canActivate: [authGuard], loadComponent: () => import('./pages/topics/topics.component').then(m => m.TopicsComponent) },
   { path: 'path', canActivate: [authGuard], loadComponent: () => import('./pages/path/path.component').then(m => m.PathComponent) },
   { path: 'module', canActivate: [authGuard], loadComponent: () => import('./pages/module/module.component').then(m => m.ModuleComponent) },
+  { path: 'course', canActivate: [authGuard], loadComponent: () => import('./pages/course/course-player.component').then(m => m.CoursePlayerComponent) },
   { path: 'gate', canActivate: [authGuard], loadComponent: () => import('./pages/gate/gate.component').then(m => m.GateComponent) },
   { path: 'mock/start', canActivate: [authGuard], loadComponent: () => import('./pages/mock-start/mock-start.component').then(m => m.MockStartComponent) },
   { path: 'mock/round', canActivate: [authGuard], loadComponent: () => import('./pages/mock-round/mock-round.component').then(m => m.MockRoundComponent) },

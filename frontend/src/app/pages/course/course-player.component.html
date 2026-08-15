@@ -1,0 +1,122 @@
+<div class="wrap" *ngIf="loading"><p class="muted"><span class="spin"></span> loading course…</p></div>
+<div class="wrap" *ngIf="error"><div class="err">Couldn't load the course ({{error}}).</div></div>
+
+<div class="wrap" *ngIf="!loading && !error && lessons.length">
+  <button class="backlink" (click)="backToModule()">← Back to module</button>
+
+  <div class="course-shell mt">
+    <div class="card pad course-sidebar">
+      <h2 style="font-size:14px">Course</h2>
+      <div class="mt">
+        <div class="lesson-item" *ngFor="let l of lessons; let i=index" [class.active]="mode==='lesson' && i===activeLessonIdx"
+             [class.done]="l.completed" (click)="selectLesson(i)">
+          <span class="lchk">✓</span>
+          <div><div>{{l.title}}</div><div class="lmeta">{{l.minutes}} min</div></div>
+        </div>
+        <div class="playbook-link" [class.active]="mode==='playbook'" (click)="openPlaybook()">🎯 Interview Playbook</div>
+      </div>
+    </div>
+
+    <div>
+      <!-- LESSON MODE -->
+      <ng-container *ngIf="mode==='lesson' && activeLesson">
+        <div class="card pad segment-card" *ngIf="!onQuiz && currentSegment">
+          <span class="kindtag">{{currentSegment.type}}</span>
+          <h2>{{currentSegment.title}}</h2>
+
+          <ng-container [ngSwitch]="currentSegment.type">
+            <div *ngSwitchCase="'CALLOUT'" class="callout-box">
+              <div class="segment-narration">🎯 {{currentSegment.narration}}</div>
+            </div>
+            <div *ngSwitchCase="'STORY'" class="story-box">
+              <div class="segment-narration">{{currentSegment.narration}}</div>
+            </div>
+            <div *ngSwitchDefault>
+              <div class="segment-narration">{{currentSegment.narration}}</div>
+              <app-diagram *ngIf="currentSegment.diagram" [d]="currentSegment.diagram"></app-diagram>
+              <pre class="illustrative-code" *ngIf="currentSegment.code">{{currentSegment.code}}</pre>
+            </div>
+          </ng-container>
+
+          <div style="flex:1"></div>
+          <div class="player-controls">
+            <button class="navbtn" [disabled]="segIdx===0" (click)="prev()">⏮</button>
+            <button class="playbtn" (click)="togglePlay()">{{playing ? '⏸' : '▶'}}</button>
+            <div class="segdots">
+              <span class="segdot" *ngFor="let s of segments; let i=index" [class.on]="i===segIdx" (click)="jumpToSegment(i)"></span>
+              <span class="segdot" *ngIf="hasQuiz" [class.on]="onQuiz" (click)="jumpToSegment(segments.length)"></span>
+            </div>
+            <button class="navbtn" (click)="next()">⏭</button>
+          </div>
+        </div>
+
+        <!-- QUIZ -->
+        <div class="card pad segment-card quiz-card" *ngIf="onQuiz">
+          <span class="kindtag">Knowledge check</span>
+          <h2>Quick check before you move on</h2>
+
+          <div *ngIf="activeLesson.completed && !quizResults">
+            <p class="sub mt">You already passed this check.</p>
+            <div class="row"><button class="btn" (click)="continueNext()">{{isLastLesson ? 'Back to module →' : 'Continue to next lesson →'}}</button></div>
+          </div>
+
+          <ng-container *ngIf="!(activeLesson.completed && !quizResults)">
+            <div *ngFor="let c of activeLesson.checks; let ci=index">
+              <div class="quiz-q">{{ci+1}}. {{c.question}}</div>
+              <div class="quiz-opt" *ngFor="let opt of c.options; let oi=index" [ngClass]="optClass(ci,oi)" (click)="pick(ci,oi)">
+                {{opt}}
+              </div>
+              <div class="quiz-explain" *ngIf="quizResults">{{quizResults[ci].explanation}}</div>
+            </div>
+
+            <div class="row" *ngIf="!quizResults">
+              <button class="btn" [disabled]="!allAnswered() || grading" (click)="submitQuiz()">
+                <span class="spin" *ngIf="grading"></span>{{grading ? 'Checking…' : 'Submit'}}</button>
+            </div>
+            <p class="sub" *ngIf="quizResults && !quizAllCorrect" style="color:var(--warn)">
+              Not quite — review the explanations above, then pick a different answer to try again.</p>
+            <div class="row" *ngIf="quizResults && quizAllCorrect">
+              <button class="btn" (click)="continueNext()">{{isLastLesson ? 'Back to module →' : 'Continue to next lesson →'}}</button>
+            </div>
+            <div class="row" *ngIf="segments.length>0">
+              <button class="btn ghost" (click)="prev()">← Back to lesson content</button>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <!-- PLAYBOOK MODE -->
+      <div class="card pad" *ngIf="mode==='playbook'">
+        <button class="backlink" (click)="backToLessons()">← Back to lessons</button>
+        <p class="muted" *ngIf="playbookLoading"><span class="spin"></span> loading playbook…</p>
+        <ng-container *ngIf="playbook">
+          <span class="eyebrow">Interview playbook</span>
+          <h1>{{playbook.title}}</h1>
+          <p class="sub">{{playbook.intro}}</p>
+
+          <div *ngFor="let c of playbook.companies" class="pbcompany">
+            <h2>{{c.company}}</h2>
+            <p class="sub" style="font-size:13px">{{c.levelNote}}</p>
+            <div class="pbround" *ngFor="let r of c.rounds">
+              <div class="prh"><span class="pn">{{r.name}}</span><span class="chip">{{r.duration}}</span></div>
+              <p class="sub" style="font-size:13.5px;margin-top:8px">{{r.whatTheyTest}}</p>
+              <ul class="ilist" *ngIf="r.sampleQuestions && r.sampleQuestions.length">
+                <li *ngFor="let q of r.sampleQuestions">{{q}}</li>
+              </ul>
+              <p class="fb" *ngIf="r.proTip" style="font-style:italic">💡 {{r.proTip}}</p>
+            </div>
+          </div>
+
+          <div class="card pad mt" *ngIf="playbook.commonPitfalls && playbook.commonPitfalls.length">
+            <h2>Common pitfalls</h2>
+            <ul class="ilist"><li *ngFor="let p of playbook.commonPitfalls">{{p}}</li></ul>
+          </div>
+          <div class="card pad mt" *ngIf="playbook.prepChecklist && playbook.prepChecklist.length">
+            <h2>Prep checklist</h2>
+            <ul class="ilist"><li *ngFor="let p of playbook.prepChecklist">{{p}}</li></ul>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

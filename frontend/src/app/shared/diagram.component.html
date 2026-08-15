@@ -1,0 +1,25 @@
+<div class="diagram" *ngIf="d">
+  <div class="dcap" *ngIf="d.caption">{{d.caption}}</div>
+
+  <div class="dflow" *ngIf="d.kind==='flow' || d.kind==='cycle'">
+    <ng-container *ngFor="let n of d.nodes; let last=last">
+      <div class="dnode"><div class="dl">{{n.label}}</div><div class="ds" *ngIf="n.sub">{{n.sub}}</div></div>
+      <span class="darrow" *ngIf="!last">→</span>
+    </ng-container>
+  </div>
+  <div class="dcycle-back" *ngIf="d.kind==='cycle' && d.nodes && d.nodes.length">↺ loops back to "{{d.nodes[0].label}}"</div>
+
+  <div class="dstack" *ngIf="d.kind==='stack'">
+    <ng-container *ngFor="let n of d.nodes; let last=last">
+      <div class="dnode"><div class="dl">{{n.label}}</div><div class="ds" *ngIf="n.sub">{{n.sub}}</div></div>
+      <div class="dstack-arrow" *ngIf="!last">↓</div>
+    </ng-container>
+  </div>
+
+  <div class="dcompare" *ngIf="d.kind==='compare' && d.columns">
+    <div class="dcol" *ngFor="let c of d.columns">
+      <h4>{{c.heading}}</h4>
+      <ul><li *ngFor="let p of c.points">{{p}}</li></ul>
+    </div>
+  </div>
+</div>

@@ -63,6 +63,15 @@
   <div class="card pad mt"><h2>Interview focus</h2>
     <ul class="ilist"><li *ngFor="let f of m.interviewFocus">{{f}}</li></ul></div>
 
+  <div class="card pad mt" *ngIf="course">
+    <div class="head-row">
+      <div><h2>🎓 Interactive course</h2>
+        <p class="sub" style="font-size:13px">Narrated lessons with diagrams and knowledge checks — learn it before the gate tests it.</p></div>
+      <span class="course-progress-pill" [class.full]="course.courseComplete">{{courseLessonsDone}}/{{course.lessons.length}} lessons</span>
+    </div>
+    <div class="row"><button class="btn" (click)="openCourse()">{{courseLessonsDone>0 ? 'Continue course' : 'Start course'}} →</button></div>
+  </div>
+
   <app-code-practice [moduleId]="m.id"></app-code-practice>
 
   <app-qa-bank [moduleId]="m.id"></app-qa-bank>
@@ -71,10 +80,13 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div><h2>{{passed ? 'Retake the gate' : 'Ready to prove it?'}}</h2>
         <p class="sub" style="font-size:13px">{{m.questionCount}} curated questions. The AI grades your written answers strictly — pass at avg 70+.</p></div>
-      <button class="btn lg" [disabled]="gateStarting" (click)="startGate()">
+      <button class="btn lg" [disabled]="gateStarting || gateLocked" (click)="startGate()">
         <span class="spin" *ngIf="gateStarting"></span>{{passed ? 'Retake gate' : 'Start the gate'}} →</button>
     </div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13px;color:var(--ink-2);cursor:pointer">
       <input type="checkbox" [(ngModel)]="dynGate" style="width:auto"> Generate a fresh AI gate grounded in this module's material (new questions each time)</label>
+    <div class="gate-locked-note" *ngIf="gateLocked">
+      🔒 Finish the interactive course first ({{courseLessonsDone}}/{{course!.lessons.length}} lessons done) — it covers exactly what the gate will ask.
+    </div>
   </div>
 </div>

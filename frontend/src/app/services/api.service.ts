@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  CodeProblem, DashboardResponse, GateAnswerResponse, GateStart, InterviewQA,
-  MockAnswerResponse, MockStartResponse, PathResponse, ProgressMap, RunResult, Topic
+  CodeProblem, CourseView, DashboardResponse, GateAnswerResponse, GateStart, GradeChecksResponse,
+  InterviewPlaybook, InterviewQA, MockAnswerResponse, MockStartResponse, PathResponse, ProgressMap,
+  RunResult, Topic
 } from '../models';
 
 const API = '/api';
@@ -80,5 +81,21 @@ export class ApiService {
   }
   mockHistory(userId: string): Observable<any[]> {
     return this.http.get<any[]>(`${API}/mock/history`, { params: { userId } });
+  }
+
+  // ---- interactive course ----
+  course(moduleId: string, userId: string | null): Observable<CourseView> {
+    let params: any = {};
+    if (userId) params.userId = userId;
+    return this.http.get<CourseView>(`${API}/course/${moduleId}`, { params });
+  }
+  saveCoursePosition(userId: number, moduleId: string, lessonId: string, segmentIndex: number): Observable<void> {
+    return this.http.post<void>(`${API}/course/position`, { userId, moduleId, lessonId, segmentIndex });
+  }
+  gradeChecks(userId: number | null, moduleId: string, lessonId: string, answers: number[]): Observable<GradeChecksResponse> {
+    return this.http.post<GradeChecksResponse>(`${API}/course/check`, { userId, moduleId, lessonId, answers });
+  }
+  playbook(topicId: string): Observable<InterviewPlaybook> {
+    return this.http.get<InterviewPlaybook>(`${API}/course/playbook/${topicId}`);
   }
 }
