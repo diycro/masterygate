@@ -126,21 +126,25 @@ public class YouTubeResourceService {
         if (vids == null || !vids.has("items")) return List.of();
 
         record Vid(String id, String title, String channel, long views, String meta) {}
-        List<Vid> list = new ArrayList<>();
+        List<Vid> all = new ArrayList<>();
         for (JsonNode v : vids.get("items")) {
             String vid = v.path("id").asText();
             String[] meta = byId.get(vid);
             if (meta == null) continue;
             long views = v.path("statistics").path("viewCount").asLong(0);
-            if (views < MIN_VIEWS) continue;   // keep only well-watched videos
             String dur = formatDuration(v.path("contentDetails").path("duration").asText(""));
             String label = "▶ " + formatViews(views) + (dur.isEmpty() ? "" : " · " + dur);
-            list.add(new Vid(vid, meta[0], meta[1], views, label));
+            all.add(new Vid(vid, meta[0], meta[1], views, label));
         }
-        list.sort((a, b) -> Long.compare(b.views(), a.views()));   // most-viewed first
+        all.sort((a, b) -> Long.compare(b.views(), a.views()));   // most-viewed first
+
+        // Prefer well-watched videos, but if few clear the bar, still show the top results
+        // (better to surface the best available than nothing).
+        List<Vid> qualified = all.stream().filter(v -> v.views() >= MIN_VIEWS).toList();
+        List<Vid> chosen = qualified.size() >= 2 ? qualified : all;
 
         List<ModuleCatalog.Resource> out = new ArrayList<>();
-        for (Vid v : list.stream().limit(MAX_RESULTS).toList()) {
+        for (Vid v : chosen.stream().limit(MAX_RESULTS).toList()) {
             out.add(new ModuleCatalog.Resource(v.title(), v.channel(),
                     "https://www.youtube.com/watch?v=" + v.id(), v.meta(), true));
         }
