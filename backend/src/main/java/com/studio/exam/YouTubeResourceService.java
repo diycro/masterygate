@@ -1,9 +1,12 @@
 package com.studio.exam;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
@@ -35,6 +38,8 @@ public class YouTubeResourceService {
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;
 
+    private static final Logger log = LoggerFactory.getLogger(YouTubeResourceService.class);
+
     private final String apiKey;
     private final RestClient rc = RestClient.create();
     private final Map<String, List<ModuleCatalog.Resource>> cache = new ConcurrentHashMap<>();
@@ -54,6 +59,7 @@ public class YouTubeResourceService {
             try {
                 return fetch(QUERIES.getOrDefault(moduleId, fallbackTitle + " tutorial"));
             } catch (Exception e) {
+                logYt("search (topVideos)", e);
                 return List.of();  // graceful: curated resources remain
             }
         });
@@ -78,9 +84,18 @@ public class YouTubeResourceService {
                 if (desc.length() > 500) desc = desc.substring(0, 500);
                 return (title + " — " + desc).trim();
             } catch (Exception e) {
+                logYt("search (bestVideoContext)", e);
                 return "";
             }
         });
+    }
+
+    private void logYt(String where, Exception e) {
+        if (e instanceof RestClientResponseException r) {
+            log.warn("YouTube {} failed: HTTP {} — {}", where, r.getStatusCode(), r.getResponseBodyAsString());
+        } else {
+            log.warn("YouTube {} failed: {}", where, e.toString());
+        }
     }
 
     private List<ModuleCatalog.Resource> fetch(String query) {
