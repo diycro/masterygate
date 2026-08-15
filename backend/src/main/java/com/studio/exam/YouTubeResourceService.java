@@ -58,14 +58,18 @@ public class YouTubeResourceService {
 
     public List<ModuleCatalog.Resource> topVideos(String moduleId, String fallbackTitle) {
         if (!enabled()) return List.of();
-        return cache.computeIfAbsent(moduleId, k -> {
-            try {
-                return fetch(QUERIES.getOrDefault(moduleId, fallbackTitle + " tutorial"));
-            } catch (Exception e) {
-                logYt("search (topVideos)", e);
-                return List.of();  // graceful: curated resources remain
-            }
-        });
+        List<ModuleCatalog.Resource> cached = cache.get(moduleId);
+        if (cached != null) return cached;
+        String query = QUERIES.getOrDefault(moduleId, fallbackTitle + " tutorial");
+        List<ModuleCatalog.Resource> result;
+        try {
+            result = fetch(query);
+        } catch (Exception e) {
+            logYt("search (topVideos)", e);
+            result = List.of();
+        }
+        if (!result.isEmpty()) cache.put(moduleId, result);   // never cache a failure/empty — so it retries + re-logs
+        return result;
     }
 
     /** Top video's "title — description" for a module, to ground LLM question generation. "" if none. */
@@ -109,6 +113,8 @@ public class YouTubeResourceService {
                 .queryParam("videoEmbeddable", "true").queryParam("q", query)
                 .queryParam("key", apiKey).toUriString();
         JsonNode search = rc.get().uri(searchUrl).retrieve().body(JsonNode.class);
+        int searchCount = (search == null) ? 0 : search.path("items").size();
+        log.info("YouTube search '{}' -> {} items", query, searchCount);
         if (search == null || !search.has("items")) return List.of();
 
         Map<String, String[]> byId = new LinkedHashMap<>(); // videoId -> [title, channel]
@@ -119,13 +125,19 @@ public class YouTubeResourceService {
                 byId.put(vid, new String[]{sn.path("title").asText(""), sn.path("channelTitle").asText("")});
             }
         }
-        if (byId.isEmpty()) return List.of();
+        if (byId.isEmpty()) {
+            log.warn("YouTube: parsed 0 videoIds from search response: {}",
+                    search.toString().substring(0, Math.min(400, search.toString().length())));
+            return List.of();
+        }
 
         String statsUrl = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/videos")
                 .queryParam("part", "statistics,contentDetails")
                 .queryParam("id", String.join(",", byId.keySet()))
                 .queryParam("key", apiKey).toUriString();
         JsonNode vids = rc.get().uri(statsUrl).retrieve().body(JsonNode.class);
+        int vidCount = (vids == null) ? 0 : vids.path("items").size();
+        log.info("YouTube videos.list -> {} items", vidCount);
         if (vids == null || !vids.has("items")) return List.of();
 
         record Vid(String id, String title, String channel, long views, String meta) {}
@@ -151,6 +163,7 @@ public class YouTubeResourceService {
             out.add(new ModuleCatalog.Resource(v.title(), v.channel(),
                     "https://www.youtube.com/watch?v=" + v.id(), v.meta(), true));
         }
+        log.info("YouTube module videos: {} chosen (from {} fetched)", out.size(), all.size());
         return out;
     }
 
