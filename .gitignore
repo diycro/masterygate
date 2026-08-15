@@ -13,6 +13,11 @@ dist/
 __pycache__/
 *.pyc
 
+# Local H2 database files
+data/
+*.mv.db
+*.trace.db
+
 # Secrets & local env — never commit keys
 .env
 *.env

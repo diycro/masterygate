@@ -22,15 +22,18 @@ import java.util.Map;
 public class GateController {
 
     private final GateService gate;
+    private final com.studio.persist.ProgressService progressService;
 
-    public GateController(GateService gate) {
+    public GateController(GateService gate, com.studio.persist.ProgressService progressService) {
         this.gate = gate;
+        this.progressService = progressService;
     }
 
     @PostMapping("/start")
     public Map<String, Object> start(@RequestParam String moduleId,
-                                     @RequestParam(defaultValue = "false") boolean dynamic) {
-        GateSession s = gate.start(moduleId, dynamic);
+                                     @RequestParam(defaultValue = "false") boolean dynamic,
+                                     @RequestParam(required = false) Long userId) {
+        GateSession s = gate.start(moduleId, dynamic, userId);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sessionId", s.id);
         out.put("moduleId", s.moduleId);
@@ -53,6 +56,9 @@ public class GateController {
         if (s.done()) {
             out.put("passed", s.passed());
             out.put("avgScore", s.avgScore());
+            if (s.passed() && s.userId != null) {
+                progressService.recordPass(s.userId, s.topicId, s.moduleId, s.avgScore());
+            }
         } else {
             out.put("index", s.index);
             out.put("total", s.questions.size());

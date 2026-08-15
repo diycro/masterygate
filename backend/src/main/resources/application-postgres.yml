@@ -1,0 +1,22 @@
+# Postgres profile — run with:  docker compose up -d  then
+#   .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=postgres"
+# Needed later for pgvector (embeddings). Uses Hibernate ddl-auto for now.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/studio
+    username: studio
+    password: studio
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  autoconfigure:
+    exclude:
+      # Using Hibernate ddl-auto here too, so keep the Postgres-specific Flyway migrations off.
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration

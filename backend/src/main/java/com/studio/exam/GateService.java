@@ -41,7 +41,11 @@ public class GateService {
     }
 
     public GateSession start(String moduleId) {
-        return start(moduleId, false);
+        return start(moduleId, false, null);
+    }
+
+    public GateSession start(String moduleId, boolean dynamic) {
+        return start(moduleId, dynamic, null);
     }
 
     /**
@@ -49,7 +53,7 @@ public class GateService {
      * module's objectives and its top video's topic (falling back to the curated questions if generation
      * fails). Fresh questions each time also make the gate harder to game.
      */
-    public GateSession start(String moduleId, boolean dynamic) {
+    public GateSession start(String moduleId, boolean dynamic, Long userId) {
         ModuleCatalog.Module module = catalog.getModule(moduleId);
         if (module == null) throw new IllegalArgumentException("Unknown module: " + moduleId);
 
@@ -64,6 +68,8 @@ public class GateService {
         }
 
         GateSession session = new GateSession(moduleId, questions);
+        session.userId = userId;
+        session.topicId = module.topicId();
         sessions.put(session.id, session);
         return session;
     }

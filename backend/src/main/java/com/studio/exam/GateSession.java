@@ -12,6 +12,8 @@ public class GateSession {
     public final List<Question> questions;
     public int index = 0;
     public final List<GradeResult> grades = new ArrayList<>();
+    public Long userId;        // who is taking the gate (for persisting the result); may be null
+    public String topicId;     // the module's topic (for persisting the result)
 
     public GateSession(String moduleId, List<Question> questions) {
         this.moduleId = moduleId;

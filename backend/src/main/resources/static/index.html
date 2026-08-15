@@ -143,12 +143,12 @@ async function jf(url,opts){ const r = await fetch(url,opts); if(!r.ok) throw ne
 const store = {
   user(){ return localStorage.getItem("studio.user"); },
   setUser(n){ localStorage.setItem("studio.user", n); },
+  userId(){ return localStorage.getItem("studio.userId"); },
+  setUserId(id){ localStorage.setItem("studio.userId", id); },
   topic(){ return localStorage.getItem("studio.topic"); },
   setTopic(t){ localStorage.setItem("studio.topic", t); },
   clearTopic(){ localStorage.removeItem("studio.topic"); },
-  progress(t){ try{ return JSON.parse(localStorage.getItem("studio.progress."+t)) || {passed:{},scores:{}}; }catch(e){ return {passed:{},scores:{}}; } },
-  pass(t, moduleId, score){ const p = store.progress(t); p.passed[moduleId]=true; p.scores[moduleId]=score; localStorage.setItem("studio.progress."+t, JSON.stringify(p)); },
-  logout(){ localStorage.removeItem("studio.user"); localStorage.removeItem("studio.topic"); }
+  logout(){ ["studio.user","studio.userId","studio.topic"].forEach(k=>localStorage.removeItem(k)); }
 };
 
 let state = { view:"login", topics:[], path:null, gate:null };
@@ -178,7 +178,14 @@ function loginView(){
       <span class="muted">Stored locally on this device.</span></div>
   </div></div>`;
   const inp = document.getElementById("name"); inp.focus();
-  const submit = ()=>{ const n = inp.value.trim(); if(!n) return inp.focus(); store.setUser(n); go(store.topic()?"path":"topics"); };
+  const submit = async ()=>{
+    const n = inp.value.trim(); if(!n) return inp.focus();
+    try{
+      const u = await jf(API+"/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:n})});
+      store.setUser(u.name); store.setUserId(u.userId);
+      go(store.topic()?"path":"topics");
+    }catch(e){ alert("Login failed: "+e.message+" — is the app running?"); }
+  };
   document.getElementById("go").onclick = submit;
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter") submit(); });
 }
@@ -212,7 +219,9 @@ async function pathView(){
   catch(e){ view.innerHTML = `<div class="wrap"><div class="err">Couldn't load the path (${esc(e.message)}).</div></div>`; return; }
   state.path = data;
   const mods = data.modules;
-  const prog = store.progress(topic);
+  let prog = {passed:{}, scores:{}};
+  try{ prog = await jf(API+"/progress?userId="+encodeURIComponent(store.userId())+"&topic="+encodeURIComponent(topic)); }catch(e){}
+  state.progress = prog;
   const passedCount = mods.filter(m=>prog.passed[m.id]).length;
   const pct = mods.length ? Math.round(passedCount/mods.length*100) : 0;
   const tp = state.topics.find(x=>x.id===topic);
@@ -250,7 +259,7 @@ function openModule(id){ state.moduleId = id; go("module"); }
 
 function moduleView(){
   const m = state.path.modules.find(x=>x.id===state.moduleId);
-  const topic = store.topic(); const prog = store.progress(topic);
+  const prog = state.progress || {passed:{}, scores:{}};
   const passed = !!prog.passed[m.id];
   const freeR = m.resources.filter(r=>r.free), paidR = m.resources.filter(r=>!r.free);
   const resHtml = (arr)=> arr.length ? arr.map(r=>`<a class="res" href="${esc(r.url)}" target="_blank" rel="noopener">
@@ -308,7 +317,7 @@ async function loadVideos(moduleId){
 // ---------- gate ----------
 async function startGate(moduleId, dynamic){
   try{
-    const url = API+"/gate/start?moduleId="+encodeURIComponent(moduleId)+(dynamic?"&dynamic=true":"");
+    const url = API+"/gate/start?moduleId="+encodeURIComponent(moduleId)+(dynamic?"&dynamic=true":"")+"&userId="+encodeURIComponent(store.userId());
     const d = await jf(url, {method:"POST"});
     state.gate = { moduleId, sessionId:d.sessionId, total:d.total, index:d.index, question:d.question };
     go("gate");
@@ -360,8 +369,8 @@ function showGrade(d){
     document.getElementById("next").onclick=()=>{ state.gate.index=d.index; state.gate.total=d.total; state.gate.question=d.question; renderQuestion(); }; }
 }
 function resultView(d){
-  const pass=d.passed; const g=state.gate; const topic=store.topic();
-  if(pass) store.pass(topic, g.moduleId, d.avgScore);
+  const pass=d.passed; const g=state.gate;
+  // Server records the pass (userId was sent on gate start); path view refetches on return.
   view.innerHTML = `<div class="wrap"><div class="card result ${pass?'pass':'fail'}">
     <div class="seal">${pass?'🏆':'🔁'}</div>
     <span class="eyebrow">${esc(g.moduleId)} · Mastery gate</span>
@@ -381,7 +390,7 @@ function resultView(d){
 function go(v){ state.view=v; render(); }
 function render(){
   chrome();
-  if(!store.user()) return loginView();
+  if(!store.user() || !store.userId()) return loginView();
   switch(state.view){
     case "topics": return topicsView();
     case "path": return pathView();
@@ -391,7 +400,7 @@ function render(){
   }
 }
 // boot
-state.view = store.user() ? (store.topic()?"path":"topics") : "login";
+state.view = (store.user() && store.userId()) ? (store.topic()?"path":"topics") : "login";
 render();
 </script>
 </body>
