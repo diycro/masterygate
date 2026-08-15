@@ -1,0 +1,19 @@
+<header class="top" [style.display]="store.isLoggedIn ? 'flex' : 'none'">
+  <div class="brand"><span class="glyph">◑</span><span>Learning Studio<small>mastery-gated</small></span></div>
+  <div class="sp"></div>
+  <span class="streakchip" [style.display]="streak > 0 ? 'inline-flex' : 'none'">🔥 {{streak}} day{{streak===1?'':'s'}}</span>
+  <button class="tbtn" [attr.aria-current]="isActive('/dashboard')" routerLink="/dashboard">Dashboard</button>
+  <button class="tbtn" routerLink="/mock/start">Mock Interview</button>
+  <button class="tbtn" *ngIf="store.topic()" (click)="store.clearTopic()" routerLink="/topics">Change track</button>
+  <div class="userchip"><span class="avatar">{{initials()}}</span>{{store.userName()}}</div>
+  <button class="tbtn" (click)="logout()">Log out</button>
+</header>
+<main>
+  <router-outlet></router-outlet>
+</main>
+<div id="toasts" aria-live="polite">
+  <div class="toast" [class.error]="t.kind==='error'" *ngFor="let t of toastService.toasts()">
+    <span class="tx">{{t.message}}</span>
+    <span class="tc" (click)="toastService.dismiss(t.id)">✕</span>
+  </div>
+</div>

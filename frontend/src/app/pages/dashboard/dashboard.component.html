@@ -1,0 +1,61 @@
+<div class="wrap" *ngIf="loading"><p class="muted"><span class="spin"></span> loading your dashboard…</p></div>
+<div class="wrap" *ngIf="error"><div class="err">Couldn't load your dashboard ({{error}}).</div></div>
+
+<div class="wrap" *ngIf="data && !loading">
+  <div class="head-row"><div><span class="eyebrow">Overview</span>
+    <h1>Welcome back, {{store.userName()}}</h1>
+    <p class="sub">{{data.totalPassed}} of {{data.totalModules}} modules cleared across {{data.tracks.length}} tracks.</p>
+  </div></div>
+
+  <div class="card resumecard mt-lg" *ngIf="data.resume && data.resume.nextModuleId">
+    <app-ring [pct]="pct"></app-ring>
+    <div class="body"><span class="eyebrow" style="color:var(--accent)">Resume where you left off</span>
+      <h2>{{resumeTrackTitle}} · {{data.resume.nextModuleTitle}}</h2>
+      <p class="sub" style="font-size:13px">Last cleared: {{data.resume.lastModuleId}}</p></div>
+    <button class="btn" (click)="resume()">Continue →</button>
+  </div>
+  <div class="card resumecard mt-lg" *ngIf="data.resume && !data.resume.nextModuleId">
+    <app-ring [pct]="pct"></app-ring>
+    <div class="body"><span class="eyebrow" style="color:var(--pass)">Track complete</span>
+      <h2>{{resumeTrackTitle}} — all modules cleared 🎉</h2>
+      <p class="sub" style="font-size:13px">Pick another track below to keep going.</p></div>
+  </div>
+  <div class="card resumecard mt-lg" *ngIf="!data.resume">
+    <div class="body"><span class="eyebrow">Get started</span>
+      <h2>Pick your first track below</h2>
+      <p class="sub" style="font-size:13px">Every track is gated — you'll prove mastery of each module before the next unlocks.</p></div>
+  </div>
+
+  <div class="grid tiles mt">
+    <div class="card tile"><div class="k">Modules cleared</div><div class="v">{{data.totalPassed}}<small> / {{data.totalModules}}</small></div></div>
+    <div class="card tile"><div class="k">Study streak</div><div class="v">{{data.streak}}<small> day{{data.streak===1?'':'s'}}</small></div></div>
+    <div class="card tile"><div class="k">Tracks in progress</div><div class="v">{{startedTrackCount()}}<small> / {{data.tracks.length}}</small></div></div>
+    <div class="card tile"><div class="k">Interview questions</div><div class="v">{{totalQ}}<small> available</small></div></div>
+  </div>
+
+  <div class="grid mt" style="gap:16px">
+    <h2 style="margin:8px 0 0">Your tracks</h2>
+    <div class="card trackcard" *ngFor="let t of data.tracks" (click)="goTrack(t.topicId)">
+      <app-ring [pct]="trackPct(t.passedModules, t.totalModules)"></app-ring>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;letter-spacing:-.01em;font-size:15.5px">{{t.title}}</div>
+        <div class="meta2">{{t.passedModules}}/{{t.totalModules}} modules{{t.started ? ' · avg ' + t.avgScore : ''}} · {{t.interviewQuestions}} interview Qs</div></div>
+      <span class="cta">{{t.started ? 'Continue' : 'Start'}} →</span>
+    </div>
+  </div>
+
+  <div class="mt">
+    <div class="card pad" *ngIf="data.weak.length">
+      <h2>Worth reviewing</h2>
+      <p class="sub" style="font-size:13px">Modules you passed with a borderline score.</p>
+      <div class="mt">
+        <div class="weakrow" *ngFor="let w of data.weak" (click)="review(w.topicId, w.moduleId)" style="cursor:pointer">
+          <div><div class="wt">{{w.moduleTitle}}</div><div class="wm">{{w.topicId}} · scored {{w.score}}/100</div></div>
+          <span class="cta" style="color:var(--accent);font-size:12.5px;font-weight:600">Review →</span>
+        </div>
+      </div>
+    </div>
+    <div class="card pad" *ngIf="!data.weak.length">
+      <h2>Worth reviewing</h2><p class="sub" style="font-size:13px">Nothing flagged yet — borderline-scored modules will show up here.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+<div class="card pad mt">
+  <div class="head-row"><div><h2>Interview Prep — Q&amp;A bank</h2>
+    <p class="sub" style="font-size:13px">Real, frequently-asked questions for this module — with full answers and why interviewers ask them.</p></div></div>
+  <div class="mt">
+    <p class="muted" *ngIf="loading"><span class="spin"></span> loading questions…</p>
+    <p class="muted" *ngIf="error">Couldn't load questions right now.</p>
+    <p class="muted" *ngIf="!loading && !error && !items.length">No questions yet — click "Get more questions" below.</p>
+    <div class="qacard" [class.gensrc]="item.source==='generated'" [attr.data-open]="openMap[item.id]===true" *ngFor="let item of items">
+      <button class="qahead" (click)="toggle(item.id)">
+        <span class="chev">▸</span>
+        <span class="qtxt">{{item.question}}</span>
+        <span class="freq" [ngClass]="item.frequency==='high' ? 'high' : 'medium'">{{item.frequency==='high' ? 'Frequently asked' : 'Common'}}</span>
+      </button>
+      <div class="qabody">
+        <div class="lbl3">Answer</div><div class="ans">{{item.answer}}</div>
+        <ng-container *ngIf="item.explanation">
+          <div class="lbl3">Why it's asked</div><div class="exp">{{item.explanation}}</div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <button class="btn ghost" [disabled]="generating" (click)="generateMore()">
+      <span class="spin" *ngIf="generating"></span>{{generating ? 'Generating…' : 'Get more questions →'}}</button>
+  </div>
+</div>

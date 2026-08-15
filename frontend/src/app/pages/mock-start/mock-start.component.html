@@ -1,0 +1,22 @@
+<div class="wrap">
+  <span class="eyebrow">Timed practice</span>
+  <h1>Mock Interview</h1>
+  <p class="sub">A full timed loop — 1 DSA question, 1 System Design question, and a deep-dive into your
+    focus track. Graded to the same strict bar as the module gates.</p>
+  <div class="card pad mt-lg">
+    <h2>Pick your deep-dive focus</h2>
+    <div class="focuspick">
+      <div class="focuscard" [attr.aria-pressed]="focus==='genai'" (click)="pick('genai')">
+        <div class="ft">GenAI Application Engineer</div><div class="fs">RAG, agents, production LLM concerns</div></div>
+      <div class="focuscard" [attr.aria-pressed]="focus==='javafs'" (click)="pick('javafs')">
+        <div class="ft">Java Full-Stack Engineer</div><div class="fs">Spring, JPA, concurrency, microservices</div></div>
+    </div>
+    <div class="chips mt" style="margin-top:18px">
+      <span class="chip">Round 1 · DSA · 10 min</span>
+      <span class="chip">Round 2 · System Design · 15 min</span>
+      <span class="chip">Round 3 · Deep dive · 10 min</span>
+    </div>
+    <div class="row"><button class="btn lg" [disabled]="starting" (click)="start()">
+        <span class="spin" *ngIf="starting"></span>{{starting ? 'Starting…' : 'Start mock interview →'}}</button></div>
+  </div>
+</div>

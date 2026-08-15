@@ -1,0 +1,11 @@
+<div class="center"><div class="card pad">
+  <span class="glyph" style="width:38px;height:38px;font-size:18px">◑</span>
+  <h1 style="margin-top:14px">Welcome to Learning Studio</h1>
+  <p class="sub">Learn a skill the way an interviewer would test it — a gated path where you only advance once you can defend each topic.</p>
+  <div style="margin-top:20px">
+    <label for="name">Your name</label>
+    <input id="name" #nameInput placeholder="e.g. Amit" autocomplete="off" [(ngModel)]="name" (keydown)="onKeydown($event)">
+  </div>
+  <div class="row"><button class="btn lg" (click)="submit()">Continue →</button>
+    <span class="muted">Stored locally on this device.</span></div>
+</div></div>

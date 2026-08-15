@@ -1,0 +1,27 @@
+<div class="wrap">
+  <p class="muted" *ngIf="loading">Loading your path…</p>
+  <div class="err" *ngIf="error">Couldn't load the path ({{error}}).</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="head-row"><div><span class="eyebrow">{{title}}</span>
+      <h1>Your learning path</h1><p class="sub">Free-first resources + interview prep, one gated module at a time.</p></div></div>
+    <div class="card pad mt-lg prog-head">
+      <app-ring [pct]="pct"></app-ring>
+      <div><div style="font-weight:700">{{passedCount}} of {{total}} modules cleared</div>
+        <div class="muted">Clear a module's gate (avg 70+) to unlock the next.</div></div>
+    </div>
+    <div class="grid mt" style="gap:12px">
+      <div class="card mod" [ngClass]="[row.state, row.clickable ? 'click' : '']" *ngFor="let row of rows"
+           (click)="row.clickable ? openModule(row.m.id) : null">
+        <div class="node">{{row.nodeInner}}</div>
+        <div><div class="ttl">{{row.m.id}} · {{row.m.title}}</div>
+          <div class="meta">{{row.m.objectives.length}} objectives · {{row.m.questionCount}} gate questions{{row.state==='locked' ? ' · pass ' + row.prevId + ' to unlock' : ''}}</div></div>
+        <div class="right">
+          <span class="pill pass" *ngIf="row.state==='pass'">✓ Passed · {{score(row.m.id)}}</span>
+          <span class="pill current" *ngIf="row.state==='current'">▶ Available</span>
+          <span class="pill locked" *ngIf="row.state==='locked'">🔒 Locked</span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

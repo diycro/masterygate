@@ -1,0 +1,1 @@
+import{h as t}from"./chunk-Y5A6VK6K.js";var o=class e{topics=[];path=null;progress={passed:{},scores:{}};moduleId=null;gate=null;mock=null;mockReport=null;qaItems=[];pickedMockFocus="genai";static \u0275fac=function(n){return new(n||e)};static \u0275prov=t({token:e,factory:e.\u0275fac,providedIn:"root"})};export{o as a};

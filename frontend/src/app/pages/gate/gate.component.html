@@ -1,0 +1,49 @@
+<div class="wrap" *ngIf="state.gate && phase==='question'">
+  <button class="backlink" (click)="back()">← {{g.moduleId}}</button>
+  <div class="card pad">
+    <div class="prog"><span class="qnum">Question {{g.index+1}} of {{g.total}}</span>
+      <div class="progbar"><i [style.width.%]="pct"></i></div></div>
+    <div class="qtext">{{g.question}}</div>
+    <ng-container *ngIf="!answered">
+      <label for="ans">Your answer</label>
+      <textarea id="ans" [(ngModel)]="answer" placeholder="Answer in your own words — vague or buzzword answers won't pass."></textarea>
+      <div class="row"><button class="btn" [disabled]="submitting" (click)="submit()">
+          <span class="spin" *ngIf="submitting"></span>{{submitting ? 'Grading…' : 'Submit answer'}}</button>
+        <span class="muted">No looking it up — that's the point.</span></div>
+      <div class="err mt" *ngIf="error">Grading failed: {{error}}</div>
+    </ng-container>
+
+    <div class="review" *ngIf="answered && grade">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pill" [ngClass]="verdictClass(grade.verdict)">{{verdictLabel(grade.verdict)}}</span>
+        <span class="score">{{grade.score}}/100</span>
+      </div>
+      <p class="fb">{{grade.feedback}}</p>
+      <div class="missing" *ngIf="grade.missing && grade.missing.length">
+        <div class="h">Key points to add</div>
+        <ul><li *ngFor="let x of grade.missing">{{x}}</li></ul>
+      </div>
+      <div class="row">
+        <button class="btn" *ngIf="done" (click)="seeResult()">See result →</button>
+        <button class="btn" *ngIf="!done" (click)="next()">Next question →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" *ngIf="state.gate && phase==='result'">
+  <div class="card result" [ngClass]="passed ? 'pass' : 'fail'">
+    <div class="seal">{{passed ? '🏆' : '🔁'}}</div>
+    <span class="eyebrow">{{g.moduleId}} · Mastery gate</span>
+    <h1>{{passed ? 'Gate cleared — next module unlocked' : 'Not yet — keep going'}}</h1>
+    <p class="sub">{{passed ? 'You defended this module at interview level. The next module is now open on your path.' : 'You need an average of 70+. Review the feedback, study the gaps, and retake — questions are graded fresh each time.'}}</p>
+    <p class="score" style="display:inline-block;margin:16px auto 0">Average {{avgScore}}/100</p>
+    <div class="row" style="justify-content:center;margin-top:22px">
+      <button class="btn lg" *ngIf="passed" (click)="toPath()">Back to path →</button>
+      <ng-container *ngIf="!passed">
+        <button class="btn lg" (click)="retake()">Retake gate</button>
+        <button class="btn ghost lg" (click)="toModule()">Back to module</button>
+      </ng-container>
+    </div>
+  </div>
+</div>

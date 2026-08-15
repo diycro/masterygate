@@ -1,0 +1,35 @@
+<div class="card pad mt" *ngIf="problem">
+  <div class="head-row"><div><h2>💻 Code Practice — {{problem.title}}</h2>
+    <p class="sub" style="font-size:13px">{{problem.description}}</p></div></div>
+  <textarea #codebox class="codebox mt" spellcheck="false" [(ngModel)]="code" (keydown.tab)="onTab($event)"></textarea>
+  <div class="row">
+    <button class="btn" [disabled]="running" (click)="run()">
+      <span class="spin" *ngIf="running"></span>{{running ? 'Running…' : '▶ Run tests'}}</button>
+    <span class="muted">Real Java, compiled and run on this machine — your own trust boundary, like an IDE.</span>
+  </div>
+  <div class="mt" *ngIf="running"><p class="muted">Compiling and running against the test cases…</p></div>
+  <div class="mt" *ngIf="requestError"><div class="codeerr">Request failed: {{requestError}}</div></div>
+  <div class="mt" id="coderesults" *ngIf="result && !running">
+    <div *ngIf="!result.compiled">
+      <div class="coderesult" style="color:var(--danger)">✗ Compile error</div>
+      <div class="codeerr">{{result.compileError || 'Unknown compile error.'}}</div>
+    </div>
+    <div *ngIf="result.compiled && result.timedOut">
+      <div class="coderesult" style="color:var(--warn)">⏱ Timed out</div>
+      <p class="sub">Your code didn't finish in time — check for an infinite loop or an unbounded recursion.</p>
+    </div>
+    <div *ngIf="result.compiled && !result.timedOut && result.tests.length===0">
+      <div class="coderesult" style="color:var(--danger)">✗ Runtime error</div>
+      <div class="codeerr">{{result.rawOutput || 'Your code compiled but crashed before producing results.'}}</div>
+    </div>
+    <ng-container *ngIf="result.compiled && !result.timedOut && result.tests.length>0">
+      <div class="coderesult" [style.color]="allPass ? 'var(--pass)' : 'var(--warn)'">
+        {{allPass ? '✓ All tests passed' : '⚠ ' + result.passCount + ' of ' + result.totalCount + ' passed'}}
+      </div>
+      <div class="testrow" *ngFor="let t of result.tests">
+        <span class="tk" [class.ok]="t.pass" [class.no]="!t.pass">{{t.pass ? '✓' : '✗'}}</span>
+        <div><div>Test {{t.index}}</div><div class="td">{{t.detail}}</div></div>
+      </div>
+    </ng-container>
+  </div>
+</div>

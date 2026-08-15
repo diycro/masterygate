@@ -1,0 +1,80 @@
+<div class="wrap" *ngIf="m">
+  <button class="backlink" (click)="back()">← Your path</button>
+  <div class="card pad">
+    <div class="head-row"><div>
+      <span class="eyebrow">Module {{m.id}}{{passed ? ' · ✓ passed (' + score + ')' : ''}}</span>
+      <h1>{{m.title}}</h1>
+    </div></div>
+    <div class="chips mt"><span class="chip" *ngFor="let o of m.objectives">{{o}}</span></div>
+  </div>
+
+  <div class="grid tracks mt">
+    <div class="card pad track free"><h3>Free track <span class="tag">preferred</span></h3>
+      <p class="muted" *ngIf="!freeR.length">— none —</p>
+      <div class="reschk" [attr.data-done]="row.done" *ngFor="let row of freeR">
+        <span class="box" role="checkbox" [attr.aria-checked]="row.done" tabindex="0" (click)="toggleResource(row)"
+              (keydown.enter)="toggleResource(row)" (keydown.space)="toggleResource(row)">✓</span>
+        <a class="rbody" [href]="row.url" target="_blank" rel="noopener">
+          <div class="rt">{{row.title}} <span class="ext">↗</span></div>
+          <div class="rm">{{row.provider}} · {{row.meta}}</div>
+        </a>
+      </div>
+    </div>
+    <div class="card pad track paid"><h3>Paid track <span class="tag">optional</span></h3>
+      <p class="muted" *ngIf="!paidR.length">— none —</p>
+      <div class="reschk" [attr.data-done]="row.done" *ngFor="let row of paidR">
+        <span class="box" role="checkbox" [attr.aria-checked]="row.done" tabindex="0" (click)="toggleResource(row)"
+              (keydown.enter)="toggleResource(row)" (keydown.space)="toggleResource(row)">✓</span>
+        <a class="rbody" [href]="row.url" target="_blank" rel="noopener">
+          <div class="rt">{{row.title}} <span class="ext">↗</span></div>
+          <div class="rm">{{row.provider}} · {{row.meta}}</div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card pad mt track free">
+    <h3>Popular free videos <span class="tag">community</span></h3>
+    <div *ngIf="videosLoading"><span class="spin"></span> <span class="muted">finding highly-viewed tutorials…</span></div>
+    <div *ngIf="!videosLoading && !videos.length">
+      <a class="res" [href]="youtubeSearchUrl" target="_blank" rel="noopener">
+        <div class="rt">▶ Browse top free videos on YouTube <span class="ext">↗</span></div>
+        <div class="rm">opens YouTube's most-relevant results for this module — no key needed</div>
+      </a>
+      <p class="muted" style="margin-top:10px">Optional: set a free <span class="mono">YOUTUBE_API_KEY</span> to list the top videos with view counts inline here instead.</p>
+    </div>
+    <ng-container *ngIf="!videosLoading && videos.length">
+      <a class="vhero" [href]="videos[0].url" target="_blank" rel="noopener">
+        <span class="play">▶</span>
+        <span><span class="badge">Best pick</span>
+          <div class="vt">{{videos[0].title}}</div>
+          <div class="vm">{{videos[0].provider}} · {{stripPlay(videos[0].meta)}}</div></span>
+      </a>
+      <div class="valts" *ngIf="videos.length>1">
+        <div class="lbl2">More top videos</div>
+        <a class="res" [href]="v.url" target="_blank" rel="noopener" *ngFor="let v of videos.slice(1)">
+          <div class="rt">{{v.title}} <span class="ext">↗</span></div>
+          <div class="rm">{{v.provider}} · {{v.meta}}</div>
+        </a>
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="card pad mt"><h2>Interview focus</h2>
+    <ul class="ilist"><li *ngFor="let f of m.interviewFocus">{{f}}</li></ul></div>
+
+  <app-code-practice [moduleId]="m.id"></app-code-practice>
+
+  <app-qa-bank [moduleId]="m.id"></app-qa-bank>
+
+  <div class="card pad mt">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div><h2>{{passed ? 'Retake the gate' : 'Ready to prove it?'}}</h2>
+        <p class="sub" style="font-size:13px">{{m.questionCount}} curated questions. The AI grades your written answers strictly — pass at avg 70+.</p></div>
+      <button class="btn lg" [disabled]="gateStarting" (click)="startGate()">
+        <span class="spin" *ngIf="gateStarting"></span>{{passed ? 'Retake gate' : 'Start the gate'}} →</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13px;color:var(--ink-2);cursor:pointer">
+      <input type="checkbox" [(ngModel)]="dynGate" style="width:auto"> Generate a fresh AI gate grounded in this module's material (new questions each time)</label>
+  </div>
+</div>

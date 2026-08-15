@@ -1,0 +1,22 @@
+<div class="wrap" *ngIf="state.mock">
+  <div class="head-row"><span class="roundpill">Round {{mk.roundIndex+1}} of {{mk.totalRounds}}</span>
+    <span class="mocktimer" [class.low]="timeLeft<=60">{{fmtTime(timeLeft)}}</span></div>
+  <div class="card pad mt">
+    <span class="eyebrow">{{mk.round.label}}</span>
+    <div class="qtext">{{mk.round.question}}</div>
+    <ng-container *ngIf="!reviewed">
+      <label for="mockans">Your answer</label>
+      <textarea id="mockans" [(ngModel)]="answer" placeholder="Answer as you would out loud in a real interview."></textarea>
+      <div class="row"><button class="btn" [disabled]="submitting" (click)="submit(false)">
+          <span class="spin" *ngIf="submitting"></span>{{submitting ? 'Grading…' : 'Submit answer'}}</button></div>
+    </ng-container>
+    <div class="review" *ngIf="reviewed && grade">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pill" [ngClass]="verdictClass(grade.verdict)">{{verdictLabel(grade.verdict)}}</span>
+        <span class="score">{{grade.score}}/100</span>
+      </div>
+      <p class="fb">{{grade.feedback}}</p>
+      <div class="row"><button class="btn" (click)="next()">{{done ? 'See report →' : 'Next round →'}}</button></div>
+    </div>
+  </div>
+</div>

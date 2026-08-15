@@ -1,0 +1,22 @@
+<div class="wrap" *ngIf="state.mockReport">
+  <div class="card result" [ngClass]="good ? 'pass' : 'fail'">
+    <div class="seal">{{good ? '🏆' : '📝'}}</div>
+    <span class="eyebrow">Mock interview complete</span>
+    <h1>{{good ? 'Strong performance' : 'Good practice — review the gaps'}}</h1>
+    <p class="sub">Overall score across all 3 rounds.</p>
+    <p class="score" style="display:inline-block;margin:14px auto 0;font-size:22px">{{r.overallScore}}/100</p>
+  </div>
+  <div class="card pad mt">
+    <div class="reportrow" *ngFor="let rd of r.rounds">
+      <div><div class="eyebrow">{{rd.label}}</div>
+        <div class="rq">{{rd.question}}</div>
+        <div class="rf">{{rd.feedback}}</div></div>
+      <span class="scorepill" [style.background]="rd.score>=70 ? 'var(--pass-soft)' : 'var(--warn-soft)'"
+            [style.color]="rd.score>=70 ? 'var(--pass)' : 'var(--warn)'">{{rd.score}}</span>
+    </div>
+  </div>
+  <div class="row" style="justify-content:center">
+    <button class="btn lg" (click)="again()">Take another mock interview</button>
+    <button class="btn ghost lg" (click)="home()">Back to dashboard</button>
+  </div>
+</div>
