@@ -168,7 +168,7 @@ document.getElementById("logout").onclick = ()=>{ store.logout(); location.reloa
 document.getElementById("changeTrack").onclick = ()=>{ store.clearTopic(); go("topics"); };
 
 function chrome(){
-  const on = !!store.user();
+  const on = !!(store.user() && store.userId());   // must match the render() login guard
   document.getElementById("top").style.display = on ? "flex" : "none";
   if(on){
     const n = store.user();
@@ -184,7 +184,7 @@ function loginView(){
     <h1 style="margin-top:14px">Welcome to Learning Studio</h1>
     <p class="sub">Learn a skill the way an interviewer would test it — a gated path where you only advance once you can defend each topic.</p>
     <div style="margin-top:20px"><label for="name">Your name</label>
-      <input id="name" placeholder="e.g. Amit" autocomplete="off"></div>
+      <input id="name" placeholder="e.g. Amit" autocomplete="off" value="${esc(store.user()||'')}"></div>
     <div class="row"><button class="btn lg" id="go">Continue →</button>
       <span class="muted">Stored locally on this device.</span></div>
   </div></div>`;
