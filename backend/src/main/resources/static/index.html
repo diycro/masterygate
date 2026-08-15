@@ -110,6 +110,25 @@
   .vhero .vm{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);margin-top:5px}
   .valts{margin-top:6px}
   .valts .lbl2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 2px}
+  /* interview prep */
+  .qacard{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+  .qahead{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;cursor:pointer;width:100%;text-align:left}
+  .qahead:hover{background:var(--surface-2)}
+  .qahead .chev{flex:none;color:var(--ink-3);transition:transform .15s;margin-top:2px}
+  .qacard[data-open="true"] .chev{transform:rotate(90deg)}
+  .qahead .qtxt{font-weight:600;font-size:14.5px;line-height:1.4;flex:1}
+  .freq{flex:none;font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 8px;border-radius:999px;white-space:nowrap;margin-top:1px}
+  .freq.high{background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger-line)}
+  .freq.medium{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
+  .qabody{display:none;padding:0 16px 16px 42px}
+  .qacard[data-open="true"] .qabody{display:block}
+  .qabody .lbl3{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:10px 0 4px}
+  .qabody .lbl3:first-child{margin-top:0}
+  .qabody .ans{line-height:1.6;font-size:13.5px}
+  .qabody .exp{line-height:1.6;font-size:13px;color:var(--ink-2);font-style:italic}
+  .gensrc{opacity:.85}
+  .gensrc .qtxt::after{content:" · AI-generated";font-style:italic;color:var(--ink-3);font-weight:400}
   /* gate */
   .prog{display:flex;align-items:center;gap:12px;margin-bottom:14px}
   .progbar{flex:1;height:7px;border-radius:99px;background:var(--surface-3);overflow:hidden}
@@ -293,6 +312,12 @@ function moduleView(){
     <div class="card pad mt"><h2>Interview focus</h2>
       <ul class="ilist">${m.interviewFocus.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>
     <div class="card pad mt">
+      <div class="head-row"><div><h2>Interview Prep — Q&amp;A bank</h2>
+        <p class="sub" style="font-size:13px">Real, frequently-asked questions for this module — with full answers and why interviewers ask them.</p></div></div>
+      <div id="qabank" class="mt"><p class="muted"><span class="spin"></span> loading questions…</p></div>
+      <div class="row"><button class="btn ghost" id="moreQ">Get more questions →</button></div>
+    </div>
+    <div class="card pad mt">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
         <div><h2>${passed?'Retake the gate':'Ready to prove it?'}</h2>
           <p class="sub" style="font-size:13px">${m.questionCount} curated questions. The AI grades your written answers strictly — pass at avg 70+.</p></div>
@@ -304,6 +329,8 @@ function moduleView(){
   document.getElementById("back").onclick=()=>go("path");
   document.getElementById("startGate").onclick=()=>startGate(m.id, document.getElementById("dyn").checked);
   loadVideos(m.id);
+  loadQABank(m);
+  document.getElementById("moreQ").onclick=()=>generateMoreQA(m);
 }
 
 async function loadVideos(moduleId){
@@ -333,6 +360,52 @@ async function loadVideos(moduleId){
     }
     el.innerHTML = html;
   }catch(e){ el.innerHTML = `<p class="muted">Couldn't load videos right now.</p>`; }
+}
+
+// ---------- interview prep Q&A bank ----------
+function qaCardHtml(item){
+  const gen = item.source==="generated" ? " gensrc" : "";
+  return `<div class="qacard${gen}" data-open="false" data-id="${item.id}">
+    <button class="qahead" data-toggle>
+      <span class="chev">▸</span>
+      <span class="qtxt">${esc(item.question)}</span>
+      <span class="freq ${item.frequency==='high'?'high':'medium'}">${item.frequency==='high'?'Frequently asked':'Common'}</span>
+    </button>
+    <div class="qabody">
+      <div class="lbl3">Answer</div><div class="ans">${esc(item.answer)}</div>
+      ${item.explanation?`<div class="lbl3">Why it's asked</div><div class="exp">${esc(item.explanation)}</div>`:""}
+    </div></div>`;
+}
+function renderQABank(items){
+  const el = document.getElementById("qabank"); if(!el) return;
+  if(!items.length){ el.innerHTML = `<p class="muted">No questions yet — click "Get more questions" below.</p>`; return; }
+  el.innerHTML = items.map(qaCardHtml).join("");
+  el.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{
+    const card = b.closest(".qacard"); card.dataset.open = card.dataset.open==="true" ? "false" : "true";
+  });
+}
+async function loadQABank(m){
+  try{
+    const items = await jf(API+"/interview/questions?moduleId="+encodeURIComponent(m.id));
+    state.qaItems = items; renderQABank(items);
+  }catch(e){
+    const el = document.getElementById("qabank");
+    if(el) el.innerHTML = `<p class="muted">Couldn't load questions right now.</p>`;
+  }
+}
+async function generateMoreQA(m){
+  const btn = document.getElementById("moreQ");
+  btn.disabled = true; const orig = btn.textContent; btn.innerHTML = `<span class="spin"></span>Generating…`;
+  try{
+    const d = await jf(API+"/interview/generate?moduleId="+encodeURIComponent(m.id)+"&count=4", {method:"POST"});
+    if(d.added && d.added.length){
+      state.qaItems = (state.qaItems||[]).concat(d.added);
+      renderQABank(state.qaItems);
+    } else if(d.message){
+      alert(d.message);
+    }
+  }catch(e){ alert("Could not generate more questions: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
 // ---------- gate ----------
