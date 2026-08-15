@@ -74,6 +74,22 @@
   .topic:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);border-color:var(--accent-line)}
   .topic .ic{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:22px;flex:none}
   .topic .cta{margin-left:auto;color:var(--accent);font-weight:600;white-space:nowrap}
+  /* dashboard */
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .tile{padding:16px}
+  .tile .k{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .tile .v{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-top:8px;font-variant-numeric:tabular-nums}
+  .tile .v small{font-size:13px;font-weight:500;color:var(--ink-3)}
+  .resumecard{display:flex;align-items:center;gap:18px;padding:18px 20px;background:linear-gradient(180deg,var(--surface),var(--surface-2))}
+  .resumecard .body{flex:1;min-width:0}
+  .resumecard .body h2{margin-top:3px;font-size:17px}
+  .trackcard{padding:18px;cursor:pointer;transition:transform .1s,box-shadow .12s,border-color .12s;display:flex;align-items:center;gap:16px}
+  .trackcard:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);border-color:var(--accent-line)}
+  .trackcard .meta2{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);margin-top:4px}
+  .weakrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border)}
+  .weakrow:first-child{border-top:0}
+  .weakrow .wt{font-size:13.5px;font-weight:500}
+  .weakrow .wm{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);margin-top:2px}
   /* path */
   .prog-head{display:flex;align-items:center;gap:16px}
   .ring{position:relative;width:56px;height:56px;flex:none}.ring svg{transform:rotate(-90deg)}
@@ -157,6 +173,7 @@
 <header class="top" id="top" style="display:none">
   <div class="brand"><span class="glyph">◑</span><span>Learning Studio<small>mastery-gated</small></span></div>
   <div class="sp"></div>
+  <button class="tbtn" id="goDash">Dashboard</button>
   <button class="tbtn" id="changeTrack" style="display:none">Change track</button>
   <div class="userchip" id="userchip"></div>
   <button class="tbtn" id="logout">Log out</button>
@@ -185,6 +202,7 @@ let state = { view:"login", topics:[], path:null, gate:null };
 
 document.getElementById("logout").onclick = ()=>{ store.logout(); location.reload(); };
 document.getElementById("changeTrack").onclick = ()=>{ store.clearTopic(); go("topics"); };
+document.getElementById("goDash").onclick = ()=>go("dashboard");
 
 function chrome(){
   const on = !!(store.user() && store.userId());   // must match the render() login guard
@@ -213,11 +231,91 @@ function loginView(){
     try{
       const u = await jf(API+"/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:n})});
       store.setUser(u.name); store.setUserId(u.userId);
-      go(store.topic()?"path":"topics");
+      go("dashboard");
     }catch(e){ alert("Login failed: "+e.message+" — is the app running?"); }
   };
   document.getElementById("go").onclick = submit;
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter") submit(); });
+}
+
+// ---------- dashboard ----------
+async function openModuleDirect(topicId, moduleId){
+  store.setTopic(topicId);
+  view.innerHTML = `<div class="wrap"><p class="muted"><span class="spin"></span> loading…</p></div>`;
+  try{
+    const [data, prog] = await Promise.all([
+      jf(API+"/curriculum/path?topic="+encodeURIComponent(topicId)),
+      jf(API+"/progress?userId="+encodeURIComponent(store.userId())+"&topic="+encodeURIComponent(topicId)).catch(()=>({passed:{},scores:{}}))
+    ]);
+    state.path = data; state.progress = prog; state.moduleId = moduleId;
+    state.view = "module"; render();
+  }catch(e){ go("path"); }
+}
+
+async function dashboardView(){
+  view.innerHTML = `<div class="wrap"><p class="muted"><span class="spin"></span> loading your dashboard…</p></div>`;
+  let d;
+  try{ d = await jf(API+"/dashboard?userId="+encodeURIComponent(store.userId())); }
+  catch(e){ view.innerHTML = `<div class="wrap"><div class="err">Couldn't load your dashboard (${esc(e.message)}).</div></div>`; return; }
+
+  const totalQ = d.tracks.reduce((a,t)=>a+(t.interviewQuestions||0),0);
+  const pct = d.totalModules ? Math.round(d.totalPassed/d.totalModules*100) : 0;
+
+  const resumeHtml = d.resume ? (()=>{
+    const track = d.tracks.find(t=>t.topicId===d.resume.topicId);
+    const title = track ? track.title : d.resume.topicId;
+    if(d.resume.nextModuleId){
+      return `<div class="card resumecard mt-lg">${ring(pct)}
+        <div class="body"><span class="eyebrow" style="color:var(--accent)">Resume where you left off</span>
+          <h2>${esc(title)} · ${esc(d.resume.nextModuleTitle)}</h2>
+          <p class="sub" style="font-size:13px">Last cleared: ${esc(d.resume.lastModuleId)}</p></div>
+        <button class="btn" id="resumeBtn">Continue →</button></div>`;
+    }
+    return `<div class="card resumecard mt-lg">${ring(pct)}
+      <div class="body"><span class="eyebrow" style="color:var(--pass)">Track complete</span>
+        <h2>${esc(title)} — all modules cleared 🎉</h2>
+        <p class="sub" style="font-size:13px">Pick another track below to keep going.</p></div></div>`;
+  })() : `<div class="card resumecard mt-lg">
+      <div class="body"><span class="eyebrow">Get started</span>
+        <h2>Pick your first track below</h2>
+        <p class="sub" style="font-size:13px">Every track is gated — you'll prove mastery of each module before the next unlocks.</p></div></div>`;
+
+  const tracksHtml = d.tracks.map(t=>{
+    const p2 = t.totalModules ? Math.round(t.passedModules/t.totalModules*100) : 0;
+    return `<div class="card trackcard" data-track="${t.topicId}">
+      ${ring(p2)}
+      <div style="flex:1;min-width:0"><div style="font-weight:700;letter-spacing:-.01em;font-size:15.5px">${esc(t.title)}</div>
+        <div class="meta2">${t.passedModules}/${t.totalModules} modules${t.started?' · avg '+t.avgScore:''} · ${t.interviewQuestions} interview Qs</div></div>
+      <span class="cta">${t.started?'Continue':'Start'} →</span></div>`;
+  }).join("");
+
+  const weakHtml = d.weak.length ? `<div class="card pad"><h2>Worth reviewing</h2>
+      <p class="sub" style="font-size:13px">Modules you passed with a borderline score.</p>
+      <div class="mt">${d.weak.map(w=>`<div class="weakrow" data-review="${w.topicId}:${w.moduleId}">
+        <div><div class="wt">${esc(w.moduleTitle)}</div><div class="wm">${esc(w.topicId)} · scored ${w.score}/100</div></div>
+        <span class="cta" style="color:var(--accent);font-size:12.5px;font-weight:600">Review →</span></div>`).join("")}</div></div>`
+    : `<div class="card pad"><h2>Worth reviewing</h2><p class="sub" style="font-size:13px">Nothing flagged yet — borderline-scored modules will show up here.</p></div>`;
+
+  view.innerHTML = `<div class="head-row"><div><span class="eyebrow">Overview</span>
+      <h1>Welcome back, ${esc(store.user())}</h1>
+      <p class="sub">${d.totalPassed} of ${d.totalModules} modules cleared across ${d.tracks.length} tracks.</p></div></div>
+    ${resumeHtml}
+    <div class="grid tiles mt">
+      <div class="card tile"><div class="k">Modules cleared</div><div class="v">${d.totalPassed}<small> / ${d.totalModules}</small></div></div>
+      <div class="card tile"><div class="k">Study streak</div><div class="v">${d.streak}<small> day${d.streak===1?'':'s'}</small></div></div>
+      <div class="card tile"><div class="k">Tracks in progress</div><div class="v">${d.tracks.filter(t=>t.started).length}<small> / ${d.tracks.length}</small></div></div>
+      <div class="card tile"><div class="k">Interview questions</div><div class="v">${totalQ}<small> available</small></div></div>
+    </div>
+    <div class="grid mt" style="gap:16px"><h2 style="margin:8px 0 0">Your tracks</h2>${tracksHtml}</div>
+    <div class="mt">${weakHtml}</div>`;
+
+  document.querySelectorAll("[data-track]").forEach(el=>el.onclick=()=>{ store.setTopic(el.dataset.track); go("path"); });
+  document.querySelectorAll("[data-review]").forEach(el=>el.onclick=()=>{
+    const [tid,mid] = el.dataset.review.split(":"); openModuleDirect(tid, mid);
+  });
+  if(d.resume && d.resume.nextModuleId){
+    document.getElementById("resumeBtn").onclick = ()=>openModuleDirect(d.resume.topicId, d.resume.nextModuleId);
+  }
 }
 
 async function topicsView(){
@@ -486,15 +584,16 @@ function render(){
   chrome();
   if(!store.user() || !store.userId()) return loginView();
   switch(state.view){
+    case "dashboard": return dashboardView();
     case "topics": return topicsView();
     case "path": return pathView();
     case "module": return moduleView();
     case "gate": return gateView();
-    default: return store.topic()?pathView():topicsView();
+    default: return dashboardView();
   }
 }
 // boot
-state.view = (store.user() && store.userId()) ? (store.topic()?"path":"topics") : "login";
+state.view = (store.user() && store.userId()) ? "dashboard" : "login";
 render();
 </script>
 </body>

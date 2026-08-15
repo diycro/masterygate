@@ -23,16 +23,20 @@ public class GateController {
 
     private final GateService gate;
     private final com.studio.persist.ProgressService progressService;
+    private final com.studio.persist.ActivityService activityService;
 
-    public GateController(GateService gate, com.studio.persist.ProgressService progressService) {
+    public GateController(GateService gate, com.studio.persist.ProgressService progressService,
+                          com.studio.persist.ActivityService activityService) {
         this.gate = gate;
         this.progressService = progressService;
+        this.activityService = activityService;
     }
 
     @PostMapping("/start")
     public Map<String, Object> start(@RequestParam String moduleId,
                                      @RequestParam(defaultValue = "false") boolean dynamic,
                                      @RequestParam(required = false) Long userId) {
+        activityService.recordToday(userId);
         GateSession s = gate.start(moduleId, dynamic, userId);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sessionId", s.id);

@@ -1,5 +1,6 @@
 package com.studio.web;
 
+import com.studio.persist.ActivityService;
 import com.studio.persist.UserEntity;
 import com.studio.persist.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,9 +17,11 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final ActivityService activityService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, ActivityService activityService) {
         this.userService = userService;
+        this.activityService = activityService;
     }
 
     @PostMapping("/login")
@@ -26,6 +29,7 @@ public class AuthController {
         String name = body.getOrDefault("name", "").trim();
         if (name.isEmpty()) throw new IllegalArgumentException("name is required");
         UserEntity u = userService.findOrCreate(name);
+        activityService.recordToday(u.getId());
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("userId", u.getId());
         out.put("name", u.getName());
