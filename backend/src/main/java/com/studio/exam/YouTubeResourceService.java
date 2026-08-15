@@ -81,8 +81,7 @@ public class YouTubeResourceService {
                 String url = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/search")
                         .queryParam("part", "snippet").queryParam("type", "video")
                         .queryParam("maxResults", 1).queryParam("order", "relevance")
-                        .queryParam("relevanceLanguage", "en").queryParam("q", query)
-                        .queryParam("key", apiKey).toUriString();
+                        .queryParam("q", query).queryParam("key", apiKey).toUriString();
                 JsonNode s = rc.get().uri(url).retrieve().body(JsonNode.class);
                 JsonNode sn = s == null ? null : s.path("items").path(0).path("snippet");
                 if (sn == null || sn.isMissingNode()) return "";
@@ -109,9 +108,7 @@ public class YouTubeResourceService {
         String searchUrl = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/search")
                 .queryParam("part", "snippet").queryParam("type", "video")
                 .queryParam("maxResults", 15).queryParam("order", "relevance")
-                .queryParam("safeSearch", "strict").queryParam("relevanceLanguage", "en")
-                .queryParam("videoEmbeddable", "true").queryParam("q", query)
-                .queryParam("key", apiKey).toUriString();
+                .queryParam("q", query).queryParam("key", apiKey).toUriString();
         JsonNode search = rc.get().uri(searchUrl).retrieve().body(JsonNode.class);
         int searchCount = (search == null) ? 0 : search.path("items").size();
         log.info("YouTube search '{}' -> {} items", query, searchCount);
