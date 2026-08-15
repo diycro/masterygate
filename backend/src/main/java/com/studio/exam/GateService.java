@@ -28,17 +28,42 @@ public class GateService {
 
     private final ModuleCatalog catalog;
     private final ObjectProvider<ChatModel> chatModelProvider;
+    private final YouTubeResourceService youtube;
+    private final QuestionGenerator generator;
     private final Map<String, GateSession> sessions = new ConcurrentHashMap<>();
 
-    public GateService(ModuleCatalog catalog, ObjectProvider<ChatModel> chatModelProvider) {
+    public GateService(ModuleCatalog catalog, ObjectProvider<ChatModel> chatModelProvider,
+                       YouTubeResourceService youtube, QuestionGenerator generator) {
         this.catalog = catalog;
         this.chatModelProvider = chatModelProvider;
+        this.youtube = youtube;
+        this.generator = generator;
     }
 
     public GateSession start(String moduleId) {
+        return start(moduleId, false);
+    }
+
+    /**
+     * Start a gate. When {@code dynamic} is true, generate fresh questions with the LLM grounded in the
+     * module's objectives and its top video's topic (falling back to the curated questions if generation
+     * fails). Fresh questions each time also make the gate harder to game.
+     */
+    public GateSession start(String moduleId, boolean dynamic) {
         ModuleCatalog.Module module = catalog.getModule(moduleId);
         if (module == null) throw new IllegalArgumentException("Unknown module: " + moduleId);
-        GateSession session = new GateSession(moduleId, module.questions());
+
+        List<Question> questions;
+        if (dynamic) {
+            int n = Math.max(4, module.questions().size());
+            questions = generator.generate(module.title(), module.objectives(),
+                    youtube.bestVideoContext(moduleId), n);
+            if (questions.isEmpty()) questions = module.questions();   // graceful fallback
+        } else {
+            questions = module.questions();
+        }
+
+        GateSession session = new GateSession(moduleId, questions);
         sessions.put(session.id, session);
         return session;
     }

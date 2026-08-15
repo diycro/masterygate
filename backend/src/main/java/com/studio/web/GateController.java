@@ -28,8 +28,9 @@ public class GateController {
     }
 
     @PostMapping("/start")
-    public Map<String, Object> start(@RequestParam String moduleId) {
-        GateSession s = gate.start(moduleId);
+    public Map<String, Object> start(@RequestParam String moduleId,
+                                     @RequestParam(defaultValue = "false") boolean dynamic) {
+        GateSession s = gate.start(moduleId, dynamic);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sessionId", s.id);
         out.put("moduleId", s.moduleId);

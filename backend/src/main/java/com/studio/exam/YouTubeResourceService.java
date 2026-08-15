@@ -38,6 +38,7 @@ public class YouTubeResourceService {
     private final String apiKey;
     private final RestClient rc = RestClient.create();
     private final Map<String, List<ModuleCatalog.Resource>> cache = new ConcurrentHashMap<>();
+    private final Map<String, String> ctxCache = new ConcurrentHashMap<>();
 
     public YouTubeResourceService(@Value("${youtube.api-key:}") String apiKey) {
         this.apiKey = apiKey;
@@ -54,6 +55,30 @@ public class YouTubeResourceService {
                 return fetch(QUERIES.getOrDefault(moduleId, fallbackTitle + " tutorial"));
             } catch (Exception e) {
                 return List.of();  // graceful: curated resources remain
+            }
+        });
+    }
+
+    /** Top video's "title — description" for a module, to ground LLM question generation. "" if none. */
+    public String bestVideoContext(String moduleId) {
+        if (!enabled()) return "";
+        return ctxCache.computeIfAbsent(moduleId, k -> {
+            try {
+                String query = QUERIES.getOrDefault(moduleId, moduleId + " tutorial");
+                String url = UriComponentsBuilder.fromUriString("https://www.googleapis.com/youtube/v3/search")
+                        .queryParam("part", "snippet").queryParam("type", "video")
+                        .queryParam("maxResults", 1).queryParam("order", "relevance")
+                        .queryParam("relevanceLanguage", "en").queryParam("q", query)
+                        .queryParam("key", apiKey).toUriString();
+                JsonNode s = rc.get().uri(url).retrieve().body(JsonNode.class);
+                JsonNode sn = s == null ? null : s.path("items").path(0).path("snippet");
+                if (sn == null || sn.isMissingNode()) return "";
+                String title = sn.path("title").asText("");
+                String desc = sn.path("description").asText("");
+                if (desc.length() > 500) desc = desc.substring(0, 500);
+                return (title + " — " + desc).trim();
+            } catch (Exception e) {
+                return "";
             }
         });
     }
