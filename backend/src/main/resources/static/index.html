@@ -167,6 +167,24 @@
   .codeerr{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;background:var(--danger-soft);
     color:var(--danger);border:1px solid var(--danger-line);border-radius:10px;padding:12px 14px;overflow-x:auto}
   .coderesult{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-weight:700}
+  /* mock interview */
+  .focuspick{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .focuscard{flex:1;min-width:180px;padding:14px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;text-align:left}
+  .focuscard:hover{border-color:var(--accent-line)}
+  .focuscard[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .focuscard .ft{font-weight:700;font-size:14px}
+  .focuscard .fs{font-size:12px;color:var(--ink-3);margin-top:3px}
+  .mocktimer{font-family:var(--f-mono);font-weight:700;font-size:14px;padding:6px 12px;border-radius:999px;
+    background:var(--surface-2);border:1px solid var(--border)}
+  .mocktimer.low{background:var(--danger-soft);color:var(--danger);border-color:var(--danger-line)}
+  .roundpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.04em;padding:4px 10px;border-radius:999px;background:var(--accent-soft);
+    color:var(--accent);border:1px solid var(--accent-line)}
+  .reportrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--border)}
+  .reportrow:first-child{border-top:0}
+  .reportrow .rq{font-weight:600;font-size:13.5px;flex:1}
+  .reportrow .rf{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+  .scorepill{flex:none;font-family:var(--f-mono);font-weight:700;font-size:15px;padding:6px 14px;border-radius:999px}
   /* gate */
   .prog{display:flex;align-items:center;gap:12px;margin-bottom:14px}
   .progbar{flex:1;height:7px;border-radius:99px;background:var(--surface-3);overflow:hidden}
@@ -224,6 +242,7 @@
   <div class="sp"></div>
   <span class="streakchip" id="streakchip"></span>
   <button class="tbtn" id="goDash">Dashboard</button>
+  <button class="tbtn" id="goMock">Mock Interview</button>
   <button class="tbtn" id="changeTrack" style="display:none">Change track</button>
   <div class="userchip" id="userchip"></div>
   <button class="tbtn" id="logout">Log out</button>
@@ -267,6 +286,7 @@ let state = { view:"login", topics:[], path:null, gate:null };
 document.getElementById("logout").onclick = ()=>{ store.logout(); location.reload(); };
 document.getElementById("changeTrack").onclick = ()=>{ store.clearTopic(); go("topics"); };
 document.getElementById("goDash").onclick = ()=>go("dashboard");
+document.getElementById("goMock").onclick = ()=>go("mock-start");
 
 function chrome(){
   const on = !!(store.user() && store.userId());   // must match the render() login guard
@@ -756,6 +776,138 @@ function resultView(d){
   else{ document.getElementById("retry").onclick=()=>startGate(g.moduleId); document.getElementById("back").onclick=()=>go("module"); }
 }
 
+// ---------- mock interview ----------
+function fmtTime(sec){ const m=Math.floor(sec/60), s=sec%60; return m+":"+String(s).padStart(2,"0"); }
+
+function mockStartView(){
+  const focus = (state.mock && state.mock.pickedFocus) || "genai";
+  view.innerHTML = `<div class="wrap"><span class="eyebrow">Timed practice</span>
+    <h1>Mock Interview</h1>
+    <p class="sub">A full timed loop — 1 DSA question, 1 System Design question, and a deep-dive into your
+    focus track. Graded to the same strict bar as the module gates.</p>
+    <div class="card pad mt-lg">
+      <h2>Pick your deep-dive focus</h2>
+      <div class="focuspick" id="focuspick">
+        <div class="focuscard" data-focus="genai" aria-pressed="${focus==='genai'}">
+          <div class="ft">GenAI Application Engineer</div><div class="fs">RAG, agents, production LLM concerns</div></div>
+        <div class="focuscard" data-focus="javafs" aria-pressed="${focus==='javafs'}">
+          <div class="ft">Java Full-Stack Engineer</div><div class="fs">Spring, JPA, concurrency, microservices</div></div>
+      </div>
+      <div class="chips mt" style="margin-top:18px">
+        <span class="chip">Round 1 · DSA · 10 min</span>
+        <span class="chip">Round 2 · System Design · 15 min</span>
+        <span class="chip">Round 3 · Deep dive · 10 min</span>
+      </div>
+      <div class="row"><button class="btn lg" id="startMock">Start mock interview →</button></div>
+    </div></div>`;
+  state.mock = state.mock || {}; state.mock.pickedFocus = focus;
+  document.querySelectorAll("#focuspick .focuscard").forEach(el=>el.onclick=()=>{
+    state.mock.pickedFocus = el.dataset.focus;
+    document.querySelectorAll("#focuspick .focuscard").forEach(c=>c.setAttribute("aria-pressed", String(c===el)));
+  });
+  // Read the pick fresh at click time (not the value captured when this view first rendered).
+  document.getElementById("startMock").onclick = ()=>startMockInterview(state.mock.pickedFocus);
+}
+
+async function startMockInterview(focus){
+  try{
+    const d = await jf(API+"/mock/start?focusTopic="+encodeURIComponent(focus)+"&userId="+encodeURIComponent(store.userId()), {method:"POST"});
+    state.mock = { sessionId:d.sessionId, roundIndex:d.roundIndex, totalRounds:d.totalRounds, round:d.round, focusTopicId:d.focusTopicId };
+    go("mock-round");
+  }catch(e){ toast("Could not start the mock interview: "+e.message, "error"); }
+}
+
+function stopMockTimer(){
+  if(state.mock && state.mock.timerId){ clearInterval(state.mock.timerId); state.mock.timerId=null; }
+}
+
+function mockRoundView(reviewHtml){
+  const mk = state.mock;
+  const timeLeft = mk.timeLeft != null ? mk.timeLeft : mk.round.timeBudgetSec;
+  mk.timeLeft = timeLeft;
+  view.innerHTML = `<div class="wrap">
+    <div class="head-row"><span class="roundpill">Round ${mk.roundIndex+1} of ${mk.totalRounds}</span>
+      <span class="mocktimer ${timeLeft<=60?'low':''}" id="mocktimer">${fmtTime(timeLeft)}</span></div>
+    <div class="card pad mt">
+      <span class="eyebrow">${esc(mk.round.label)}</span>
+      <div class="qtext">${esc(mk.round.question)}</div>
+      <label for="mockans">Your answer</label>
+      <textarea id="mockans" placeholder="Answer as you would out loud in a real interview.">${reviewHtml?esc(mk.lastAnswer||""):""}</textarea>
+      <div class="row"><button class="btn" id="mockSubmit" ${reviewHtml?'disabled':''}>Submit answer</button></div>
+      <div id="mockReview">${reviewHtml||""}</div>
+    </div></div>`;
+  if(!reviewHtml){
+    stopMockTimer();
+    mk.timerId = setInterval(()=>{
+      mk.timeLeft = Math.max(0, mk.timeLeft-1);
+      const t = document.getElementById("mocktimer");
+      if(t){ t.textContent = fmtTime(mk.timeLeft); t.classList.toggle("low", mk.timeLeft<=60); }
+      if(mk.timeLeft<=0){ stopMockTimer(); submitMockAnswer(true); }
+    }, 1000);
+    document.getElementById("mockSubmit").onclick = ()=>submitMockAnswer(false);
+  }
+}
+
+async function submitMockAnswer(auto){
+  stopMockTimer();
+  const mk = state.mock;
+  const ta = document.getElementById("mockans");
+  const answer = ta ? ta.value.trim() : "";
+  mk.lastAnswer = answer;
+  const btn = document.getElementById("mockSubmit");
+  if(btn){ btn.disabled=true; btn.innerHTML = `<span class="spin"></span>Grading…`; }
+  try{
+    const d = await jf(API+"/mock/answer", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({sessionId:mk.sessionId, answer})});
+    const g = d.grade;
+    const v = (g.verdict||"error").toLowerCase();
+    const label = v==="correct"?"Correct":v==="partial"?"Partial":v==="incorrect"?"Not quite":"Error";
+    const reviewHtml = `<div class="review"><div style="display:flex;align-items:center;gap:10px">
+        <span class="pill ${v==='correct'?'pass':v==='partial'?'current':'locked'}">${label}</span>
+        <span class="score">${g.score}/100</span></div>
+      <p class="fb">${esc(g.feedback)}</p>
+      <div class="row"><button class="btn" id="mockNext">${d.done?'See report →':'Next round →'}</button></div></div>`;
+    if(d.done){
+      state.mockReport = { overallScore:d.overallScore, rounds:d.rounds };
+      mockRoundView(reviewHtml);
+      document.getElementById("mockNext").onclick = ()=>{ stopMockTimer(); go("mock-report"); };
+    } else {
+      mk.roundIndex = d.roundIndex; mk.round = d.round; mk.timeLeft = null;
+      mockRoundView(reviewHtml);
+      document.getElementById("mockNext").onclick = ()=>{ mk.lastAnswer=null; mockRoundView(); };
+    }
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent="Submit answer"; }
+    toast("Could not submit: "+e.message, "error");
+  }
+}
+
+function mockReportView(){
+  const r = state.mockReport;
+  if(!r){ go("mock-start"); return; }
+  const good = r.overallScore >= 70;
+  const rows = r.rounds.map(rd=>`<div class="reportrow">
+    <div><div class="eyebrow">${esc(rd.label)}</div>
+      <div class="rq">${esc(rd.question)}</div>
+      <div class="rf">${esc(rd.feedback||"")}</div></div>
+    <span class="scorepill" style="background:${rd.score>=70?'var(--pass-soft)':'var(--warn-soft)'};color:${rd.score>=70?'var(--pass)':'var(--warn)'}">${rd.score}</span>
+  </div>`).join("");
+  view.innerHTML = `<div class="wrap">
+    <div class="card result ${good?'pass':'fail'}">
+      <div class="seal">${good?'🏆':'📝'}</div>
+      <span class="eyebrow">Mock interview complete</span>
+      <h1>${good?'Strong performance':'Good practice — review the gaps'}</h1>
+      <p class="sub">Overall score across all 3 rounds.</p>
+      <p class="score" style="display:inline-block;margin:14px auto 0;font-size:22px">${r.overallScore}/100</p>
+    </div>
+    <div class="card pad mt">${rows}</div>
+    <div class="row" style="justify-content:center"><button class="btn lg" id="mockAgain">Take another mock interview</button>
+      <button class="btn ghost lg" id="mockHome">Back to dashboard</button></div>
+  </div>`;
+  document.getElementById("mockAgain").onclick = ()=>{ state.mock=null; state.mockReport=null; go("mock-start"); };
+  document.getElementById("mockHome").onclick = ()=>{ state.mock=null; state.mockReport=null; go("dashboard"); };
+}
+
 // ---------- router ----------
 function go(v){ state.view=v; render(); }
 function render(){
@@ -767,6 +919,9 @@ function render(){
     case "path": return pathView();
     case "module": return moduleView();
     case "gate": return gateView();
+    case "mock-start": return mockStartView();
+    case "mock-round": return mockRoundView();
+    case "mock-report": return mockReportView();
     default: return dashboardView();
   }
 }
