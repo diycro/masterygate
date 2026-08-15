@@ -167,24 +167,53 @@
   @keyframes s{to{transform:rotate(360deg)}}
   @media (max-width:760px){.tracks{grid-template-columns:1fr}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  /* toasts */
+  #toasts{position:fixed;bottom:20px;right:20px;z-index:50;display:flex;flex-direction:column;gap:10px;max-width:360px}
+  .toast{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-radius:12px;box-shadow:var(--shadow-lg);
+    background:var(--surface);border:1px solid var(--border-strong);font-size:13.5px;line-height:1.45;
+    animation:toastIn .2s ease-out}
+  .toast.error{border-color:var(--danger-line);background:var(--danger-soft);color:var(--danger)}
+  .toast.info{border-color:var(--accent-line)}
+  .toast .tx{flex:1}
+  .toast .tc{flex:none;cursor:pointer;opacity:.6;font-weight:700}
+  .toast .tc:hover{opacity:1}
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .tbtn[aria-current="true"]{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft);font-weight:700}
+  .streakchip{display:none;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;font-weight:700;
+    padding:5px 10px;border-radius:999px;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
 </style>
 </head>
 <body>
 <header class="top" id="top" style="display:none">
   <div class="brand"><span class="glyph">◑</span><span>Learning Studio<small>mastery-gated</small></span></div>
   <div class="sp"></div>
+  <span class="streakchip" id="streakchip"></span>
   <button class="tbtn" id="goDash">Dashboard</button>
   <button class="tbtn" id="changeTrack" style="display:none">Change track</button>
   <div class="userchip" id="userchip"></div>
   <button class="tbtn" id="logout">Log out</button>
 </header>
 <main id="view"></main>
+<div id="toasts" aria-live="polite"></div>
 
 <script>
 const API = "/api";
 const view = document.getElementById("view");
 const esc = s => (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function jf(url,opts){ const r = await fetch(url,opts); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
+
+// ---------- toasts (replaces jarring alert() popups) ----------
+function toast(msg, kind){
+  const box = document.getElementById("toasts"); if(!box) return;
+  const el = document.createElement("div");
+  el.className = "toast " + (kind||"info");
+  el.innerHTML = `<span class="tx"></span><span class="tc" aria-label="Dismiss">✕</span>`;
+  el.querySelector(".tx").textContent = msg;
+  const remove = ()=>{ el.remove(); };
+  el.querySelector(".tc").onclick = remove;
+  box.appendChild(el);
+  setTimeout(remove, 6000);
+}
 
 // ---------- local store ----------
 const store = {
@@ -211,6 +240,18 @@ function chrome(){
     const n = store.user();
     document.getElementById("userchip").innerHTML = `<span class="avatar">${esc(n.slice(0,2).toUpperCase())}</span>${esc(n)}`;
     document.getElementById("changeTrack").style.display = store.topic() ? "inline-flex" : "none";
+    document.getElementById("goDash").setAttribute("aria-current", String(state.view==="dashboard"));
+    updateStreakChip();
+  }
+}
+function updateStreakChip(){
+  const el = document.getElementById("streakchip");
+  if(!el) return;
+  if(state.streak && state.streak > 0){
+    el.style.display = "inline-flex";
+    el.textContent = "🔥 " + state.streak + " day" + (state.streak===1?"":"s");
+  } else {
+    el.style.display = "none";
   }
 }
 
@@ -232,7 +273,7 @@ function loginView(){
       const u = await jf(API+"/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:n})});
       store.setUser(u.name); store.setUserId(u.userId);
       go("dashboard");
-    }catch(e){ alert("Login failed: "+e.message+" — is the app running?"); }
+    }catch(e){ toast("Login failed — is the app running? ("+e.message+")", "error"); }
   };
   document.getElementById("go").onclick = submit;
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter") submit(); });
@@ -257,6 +298,7 @@ async function dashboardView(){
   let d;
   try{ d = await jf(API+"/dashboard?userId="+encodeURIComponent(store.userId())); }
   catch(e){ view.innerHTML = `<div class="wrap"><div class="err">Couldn't load your dashboard (${esc(e.message)}).</div></div>`; return; }
+  state.streak = d.streak; updateStreakChip();
 
   const totalQ = d.tracks.reduce((a,t)=>a+(t.interviewQuestions||0),0);
   const pct = d.totalModules ? Math.round(d.totalPassed/d.totalModules*100) : 0;
@@ -500,9 +542,9 @@ async function generateMoreQA(m){
       state.qaItems = (state.qaItems||[]).concat(d.added);
       renderQABank(state.qaItems);
     } else if(d.message){
-      alert(d.message);
+      toast(d.message, "info");
     }
-  }catch(e){ alert("Could not generate more questions: "+e.message); }
+  }catch(e){ toast("Could not generate more questions: "+e.message, "error"); }
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
@@ -513,7 +555,7 @@ async function startGate(moduleId, dynamic){
     const d = await jf(url, {method:"POST"});
     state.gate = { moduleId, sessionId:d.sessionId, total:d.total, index:d.index, question:d.question };
     go("gate");
-  }catch(e){ alert("Could not start the gate: "+e.message); }
+  }catch(e){ toast("Could not start the gate: "+e.message, "error"); }
 }
 function gateView(){ renderQuestion(); }
 function renderQuestion(reviewHtml){
