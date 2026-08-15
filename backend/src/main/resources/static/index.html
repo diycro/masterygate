@@ -154,6 +154,19 @@
   .qabody .exp{line-height:1.6;font-size:13px;color:var(--ink-2);font-style:italic}
   .gensrc{opacity:.85}
   .gensrc .qtxt::after{content:" · AI-generated";font-style:italic;color:var(--ink-3);font-weight:400}
+  /* code practice */
+  .codebox{width:100%;min-height:220px;font-family:var(--f-mono);font-size:13px;line-height:1.6;
+    background:#0d1117;color:#e6edf3;border:1px solid var(--border-strong);border-radius:10px;
+    padding:14px;resize:vertical;tab-size:4;white-space:pre;overflow-wrap:normal;overflow-x:auto}
+  .codebox:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .testrow{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--border);font-size:13px}
+  .testrow:first-child{border-top:0}
+  .testrow .tk{flex:none;font-family:var(--f-mono);font-weight:700}
+  .testrow .tk.ok{color:var(--pass)}.testrow .tk.no{color:var(--danger)}
+  .testrow .td{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);word-break:break-word}
+  .codeerr{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;background:var(--danger-soft);
+    color:var(--danger);border:1px solid var(--danger-line);border-radius:10px;padding:12px 14px;overflow-x:auto}
+  .coderesult{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-weight:700}
   /* gate */
   .prog{display:flex;align-items:center;gap:12px;margin-bottom:14px}
   .progbar{flex:1;height:7px;border-radius:99px;background:var(--surface-3);overflow:hidden}
@@ -480,6 +493,7 @@ async function moduleView(){
       <div id="vids"><span class="spin"></span> <span class="muted">finding highly-viewed tutorials…</span></div></div>
     <div class="card pad mt"><h2>Interview focus</h2>
       <ul class="ilist">${m.interviewFocus.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>
+    <div id="codepractice"></div>
     <div class="card pad mt">
       <div class="head-row"><div><h2>Interview Prep — Q&amp;A bank</h2>
         <p class="sub" style="font-size:13px">Real, frequently-asked questions for this module — with full answers and why interviewers ask them.</p></div></div>
@@ -501,6 +515,7 @@ async function moduleView(){
   loadQABank(m);
   document.getElementById("moreQ").onclick=()=>generateMoreQA(m);
   wireResourceChecks(m.id);
+  loadCodePractice(m.id);
 }
 
 function wireResourceChecks(moduleId){
@@ -598,6 +613,75 @@ async function generateMoreQA(m){
     }
   }catch(e){ toast("Could not generate more questions: "+e.message, "error"); }
   finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+// ---------- live-coding practice ----------
+async function loadCodePractice(moduleId){
+  const el = document.getElementById("codepractice"); if(!el) return;
+  try{
+    const p = await jf(API+"/code/problem?moduleId="+encodeURIComponent(moduleId));
+    if(!p.available){ el.innerHTML = ""; return; }   // no code problem for this module — section stays hidden
+    el.innerHTML = `<div class="card pad mt">
+      <div class="head-row"><div><h2>💻 Code Practice — ${esc(p.title)}</h2>
+        <p class="sub" style="font-size:13px">${esc(p.description)}</p></div></div>
+      <textarea id="codebox" class="codebox mt" spellcheck="false">${esc(p.starterCode)}</textarea>
+      <div class="row">
+        <button class="btn" id="runCode">▶ Run tests</button>
+        <span class="muted">Real Java, compiled and run on this machine — your own trust boundary, like an IDE.</span>
+      </div>
+      <div id="coderesults" class="mt"></div>
+    </div>`;
+    const box = document.getElementById("codebox");
+    // Tab key inserts 4 spaces instead of moving focus — expected editor behavior.
+    box.addEventListener("keydown", e=>{
+      if(e.key==="Tab"){
+        e.preventDefault();
+        const s=box.selectionStart, en=box.selectionEnd;
+        box.value = box.value.slice(0,s)+"    "+box.value.slice(en);
+        box.selectionStart = box.selectionEnd = s+4;
+      }
+    });
+    document.getElementById("runCode").onclick = ()=>runCode(moduleId);
+  }catch(e){ el.innerHTML = ""; }   // graceful: no code section if the endpoint fails
+}
+
+async function runCode(moduleId){
+  const btn = document.getElementById("runCode");
+  const code = document.getElementById("codebox").value;
+  const out = document.getElementById("coderesults");
+  btn.disabled = true; const orig = btn.innerHTML; btn.innerHTML = `<span class="spin"></span>Running…`;
+  out.innerHTML = `<p class="muted">Compiling and running against the test cases…</p>`;
+  try{
+    const r = await jf(API+"/code/run", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({moduleId, code})});
+    renderCodeResult(r);
+  }catch(e){ out.innerHTML = `<div class="codeerr">Request failed: ${esc(e.message)}</div>`; }
+  finally{ btn.disabled=false; btn.innerHTML=orig; }
+}
+
+function renderCodeResult(r){
+  const out = document.getElementById("coderesults"); if(!out) return;
+  if(!r.compiled){
+    out.innerHTML = `<div class="coderesult" style="color:var(--danger)">✗ Compile error</div>
+      <div class="codeerr">${esc(r.compileError||"Unknown compile error.")}</div>`;
+    return;
+  }
+  if(r.timedOut){
+    out.innerHTML = `<div class="coderesult" style="color:var(--warn)">⏱ Timed out</div>
+      <p class="sub">Your code didn't finish in time — check for an infinite loop or an unbounded recursion.</p>`;
+    return;
+  }
+  if(r.tests.length===0){
+    out.innerHTML = `<div class="coderesult" style="color:var(--danger)">✗ Runtime error</div>
+      <div class="codeerr">${esc(r.rawOutput||"Your code compiled but crashed before producing results.")}</div>`;
+    return;
+  }
+  const allPass = r.passCount===r.totalCount;
+  const rows = r.tests.map(t=>`<div class="testrow">
+      <span class="tk ${t.pass?'ok':'no'}">${t.pass?'✓':'✗'}</span>
+      <div><div>Test ${t.index}</div><div class="td">${esc(t.detail)}</div></div></div>`).join("");
+  out.innerHTML = `<div class="coderesult" style="color:${allPass?'var(--pass)':'var(--warn)'}">
+      ${allPass?'✓ All tests passed':'⚠ '+r.passCount+' of '+r.totalCount+' passed'}</div>${rows}`;
 }
 
 // ---------- gate ----------
