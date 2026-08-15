@@ -293,6 +293,76 @@ public final class InterviewQASeedData {
                 "Cache aggressively (exact-match and/or semantic caching for repeated intents), route the majority of 'easy' requests to a small/cheap model and reserve the expensive model for genuinely hard cases, set hard per-user or per-team budgets with graceful degradation when exceeded, and continuously monitor cost per request to catch regressions from prompt or model changes.",
                 "A senior-level question that combines system design with the cost-engineering judgment interviewers specifically look for in production AI experience.")));
 
+        // ================= Java Full-Stack =================
+        m.put("JFS1", List.of(
+            hi("What is the difference between == and .equals() in Java?",
+                "== compares references (memory addresses) for objects, or primitive values directly for primitives. .equals() compares logical/content equality, as defined by the class's override — e.g., two different String objects with the same characters are == false but .equals() true.",
+                "One of the most classic Java interview questions — tests whether you understand Java's object model, not just syntax."),
+            hi("What is the difference between checked and unchecked exceptions?",
+                "Checked exceptions (extend Exception, not RuntimeException) must be declared with throws or caught at compile time — used for recoverable conditions the caller should anticipate. Unchecked exceptions (extend RuntimeException) aren't enforced by the compiler — typically used for programming errors.",
+                "A very common Java fundamentals question, often followed by 'when would you create a custom checked vs unchecked exception?'"),
+            hi("What's the difference between an abstract class and an interface in modern Java (8+)?",
+                "An abstract class can hold state (instance fields) and a constructor, and a class can extend only one. An interface can't hold instance state, but since Java 8 can have default and static methods, and a class can implement multiple interfaces.",
+                "A classic OOP question — the Java 8+ default-methods nuance is a common follow-up that separates up-to-date knowledge from outdated."),
+            md("What is the volatile keyword, and when would you use it?",
+                "volatile ensures visibility of a variable's latest value across threads — writes by one thread are immediately visible to others, preventing threads from caching a stale value. It does NOT provide atomicity for compound operations (like increment) — for that you still need synchronization or an atomic class.",
+                "Tests precise understanding of the Java Memory Model — a common trap is assuming volatile makes an operation atomic.")));
+
+        m.put("JFS2", List.of(
+            hi("What is Inversion of Control (IoC), and how does Spring implement it?",
+                "IoC means the framework — not your code — controls the flow of object creation and wiring. Instead of your class instantiating its own dependencies with `new`, the Spring container creates and injects them for you. Spring implements this via its ApplicationContext (the IoC container), which manages the bean lifecycle.",
+                "The foundational Spring concept — nearly every Spring interview opens with this or dependency injection."),
+            hi("What's the difference between @Component, @Service, @Repository, and @Controller?",
+                "All are specializations of @Component and are functionally identical for bean registration — the differences are semantic/documentation, though @Repository also enables Spring's exception translation (converting DB-specific exceptions to Spring's DataAccessException hierarchy), and @Controller marks Spring MVC request-handling classes.",
+                "A very common 'do you actually know Spring stereotypes' question — many candidates only know they exist, not their actual behavioral differences."),
+            md("What is @Autowired doing under the hood?",
+                "It tells Spring to resolve and inject a matching bean from the ApplicationContext by type (falling back to name if multiple candidates match, or requiring @Qualifier to disambiguate). It's processed by a BeanPostProcessor during bean initialization.",
+                "Tests whether 'magic' annotations are actually understood mechanically, not just used by convention.")));
+
+        m.put("JFS3", List.of(
+            hi("What is the difference between JPA, Hibernate, and Spring Data JPA?",
+                "JPA is a specification (an interface/standard) for ORM in Java. Hibernate is the most common implementation of that specification. Spring Data JPA is a further abstraction on top of JPA that eliminates boilerplate repository code (e.g., generating implementations for interfaces like JpaRepository).",
+                "A very common layering question — candidates often conflate these three, and interviewers use it to check real understanding of the stack."),
+            hi("What is the first-level (persistence context) cache in JPA/Hibernate?",
+                "Within a single EntityManager/session, JPA caches entities it has already loaded — a second request for the same entity by ID returns the cached instance without hitting the database again, for the duration of that persistence context (typically one transaction).",
+                "A common follow-up once N+1 queries come up — tests whether you understand what Hibernate is doing behind the scenes."),
+            md("What does @Transactional's readOnly=true do, and why use it?",
+                "It's a hint to the persistence provider that the transaction won't modify data, allowing optimizations like skipping dirty-checking and, depending on the database/driver, enabling read-only transaction routing (e.g., to a read replica).",
+                "Shows attention to performance detail beyond just 'it works' — a senior-level signal.")));
+
+        m.put("JFS4", List.of(
+            hi("What is idempotency in REST API design, and which HTTP methods are idempotent?",
+                "An idempotent operation produces the same result no matter how many times it's repeated. GET, PUT, and DELETE are idempotent by convention (calling PUT with the same body repeatedly leaves the resource in the same state); POST is NOT idempotent (repeating it typically creates multiple resources).",
+                "A very common REST-design question, especially relevant for retry logic — clients can safely retry idempotent requests after a network failure."),
+            hi("What status code would you return for a validation error vs. a resource not found vs. an unauthorized request?",
+                "Validation error: 400 Bad Request. Not found: 404 Not Found. Not authenticated: 401 Unauthorized. Authenticated but not permitted: 403 Forbidden.",
+                "Tests precise HTTP semantics knowledge — sloppy status-code usage is a common real-world code-review flag."),
+            md("How does Spring's Bean Validation (@Valid, @NotNull, etc.) work, and where does it plug into a REST controller?",
+                "Annotations on a request DTO (like @NotNull, @Size) are checked when the DTO is bound to a @RequestBody parameter annotated with @Valid — Spring triggers validation automatically and throws a MethodArgumentNotValidException on failure, which you typically catch in a @ControllerAdvice to return a clean 400 response.",
+                "Tests whether you know the full request-validation flow, not just that the annotations exist.")));
+
+        m.put("JFS5", List.of(
+            hi("What does @Mock vs @InjectMocks do in a Mockito test?",
+                "@Mock creates a fake instance of a dependency with no real behavior unless stubbed. @InjectMocks creates a real instance of the class under test and automatically injects the @Mock-annotated fields into it (via constructor, setter, or field injection).",
+                "A very common Mockito syntax question — tests hands-on familiarity, not just theoretical knowledge of mocking."),
+            hi("Why is testing private methods generally discouraged, and how should you test them instead?",
+                "Private methods are implementation details; testing them directly couples tests to internals and makes refactoring brittle. Instead, test the public behavior/methods that use the private method — if the private logic is complex enough to need its own tests, that's often a sign it should be extracted into its own testable class.",
+                "A design-judgment question that reveals whether a candidate tests behavior or implementation."),
+            md("What's the purpose of test coverage, and why is 100% coverage not necessarily a good goal?",
+                "Coverage measures which lines/branches execute during tests, helping find untested code — but high coverage doesn't guarantee good tests (you can execute a line without meaningfully asserting on its behavior). Chasing 100% often wastes effort on trivial code (getters/setters) while missing edge-case and integration-level bugs.",
+                "Tests maturity about metrics — a common trap is treating coverage percentage as a proxy for quality.")));
+
+        m.put("JFS6", List.of(
+            hi("What problem does service discovery solve in a microservices architecture?",
+                "In a dynamic environment where service instances scale up/down and get new IPs, hardcoding addresses breaks. A service registry (e.g., Eureka, Consul, or Kubernetes' built-in DNS) lets services register themselves and look up other services by name, so callers don't need to know static locations.",
+                "A common microservices-fundamentals question once a candidate mentions 'multiple services calling each other.'"),
+            hi("What is the difference between horizontal and vertical scaling for a Spring Boot service, and which does containerization favor?",
+                "Vertical: give one instance more CPU/RAM. Horizontal: run more instances behind a load balancer. Containerization (Docker/Kubernetes) is built around horizontal scaling — spinning up more identical, stateless container instances — since it's cheap and elastic compared to resizing a running machine.",
+                "Ties Java-specific deployment knowledge to general system-design fundamentals — a common cross-topic interview question."),
+            md("What health-check endpoints does Spring Boot Actuator provide, and why do orchestrators like Kubernetes need them?",
+                "Actuator exposes /actuator/health (and readiness/liveness variants) reporting whether the app and its dependencies (DB, disk, etc.) are healthy. Kubernetes uses liveness probes to know when to restart a stuck container, and readiness probes to know when a container is ready to receive traffic — without these, it can route traffic to a container that isn't actually ready.",
+                "A practical, production-deployment question that distinguishes hands-on Kubernetes/Spring Boot experience from textbook knowledge.")));
+
         return m;
     }
 

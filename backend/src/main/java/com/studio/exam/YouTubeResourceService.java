@@ -51,6 +51,13 @@ public class YouTubeResourceService {
         QUERIES.put("SD3", "caching message queue system design");
         QUERIES.put("SD4", "microservices system design");
         QUERIES.put("SD5", "RAG system design");
+        // Java Full-Stack
+        QUERIES.put("JFS1", "java concurrency interview");
+        QUERIES.put("JFS2", "spring boot dependency injection tutorial");
+        QUERIES.put("JFS3", "spring data jpa transactions tutorial");
+        QUERIES.put("JFS4", "spring security jwt tutorial");
+        QUERIES.put("JFS5", "spring boot testing junit mockito");
+        QUERIES.put("JFS6", "spring boot microservices docker tutorial");
     }
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;

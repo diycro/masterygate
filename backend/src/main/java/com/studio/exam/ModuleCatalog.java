@@ -32,6 +32,7 @@ public class ModuleCatalog {
         buildGenAi();
         buildDsa();
         buildSystemDesign();
+        buildJavaFullStack();
     }
 
     private void add(Module m) {
@@ -382,5 +383,153 @@ public class ModuleCatalog {
                     "and cost/usage tracking + key management"),
                 q("sd5q3", "How would you scale a vector DB to 100M vectors with low latency?",
                     "an ANN index (HNSW/IVF)", "sharding/partitioning + read replicas, cache hot queries, tune the recall/latency trade-off"))));
+    }
+
+    // ------------------------------------------------------------------ Java Full-Stack track
+    private void buildJavaFullStack() {
+        String t = "javafs";
+        topics.put(t, new Topic(t, "Java Full-Stack Engineer",
+                "Senior-level Java/Spring depth — your actual current stack, interview-ready."));
+
+        add(new Module("JFS1", t, 0, "Core Java & Concurrency",
+            List.of("Collections internals", "Concurrency (threads, executors, locks)", "JVM memory & garbage collection", "Generics & functional interfaces"),
+            List.of(
+                free("Java Concurrency in Practice (summary/guide)", "Baeldung", "https://www.baeldung.com/java-concurrency", "guide"),
+                free("HashMap internals", "Baeldung", "https://www.baeldung.com/java-hashmap", "guide"),
+                free("JVM Garbage Collection basics", "Oracle docs", "https://docs.oracle.com/en/java/javase/21/gctuning/", "docs"),
+                paid("Java Multithreading & Concurrency", "Udemy", "https://www.udemy.com/courses/search/?q=java+concurrency", "search")),
+            List.of("Explain HashMap internals", "Thread-safety trade-offs", "GC tuning basics"),
+            List.of(
+                q("jfs1q1", "How does a HashMap work internally, and what happens on a hash collision?",
+                    "keys are hashed to a bucket index; Java 8+ uses a linked list per bucket that treeifies into a red-black tree once a bucket gets large enough",
+                    "collisions are resolved by chaining within the bucket", "resizing (rehashing) happens once the load factor threshold is exceeded"),
+                q("jfs1q2", "ArrayList vs LinkedList — when would you choose each?",
+                    "ArrayList: O(1) index access, O(n) insert/remove in the middle, contiguous/cache-friendly",
+                    "LinkedList: O(1) insert/remove given a node reference, O(n) access by index, more memory overhead per element",
+                    "ArrayList is the default choice for most cases; LinkedList rarely wins in practice on modern hardware"),
+                q("jfs1q3", "What's the difference between synchronized, a ReentrantLock, and using java.util.concurrent classes like ConcurrentHashMap?",
+                    "synchronized: simplest, JVM-managed, coarse-grained, no timeout/tryLock ability",
+                    "ReentrantLock: explicit lock/unlock, supports tryLock/timeouts/fairness, more flexible but must be unlocked in a finally block",
+                    "ConcurrentHashMap: lock-striped/lock-free concurrent data structure — usually the right choice over manually synchronizing a HashMap"),
+                q("jfs1q4", "What triggers a garbage collection, and what's the difference between minor and major/full GC?",
+                    "objects are collected when no longer reachable from GC roots",
+                    "minor GC: cleans the young generation, frequent and fast",
+                    "major/full GC: cleans the old generation (or the whole heap), less frequent but much more expensive/pausing"))));
+
+        add(new Module("JFS2", t, 1, "Spring & Spring Boot Fundamentals",
+            List.of("Dependency injection & bean lifecycle", "Auto-configuration", "Profiles & externalized config", "AOP basics"),
+            List.of(
+                free("Spring Core / IoC container", "Spring", "https://docs.spring.io/spring-framework/reference/core/beans/introduction.html", "docs"),
+                free("Spring Boot Auto-configuration", "Baeldung", "https://www.baeldung.com/spring-boot-custom-auto-configuration", "guide"),
+                free("Advanced Spring Boot Interview Questions", "Medium", "https://medium.com/@sharmapraveen91/30-advanced-spring-boot-interview-questions-for-experienced-professionals-3574173472c1", "article"),
+                paid("Spring Framework masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+framework+5", "search")),
+            List.of("Bean scopes & lifecycle", "How auto-configuration decides what to wire", "Constructor vs field injection"),
+            List.of(
+                q("jfs2q1", "What is dependency injection, and why does Spring favor constructor injection over field injection?",
+                    "DI means an object's dependencies are provided externally rather than created internally, decoupling components",
+                    "constructor injection makes dependencies explicit/immutable/required, enables easier testing (no reflection needed), and fails fast at startup if a dependency is missing",
+                    "field injection hides dependencies, allows partially-constructed objects, and complicates unit testing"),
+                q("jfs2q2", "Explain the Spring bean lifecycle at a high level.",
+                    "instantiate -> populate properties/inject dependencies -> call Aware interfaces -> BeanPostProcessors (before) -> @PostConstruct/InitializingBean -> bean ready for use -> @PreDestroy/DisposableBean on shutdown",
+                    "understanding this matters for correctly hooking initialization/cleanup logic"),
+                q("jfs2q3", "How does Spring Boot's auto-configuration decide what to configure?",
+                    "@ConditionalOnClass/@ConditionalOnMissingBean/@ConditionalOnProperty etc. gate each auto-configuration class",
+                    "it inspects the classpath and existing bean definitions, only activating configuration when its conditions are met",
+                    "this is why adding a dependency (e.g., a JDBC driver) can automatically wire up related beans"),
+                q("jfs2q4", "Singleton vs prototype bean scope — what's the difference and a case for each?",
+                    "singleton (default): one shared instance per Spring container — fine for stateless services",
+                    "prototype: a new instance every time the bean is requested — used for stateful, non-thread-safe objects"))));
+
+        add(new Module("JFS3", t, 2, "Spring Data JPA & Transactions",
+            List.of("Transaction propagation & isolation", "Lazy vs eager loading", "N+1 query problem", "Entity lifecycle"),
+            List.of(
+                free("Spring Transaction Management", "Spring", "https://docs.spring.io/spring-framework/reference/data-access/transaction.html", "docs"),
+                free("Hibernate N+1 problem", "Baeldung", "https://www.baeldung.com/hibernate-N-plus-1-problem-different-fetching-strategies", "guide"),
+                free("JPA entity lifecycle", "Baeldung", "https://www.baeldung.com/jpa-entity-lifecycle", "guide"),
+                paid("Spring Data JPA masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+data+jpa", "search")),
+            List.of("Explain @Transactional propagation", "Diagnose an N+1 query", "Lazy-loading pitfalls (LazyInitializationException)"),
+            List.of(
+                q("jfs3q1", "What is the N+1 query problem, and how do you fix it?",
+                    "fetching a list of N entities, then lazily fetching a related entity for EACH one triggers 1 + N queries instead of one efficient query",
+                    "fix with a JOIN FETCH in JPQL, an @EntityGraph, or batch fetching, to retrieve related data in one (or few) queries"),
+                q("jfs3q2", "Explain @Transactional propagation levels — REQUIRED vs REQUIRES_NEW.",
+                    "REQUIRED (default): joins an existing transaction if one exists, or creates a new one",
+                    "REQUIRES_NEW: always suspends any existing transaction and starts a new, independent one — a rollback in the outer transaction won't undo what REQUIRES_NEW already committed"),
+                q("jfs3q3", "What causes a LazyInitializationException, and how do you avoid it?",
+                    "accessing a lazily-loaded association after the persistence session/transaction that fetched the entity has closed",
+                    "fix by fetching eagerly when needed (JOIN FETCH), keeping the access within the transactional boundary, or using a DTO projection instead of the raw entity"),
+                q("jfs3q4", "Lazy vs eager fetching in JPA — what's the trade-off, and what's the default for @OneToMany vs @ManyToOne?",
+                    "lazy loads the association only when accessed (saves memory/query cost, but risks LazyInitializationException outside a session)",
+                    "eager always loads it immediately (simpler, but can over-fetch and hurt performance)",
+                    "@OneToMany/@ManyToMany default to lazy; @ManyToOne/@OneToOne default to eager"))));
+
+        add(new Module("JFS4", t, 3, "REST APIs, Validation & Security",
+            List.of("REST API design", "Bean validation & exception handling", "OAuth2/JWT authentication", "CORS & CSRF"),
+            List.of(
+                free("Spring Security reference", "Spring", "https://docs.spring.io/spring-security/reference/", "docs"),
+                free("Spring Boot exception handling", "Baeldung", "https://www.baeldung.com/exception-handling-for-rest-with-spring", "guide"),
+                free("REST API design best practices", "Microsoft docs", "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design", "guide"),
+                paid("Spring Security masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+security+oauth2+jwt", "search")),
+            List.of("Design a clean REST error response", "Explain JWT vs session auth", "CORS vs CSRF — what each protects against"),
+            List.of(
+                q("jfs4q1", "How do you handle exceptions cleanly across a Spring Boot REST API?",
+                    "a centralized @ControllerAdvice with @ExceptionHandler methods mapping exceptions to consistent error responses (status code, message, timestamp)",
+                    "avoids scattering try/catch blocks across controllers and keeps error responses consistent for API consumers"),
+                q("jfs4q2", "JWT-based auth vs traditional session-based auth — what's the trade-off?",
+                    "JWT: stateless, the token itself carries the claims, scales horizontally without shared session storage, but harder to revoke before expiry",
+                    "session-based: server holds state (in-memory or shared store), easy to revoke immediately, but needs sticky sessions or a shared session store to scale"),
+                q("jfs4q3", "What's the difference between CORS and CSRF, and what does each protect against?",
+                    "CORS (Cross-Origin Resource Sharing): a browser mechanism controlling which origins are ALLOWED to call your API from client-side JS",
+                    "CSRF (Cross-Site Request Forgery): an attack where a malicious site tricks a logged-in user's browser into making an unwanted request; defended with CSRF tokens or SameSite cookies",
+                    "CORS is about permission to call; CSRF protection is about proving the request was intentional"),
+                q("jfs4q4", "How do you version a REST API, and what are the trade-offs of common approaches?",
+                    "URI versioning (/api/v1/...): simple, visible, but can lead to code duplication",
+                    "header/content-negotiation versioning: cleaner URIs but less discoverable and harder to test manually",
+                    "the choice depends on how many consumers you have and how often breaking changes occur"))));
+
+        add(new Module("JFS5", t, 4, "Testing (JUnit, Mockito, Integration)",
+            List.of("Unit vs integration testing", "Mockito mocking", "@SpringBootTest & test slices", "Testcontainers basics"),
+            List.of(
+                free("Testing in Spring Boot", "Spring", "https://docs.spring.io/spring-boot/reference/testing/index.html", "docs"),
+                free("Mockito tutorial", "Baeldung", "https://www.baeldung.com/mockito-series", "guide"),
+                free("Testcontainers for Java", "Testcontainers", "https://testcontainers.com/guides/getting-started-with-testcontainers-for-java/", "guide"),
+                paid("Spring Boot Testing masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+boot+testing+junit+mockito", "search")),
+            List.of("Unit vs integration test boundary", "Mock vs spy", "Why testcontainers over an in-memory DB for integration tests"),
+            List.of(
+                q("jfs5q1", "What's the difference between a unit test and an integration test, and where's the boundary?",
+                    "unit test: tests one class/method in isolation, dependencies mocked, fast, no Spring context",
+                    "integration test: verifies multiple components working together (e.g., a real DB, the Spring context), slower but catches wiring/config issues unit tests miss"),
+                q("jfs5q2", "Mock vs spy in Mockito — what's the difference?",
+                    "mock: a fully fake object with no real behavior unless stubbed",
+                    "spy: wraps a REAL object, calling real methods by default unless specific methods are stubbed — useful for partial mocking"),
+                q("jfs5q3", "Why use Testcontainers instead of an in-memory database (like H2) for integration tests?",
+                    "an in-memory DB can behave differently from your real production database (SQL dialect quirks, feature gaps)",
+                    "Testcontainers spins up the REAL database engine (e.g., actual Postgres) in Docker for the test, giving much higher confidence the tests reflect production behavior"),
+                q("jfs5q4", "What does @SpringBootTest do, and why would you use a narrower test slice like @WebMvcTest instead?",
+                    "@SpringBootTest loads the full application context — thorough but slow",
+                    "@WebMvcTest (or @DataJpaTest, etc.) loads only the relevant slice of the context — much faster, appropriate when you're only testing one layer"))));
+
+        add(new Module("JFS6", t, 5, "Microservices, Resilience & Deployment",
+            List.of("Service-to-service communication", "Resilience patterns (circuit breaker, retry)", "Docker & container basics", "CI/CD for a Spring app"),
+            List.of(
+                free("Spring Cloud reference", "Spring", "https://spring.io/projects/spring-cloud", "docs"),
+                free("Resilience4j guide", "Resilience4j", "https://resilience4j.readme.io/docs/getting-started", "docs"),
+                free("Docker for Java developers", "Docker docs", "https://docs.docker.com/language/java/", "guide"),
+                paid("Microservices with Spring Boot & Spring Cloud", "Udemy", "https://www.udemy.com/courses/search/?q=microservices+spring+cloud", "search")),
+            List.of("Design a resilient service call", "Explain a multi-stage Dockerfile for a Spring app", "CI/CD pipeline stages"),
+            List.of(
+                q("jfs6q1", "How do you make a call to another microservice resilient to that service being slow or down?",
+                    "set an explicit timeout so a slow dependency can't hang your thread indefinitely",
+                    "add retries with backoff for transient failures",
+                    "add a circuit breaker (e.g., Resilience4j) to stop calling a failing service and fail fast, with a fallback response"),
+                q("jfs6q2", "What's the benefit of a multi-stage Docker build for a Spring Boot app?",
+                    "one stage builds/compiles the app (with the full JDK + build tool), a second stage copies only the built artifact into a minimal runtime image",
+                    "this keeps the final image small and avoids shipping build tools/source code in production"),
+                q("jfs6q3", "What are the typical stages of a CI/CD pipeline for a Spring Boot service?",
+                    "build/compile -> run unit + integration tests -> static analysis/security scan -> build the container image -> deploy to staging -> (manual or automated) promote to production",
+                    "the goal is to catch issues as early and cheaply as possible in the pipeline"),
+                q("jfs6q4", "Synchronous REST calls vs an async message queue between microservices — when do you choose each?",
+                    "sync REST: simple, immediate response needed, tighter coupling, caller blocks on the callee's availability",
+                    "async messaging: decouples services, smooths load, survives temporary downstream outages, but adds eventual-consistency complexity"))));
     }
 }
