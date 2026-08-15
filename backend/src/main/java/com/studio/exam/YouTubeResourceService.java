@@ -109,6 +109,7 @@ public class YouTubeResourceService {
                 .queryParam("part", "snippet").queryParam("type", "video")
                 .queryParam("maxResults", 15).queryParam("order", "relevance")
                 .queryParam("q", query).queryParam("key", apiKey).toUriString();
+        log.info("YouTube search URL: {}", searchUrl.replaceAll("key=[^&]+", "key=***"));
         JsonNode search = rc.get().uri(searchUrl).retrieve().body(JsonNode.class);
         int searchCount = (search == null) ? 0 : search.path("items").size();
         log.info("YouTube search '{}' -> {} items", query, searchCount);
