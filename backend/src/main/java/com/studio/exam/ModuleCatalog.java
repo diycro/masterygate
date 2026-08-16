@@ -33,6 +33,7 @@ public class ModuleCatalog {
         buildDsa();
         buildSystemDesign();
         buildJavaFullStack();
+        buildPython();
     }
 
     private void add(Module m) {
@@ -531,5 +532,145 @@ public class ModuleCatalog {
                 q("jfs6q4", "Synchronous REST calls vs an async message queue between microservices — when do you choose each?",
                     "sync REST: simple, immediate response needed, tighter coupling, caller blocks on the callee's availability",
                     "async messaging: decouples services, smooths load, survives temporary downstream outages, but adds eventual-consistency complexity"))));
+    }
+
+    // ------------------------------------------------------------------ Python track
+    private void buildPython() {
+        String t = "python";
+        topics.put(t, new Topic(t, "Python Programming",
+                "Core Python for backend and GenAI engineering — syntax to concurrency, interview-ready."));
+
+        List<Resource> base = List.of(
+                free("The Python Tutorial (official docs)", "python.org", "https://docs.python.org/3/tutorial/", "docs"),
+                free("Real Python", "realpython.com", "https://realpython.com/", "tutorials"),
+                free("Automate the Boring Stuff with Python", "free book", "https://automatetheboringstuff.com/", "book"),
+                paid("100 Days of Code: Python", "Udemy", "https://www.udemy.com/courses/search/?q=python+bootcamp", "search"));
+
+        add(new Module("PY1", t, 0, "Python Fundamentals & Syntax",
+            List.of("Variables, dynamic typing & mutability", "Control flow", "Functions, arguments & scope", "String formatting"),
+            base,
+            List.of("Mutable vs immutable default-argument trap", "Explain LEGB scoping", "f-strings vs .format()"),
+            List.of(
+                q("py1q1", "Python is dynamically typed — what does that mean, and how does it differ from static typing?",
+                    "a variable's type is determined at runtime by the object it references, not declared ahead of time",
+                    "the same variable name can be rebound to a different type later", "static typing (Java/C#) checks types at compile time instead"),
+                q("py1q2", "What is the classic 'mutable default argument' bug in Python, and how do you avoid it?",
+                    "a default argument like def f(items=[]) is evaluated ONCE at function definition time, not on every call",
+                    "so mutations to that default list persist and leak across calls", "fix: use None as the default and create the mutable object inside the function body"),
+                q("py1q3", "Explain Python's LEGB rule for variable scope resolution.",
+                    "Local -> Enclosing -> Global -> Built-in — the order Python searches when resolving a name",
+                    "a local variable shadows an enclosing/global one of the same name; `global`/`nonlocal` keywords are needed to assign to an outer scope from inside a function"),
+                q("py1q4", "What's the difference between == and is in Python?",
+                    "== compares value/content equality (calls __eq__)", "is compares object identity (same object in memory)",
+                    "small integers and interned strings may be `is`-equal due to caching, which is an implementation detail you shouldn't rely on"))));
+
+        add(new Module("PY2", t, 1, "Data Structures & Collections",
+            List.of("list/tuple/dict/set trade-offs", "Slicing", "Comprehensions", "Shallow vs deep copy"),
+            base,
+            List.of("Pick the right collection and justify it", "Comprehension readability limits", "Copy semantics bugs"),
+            List.of(
+                q("py2q1", "list vs tuple vs set vs dict — when do you reach for each?",
+                    "list: ordered, mutable sequence — general-purpose collection",
+                    "tuple: ordered, immutable — fixed records, safe to use as a dict key/hashable",
+                    "set: unordered, unique elements, O(1) average membership test", "dict: key-value mapping, O(1) average lookup by key"),
+                q("py2q2", "What does list slicing like a[1:4:2] mean, and what does a[::-1] do?",
+                    "a[start:stop:step] returns elements from index start up to (not including) stop, taking every `step`-th element",
+                    "a[::-1] reverses the sequence — start and stop default to the full range, step -1 walks backward"),
+                q("py2q3", "How would you rewrite a filter-and-transform for loop as a list comprehension, and when should you NOT use one?",
+                    "a comprehension like [x*x for x in nums if x % 2 == 0] replaces a for loop that filters then appends",
+                    "comprehensions are idiomatic and often faster for simple transforms/filters",
+                    "nesting more than one or two conditions/loops hurts readability — a plain loop or a named function is clearer at that point"),
+                q("py2q4", "What's the difference between a shallow copy and a deep copy, and where does a shallow copy bite you?",
+                    "a shallow copy (list(x), x.copy(), copy.copy()) creates a new outer container but reuses references to the same inner/nested objects",
+                    "mutating a nested list/dict inside a shallow copy also mutates the original", "copy.deepcopy() recursively copies nested objects to avoid this"))));
+
+        add(new Module("PY3", t, 2, "Object-Oriented Python",
+            List.of("Classes, __init__ & self", "Inheritance & MRO", "Dunder/magic methods", "@property & encapsulation"),
+            base,
+            List.of("Explain a dunder method's purpose", "Method Resolution Order", "When composition beats inheritance"),
+            List.of(
+                q("py3q1", "What do __init__ and self actually do in a Python class?",
+                    "__init__ is the initializer, called automatically right after a new instance is created, to set up its initial state",
+                    "self is the instance itself, passed automatically as the first parameter to instance methods — it's how a method accesses/modifies that specific object's attributes"),
+                q("py3q2", "What is Method Resolution Order (MRO), and why does it matter with multiple inheritance?",
+                    "MRO is the order Python searches base classes to resolve an attribute/method lookup, computed via the C3 linearization algorithm",
+                    "it matters because with multiple inheritance, two parent classes could define the same method — MRO deterministically decides which one wins",
+                    "you can inspect it with ClassName.__mro__ or ClassName.mro()"),
+                q("py3q3", "What does implementing __eq__ and __hash__ let you do, and why must they be consistent?",
+                    "__eq__ defines what == means for your objects; __hash__ defines their hash bucket for use as dict keys / set members",
+                    "if two objects are equal (__eq__ True) but have different hashes, they'll silently break in sets/dicts — Python's contract requires equal objects to hash equally"),
+                q("py3q4", "What does the @property decorator do, and why use it instead of plain getter/setter methods?",
+                    "it lets a method be accessed like a plain attribute (obj.value instead of obj.get_value()) while still running code on access",
+                    "it lets you start with plain public attributes and add validation/computed logic later without breaking the class's external API",
+                    "common use: exposing a computed value (like a circle's area from its radius) as if it were a stored attribute"))));
+
+        add(new Module("PY4", t, 3, "Decorators, Generators & Error Handling",
+            List.of("Decorators & closures", "Generators & yield", "Exception handling & custom exceptions", "Context managers"),
+            base,
+            List.of("Write a decorator from scratch", "Generator vs list memory trade-off", "try/except/else/finally semantics"),
+            List.of(
+                q("py4q1", "Explain how you'd write a decorator that times how long a function takes to run, mechanically.",
+                    "a decorator is a function that takes a function and returns a new (wrapper) function that adds behavior around the original call",
+                    "the wrapper records a start time, calls the original function, records the end time, and returns the original result",
+                    "functools.wraps is used on the wrapper to preserve the original function's name/docstring for introspection — a common thing junior candidates forget"),
+                q("py4q2", "What's the difference between a generator and a normal function that returns a list, and why does it matter for memory?",
+                    "a normal function computes and returns the entire list in memory at once",
+                    "a generator (using yield) produces values lazily, one at a time, pausing its execution state between each — only one value needs to be in memory at a time",
+                    "for very large or infinite sequences, a generator avoids loading everything into memory upfront"),
+                q("py4q3", "Explain what try/except/else/finally each do, in order.",
+                    "try: the code that might raise an exception", "except: runs only if a matching exception was raised in the try block",
+                    "else: runs only if the try block completed with NO exception raised", "finally: always runs, whether or not an exception occurred — used for cleanup (closing files/connections)"),
+                q("py4q4", "How does Python's `with` statement (a context manager) work, and why is it preferred over manual try/finally for resource cleanup?",
+                    "the object's __enter__ method runs at the start of the block and __exit__ runs at the end — even if an exception occurred inside the block",
+                    "a common example is opening a file: it's guaranteed to be closed when the block exits, even if an error was raised while reading it",
+                    "it guarantees cleanup happens exactly once, in the right place, without the boilerplate and easy-to-forget-a-branch risk of manual try/finally"))));
+
+        add(new Module("PY5", t, 4, "Modules, Typing & Testing",
+            List.of("venv & pip / packaging", "Type hints", "pytest fundamentals", "Fixtures & mocking"),
+            List.of(
+                free("Python venv (official docs)", "python.org", "https://docs.python.org/3/library/venv.html", "docs"),
+                free("Type hints cheat sheet", "mypy docs", "https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html", "docs"),
+                free("pytest documentation", "pytest.org", "https://docs.pytest.org/", "docs"),
+                paid("Python Testing with pytest", "Udemy", "https://www.udemy.com/courses/search/?q=pytest", "search")),
+            List.of("Why type hints don't enforce anything at runtime", "Structuring a pytest suite", "Mocking an external call"),
+            List.of(
+                q("py5q1", "Do Python type hints get enforced at runtime? What are they actually for?",
+                    "no — type hints are not checked or enforced when the code runs; Python remains fully dynamically typed at runtime",
+                    "calling a hinted function with the 'wrong' type still runs without error — nothing raises a TypeError from the hints themselves",
+                    "they're read by external static-analysis tools (mypy, IDEs, linters) to catch type mistakes before running the code, and they document intent for other developers"),
+                q("py5q2", "What's the difference between a virtual environment (venv) and a requirements.txt file?",
+                    "a venv is an isolated Python installation/directory holding a project's own interpreter and installed packages, separate from the system Python",
+                    "requirements.txt is just a text list of package names/versions to install — it doesn't isolate anything by itself; `pip install -r requirements.txt` installs them, typically INTO an active venv"),
+                q("py5q3", "What is a pytest fixture, and what problem does it solve?",
+                    "a fixture is a reusable setup function (marked with @pytest.fixture) that provides test data, a DB connection, or a mock",
+                    "pytest injects it automatically into any test function that names it as a parameter",
+                    "it avoids duplicating the same setup/teardown code across many test functions"),
+                q("py5q4", "How would you mock an external API call in a test so it doesn't make a real network request?",
+                    "replace the function/method that performs the network call with a fake (a mock or monkeypatched function) that returns a canned response",
+                    "patch it at the point where it's USED, not just where it's defined, so the test exercises your code's logic without depending on network availability or flakiness"))));
+
+        add(new Module("PY6", t, 5, "Concurrency & Performance",
+            List.of("The GIL", "threading vs multiprocessing", "asyncio basics", "Profiling & optimization"),
+            List.of(
+                free("What is the Python GIL?", "realpython.com", "https://realpython.com/python-gil/", "article"),
+                free("asyncio — official docs", "python.org", "https://docs.python.org/3/library/asyncio.html", "docs"),
+                free("Speed Up Your Python Program With Concurrency", "realpython.com", "https://realpython.com/python-concurrency/", "article"),
+                paid("Python concurrency & parallelism", "Udemy", "https://www.udemy.com/courses/search/?q=python+concurrency", "search")),
+            List.of("Explain the GIL's real impact", "threading vs multiprocessing vs asyncio, correctly chosen", "Where to actually profile before optimizing"),
+            List.of(
+                q("py6q1", "What is the GIL, and what does it actually prevent?",
+                    "the Global Interpreter Lock ensures only one thread executes Python bytecode at a time within a single process, even on a multi-core machine",
+                    "it means Python threads do NOT give you true parallel CPU-bound execution — two threads can't run Python code simultaneously on two cores"),
+                q("py6q2", "Given the GIL, when is Python threading still useful, and when do you need multiprocessing instead?",
+                    "threading still helps for I/O-bound work (network calls, file/disk I/O) — the GIL is released while waiting on I/O, so threads overlap that waiting time",
+                    "multiprocessing runs separate Python processes, each with its own GIL/interpreter, giving true parallelism for CPU-bound work (heavy computation)",
+                    "rule of thumb: I/O-bound -> threading (or asyncio); CPU-bound -> multiprocessing"),
+                q("py6q3", "What problem does asyncio solve, and how is it different from threading?",
+                    "asyncio runs many I/O-bound tasks concurrently on a SINGLE thread using cooperative multitasking — a task voluntarily yields control (at an `await`) while waiting on I/O instead of blocking",
+                    "```python\nimport asyncio\n\nasync def fetch(url):\n    await asyncio.sleep(1)  # simulates a non-blocking I/O wait\n    return f\"data from {url}\"\n\nasync def main():\n    results = await asyncio.gather(fetch(\"a\"), fetch(\"b\"))\n```",
+                    "unlike threading, there's no preemptive context-switching or thread-safety overhead — but a single long-running CPU-bound `await`-free call will block the whole event loop"),
+                q("py6q4", "Before optimizing slow Python code, what should you do first, and why?",
+                    "profile it (e.g., with cProfile or a line profiler) to find where time is ACTUALLY being spent, rather than guessing",
+                    "most code has one or two real bottlenecks — optimizing code that isn't actually slow wastes effort and adds complexity for no measurable benefit"))));
     }
 }

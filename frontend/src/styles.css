@@ -145,6 +145,10 @@
   .qabody .lbl3{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:10px 0 4px}
   .qabody .lbl3:first-child{margin-top:0}
   .qabody .ans{line-height:1.6;font-size:13.5px}
+  .qabody .ans p{margin:0 0 10px}
+  .qabody .ans p:last-child{margin-bottom:0}
+  .qabody .ans .qa-code{margin:2px 0 12px;font-size:12px}
+  .qabody .ans .qa-code:last-child{margin-bottom:0}
   .qabody .exp{line-height:1.6;font-size:13px;color:var(--ink-2);font-style:italic}
   .gensrc{opacity:.85}
   .gensrc .qtxt::after{content:" · AI-generated";font-style:italic;color:var(--ink-3);font-weight:400}

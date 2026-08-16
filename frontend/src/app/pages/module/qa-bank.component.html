@@ -12,7 +12,13 @@
         <span class="freq" [ngClass]="item.frequency==='high' ? 'high' : 'medium'">{{item.frequency==='high' ? 'Frequently asked' : 'Common'}}</span>
       </button>
       <div class="qabody">
-        <div class="lbl3">Answer</div><div class="ans">{{item.answer}}</div>
+        <div class="lbl3">Answer</div>
+        <div class="ans">
+          <ng-container *ngFor="let part of answerParts(item)">
+            <p *ngIf="part.type==='text'">{{part.content}}</p>
+            <pre class="illustrative-code qa-code" *ngIf="part.type==='code'">{{part.content}}</pre>
+          </ng-container>
+        </div>
         <ng-container *ngIf="item.explanation">
           <div class="lbl3">Why it's asked</div><div class="exp">{{item.explanation}}</div>
         </ng-container>

@@ -58,6 +58,13 @@ public class YouTubeResourceService {
         QUERIES.put("JFS4", "spring security jwt tutorial");
         QUERIES.put("JFS5", "spring boot testing junit mockito");
         QUERIES.put("JFS6", "spring boot microservices docker tutorial");
+        // Python
+        QUERIES.put("PY1", "python tutorial for beginners");
+        QUERIES.put("PY2", "python data structures tutorial");
+        QUERIES.put("PY3", "python oop tutorial");
+        QUERIES.put("PY4", "python decorators generators tutorial");
+        QUERIES.put("PY5", "python testing pytest tutorial");
+        QUERIES.put("PY6", "python concurrency asyncio tutorial");
     }
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;
