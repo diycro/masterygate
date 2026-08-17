@@ -31,7 +31,23 @@
     </p>
 
     <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Model</label>
-    <input [(ngModel)]="model" style="margin-bottom:18px">
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <input [(ngModel)]="model" list="modelChoices" style="flex:1" placeholder="Fetch models, or type an exact model ID">
+      <button class="btn ghost" (click)="refreshModels()" [disabled]="loadingModels" type="button">
+        {{ loadingModels ? 'Fetching…' : 'Fetch models' }}</button>
+    </div>
+    <datalist id="modelChoices">
+      <option *ngFor="let m of models" [value]="m"></option>
+    </datalist>
+    <p class="muted" style="font-size:12px;margin-bottom:8px" *ngIf="models.length && !modelsError">
+      {{models.length}} model(s) this key can currently use — pulled live from {{provider}}, not hardcoded.
+      Not every one supports the tool-calling this app needs for grading; if one fails, try another from the list.
+    </p>
+    <p style="font-size:12px;margin-bottom:8px;color:var(--warn)" *ngIf="modelsError">{{modelsError}}</p>
+    <p class="muted" style="font-size:12px;margin-bottom:18px" *ngIf="!models.length && !modelsError">
+      Click "Fetch models" to pull the current, real list of models available to this key — model
+      catalogs change over time, so this avoids relying on a hardcoded name that can go stale.
+    </p>
 
     <div style="display:flex;gap:10px">
       <button class="btn" (click)="save()">Save</button>

@@ -57,6 +57,40 @@ export class LlmService {
   defaultModelFor(provider: LlmProvider) { return DEFAULT_MODEL[provider]; }
 
   /**
+   * Fetches the REAL, current list of models this key can use, straight from the provider — instead
+   * of trusting any hardcoded ID (providers rotate/deprecate models regularly, which is exactly what
+   * broke the old hardcoded Groq default). `override` lets the Settings page query with an
+   * in-progress provider/key before it's been saved. Filters out obviously non-chat models (speech,
+   * moderation, embeddings, safety classifiers) by name, since those can't do the tool-calling this
+   * app needs for grading — but a provider can still list a model here that turns out not to support
+   * tool calling, since that capability isn't exposed by any of these list-models APIs.
+   */
+  async listModels(override?: Partial<LlmSettings>): Promise<string[]> {
+    const s = { ...this.settings(), ...override };
+    if (!s.apiKey.trim()) throw new Error('Enter an API key first.');
+
+    let ids: string[];
+    if (s.provider === 'anthropic') {
+      const res = await fetch('https://api.anthropic.com/v1/models?limit=1000', {
+        headers: { 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+      });
+      if (!res.ok) throw new Error(await this.errText(res));
+      const data = await res.json();
+      ids = (data?.data || []).map((m: any) => m.id);
+    } else {
+      const base = s.provider === 'openai' ? 'https://api.openai.com/v1/models' : 'https://api.groq.com/openai/v1/models';
+      const res = await fetch(base, { headers: { 'Authorization': `Bearer ${s.apiKey}` } });
+      if (!res.ok) throw new Error(await this.errText(res));
+      const data = await res.json();
+      ids = (data?.data || []).map((m: any) => m.id);
+    }
+
+    const nonChat = /whisper|tts|speech|embed|moderation|guard|safety|dall-e|image|davinci|babbage|ada\b/i;
+    const filtered = ids.filter(id => !nonChat.test(id)).sort();
+    return filtered.length ? filtered : ids.sort();
+  }
+
+  /**
    * Calls the configured provider, forcing the model to return arguments matching `schema` via a
    * single forced tool call, and resolves with the parsed object. Throws with a readable message on
    * any failure (missing key, network error, malformed response) — callers should catch and show it.

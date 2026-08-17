@@ -18,6 +18,10 @@ export class SettingsComponent {
   showKey = false;
   confirmingReset = false;
 
+  models: string[] = [];
+  loadingModels = false;
+  modelsError: string | null = null;
+
   constructor(private llm: LlmService, private local: LocalStoreService, private toast: ToastService) {
     const s = this.llm.settings();
     this.provider = s.provider;
@@ -34,6 +38,24 @@ export class SettingsComponent {
       .filter(p => p !== this.provider)
       .some(p => this.model === this.llm.defaultModelFor(p));
     if (!this.model.trim() || isSomeOtherDefault) this.model = this.llm.defaultModelFor(this.provider);
+    this.models = [];
+    this.modelsError = null;
+  }
+
+  async refreshModels() {
+    if (!this.apiKey.trim()) { this.toast.show('Enter an API key first.', 'info'); return; }
+    this.loadingModels = true;
+    this.modelsError = null;
+    try {
+      this.models = await this.llm.listModels({ provider: this.provider, apiKey: this.apiKey.trim() });
+      if (this.models.length && !this.models.includes(this.model)) this.model = this.models[0];
+      this.toast.show(`Found ${this.models.length} model(s) available to this key.`, 'info');
+    } catch (e: any) {
+      this.modelsError = e?.message || 'Could not fetch the model list.';
+      this.toast.show('Could not fetch models: ' + this.modelsError, 'error');
+    } finally {
+      this.loadingModels = false;
+    }
   }
 
   save() {
@@ -43,6 +65,7 @@ export class SettingsComponent {
 
   clearKey() {
     this.apiKey = '';
+    this.models = [];
     this.llm.save({ provider: this.provider, apiKey: '', model: this.model.trim() });
     this.toast.show('API key removed.', 'info');
   }
