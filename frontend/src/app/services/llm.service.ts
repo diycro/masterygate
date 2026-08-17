@@ -117,7 +117,7 @@ export class LlmService {
       // user's problem to work around by hunting for a tool-capable model, fall back to asking the
       // model to just write JSON in its plain response, which works on essentially any chat model.
       if (this.looksLikeUnsupportedToolCalling(e)) {
-        return await this.callPlainJson<T>(s, system, user, schema);
+        return await this.callPlainJsonWithRetry<T>(s, system, user, schema);
       }
       throw e;
     }
@@ -128,9 +128,34 @@ export class LlmService {
     return msg.includes('tool') && (msg.includes('not support') || msg.includes('not enabled') || msg.includes('not available'));
   }
 
-  /** Universal fallback: no tools/function-calling at all, just a plain completion asked to emit JSON, parsed leniently. */
+  /**
+   * Universal fallback: no tools/function-calling at all, just a plain completion asked to emit
+   * JSON, parsed leniently. Retries once on a parse failure — LLM output is stochastic, and a
+   * malformed/truncated response on one attempt often comes back clean on the next, especially from
+   * smaller models. Only the SECOND failure's error (with a raw-output snippet attached) propagates.
+   */
+  private async callPlainJsonWithRetry<T>(s: LlmSettings, system: string, user: string, schema: any): Promise<T> {
+    try {
+      return await this.callPlainJson<T>(s, system, user, schema);
+    } catch (e) {
+      return await this.callPlainJson<T>(s, system, user, schema);
+    }
+  }
+
   private async callPlainJson<T>(s: LlmSettings, system: string, user: string, schema: any): Promise<T> {
-    const jsonSystem = `${system}\n\nRespond with ONLY a single valid JSON object — no markdown code fences, no commentary before or after — matching this JSON schema:\n${JSON.stringify(schema)}`;
+    const jsonSystem = `${system}
+
+Respond with ONLY a single valid JSON object — no markdown code fences, no commentary before or
+after, nothing but the JSON itself — matching this JSON schema:
+${JSON.stringify(schema)}
+
+For example, a response with this exact shape (adjust the fields/values to match the schema above
+and the actual content requested — this is only showing the FORMAT, not real content):
+${this.exampleFor(schema)}`;
+    // A generous, explicit cap — many providers default to a short completion length when
+    // max_tokens is omitted, which truncates a multi-item JSON response mid-object and makes it
+    // unparseable. This is likely why plain-JSON responses were failing to parse at all.
+    const maxTokens = 4096;
     let content: string;
     if (s.provider === 'anthropic') {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -142,7 +167,7 @@ export class LlmService {
           'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
-          model: s.model || DEFAULT_MODEL.anthropic, max_tokens: 2048,
+          model: s.model || DEFAULT_MODEL.anthropic, max_tokens: maxTokens,
           system: jsonSystem, messages: [{ role: 'user', content: user }]
         })
       });
@@ -155,7 +180,7 @@ export class LlmService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.apiKey}` },
         body: JSON.stringify({
-          model: s.model || DEFAULT_MODEL[provider],
+          model: s.model || DEFAULT_MODEL[provider], max_tokens: maxTokens,
           messages: [{ role: 'system', content: jsonSystem }, { role: 'user', content: user }]
         })
       });
@@ -164,6 +189,23 @@ export class LlmService {
       content = data?.choices?.[0]?.message?.content || '';
     }
     return this.parseLenientJson<T>(content);
+  }
+
+  /** A tiny, generic instance of a JSON Schema object — just enough to show the model the shape, not real content. */
+  private exampleFor(schema: any): string {
+    const exampleValue = (s: any): any => {
+      if (!s || typeof s !== 'object') return null;
+      if (s.type === 'object') {
+        const out: any = {};
+        for (const k of Object.keys(s.properties || {})) out[k] = exampleValue(s.properties[k]);
+        return out;
+      }
+      if (s.type === 'array') return [exampleValue(s.items)];
+      if (s.type === 'string') return s.enum ? s.enum[0] : '...';
+      if (s.type === 'integer' || s.type === 'number') return 0;
+      return null;
+    };
+    try { return JSON.stringify(exampleValue(schema)); } catch { return '{}'; }
   }
 
   private parseLenientJson<T>(text: string): T {
@@ -176,7 +218,10 @@ export class LlmService {
       if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);
     }
     try { return JSON.parse(s) as T; }
-    catch { throw new Error("The model's response wasn't valid JSON — try again, or try a different model."); }
+    catch {
+      const snippet = text.length > 200 ? text.slice(0, 200) + '…' : text;
+      throw new Error(`The model's response wasn't valid JSON: "${snippet || '(empty response)'}"`);
+    }
   }
 
   /** Shared by Groq and OpenAI — both speak the identical OpenAI chat-completions + tool-calling format. */
@@ -186,7 +231,7 @@ export class LlmService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.apiKey}` },
       body: JSON.stringify({
-        model: s.model || DEFAULT_MODEL[provider],
+        model: s.model || DEFAULT_MODEL[provider], max_tokens: 4096,
         messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
         tools: [{ type: 'function', function: { name: toolName, description: toolDescription, parameters: schema } }],
         tool_choice: { type: 'function', function: { name: toolName } }
@@ -211,7 +256,7 @@ export class LlmService {
       },
       body: JSON.stringify({
         model: s.model || DEFAULT_MODEL.anthropic,
-        max_tokens: 2048,
+        max_tokens: 4096,
         system,
         messages: [{ role: 'user', content: user }],
         tools: [{ name: toolName, description: toolDescription, input_schema: schema }],
