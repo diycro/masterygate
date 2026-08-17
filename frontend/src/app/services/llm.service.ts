@@ -28,8 +28,10 @@ const OPENAI_COMPAT_BASE_URL: Record<'groq' | 'openai', string> = {
  * OpenAI-compatible API, which is exactly what the original server-side version of this app used
  * (GROQ_API_KEY against api.groq.com/openai). The key is stored only in this browser's localStorage
  * and is never sent anywhere except straight to the chosen provider's API. Structured JSON output is
- * obtained via forced tool-use/function-calling on all three providers, far more reliable than asking
- * the model to "please reply with JSON."
+ * obtained via forced tool-use/function-calling when the model supports it (far more reliable than
+ * asking the model to "please reply with JSON"), automatically falling back to a plain JSON-in-text
+ * prompt for models that reject tool-calling — so the model you pick, from any of the three
+ * providers, isn't itself a constraint on whether this app can use it.
  */
 @Injectable({ providedIn: 'root' })
 export class LlmService {
@@ -110,8 +112,71 @@ export class LlmService {
       if (e instanceof TypeError) {
         throw new Error(`Request to ${s.provider} was blocked before it reached the server — this usually means that provider's API doesn't allow direct calls from a browser (CORS). Try a different provider in Settings.`);
       }
+      // Not every model on every provider supports forced tool-calling (this is exactly what a
+      // "tool calling is not supported with this model" error means) — rather than making that the
+      // user's problem to work around by hunting for a tool-capable model, fall back to asking the
+      // model to just write JSON in its plain response, which works on essentially any chat model.
+      if (this.looksLikeUnsupportedToolCalling(e)) {
+        return await this.callPlainJson<T>(s, system, user, schema);
+      }
       throw e;
     }
+  }
+
+  private looksLikeUnsupportedToolCalling(e: any): boolean {
+    const msg = String(e?.message || '').toLowerCase();
+    return msg.includes('tool') && (msg.includes('not support') || msg.includes('not enabled') || msg.includes('not available'));
+  }
+
+  /** Universal fallback: no tools/function-calling at all, just a plain completion asked to emit JSON, parsed leniently. */
+  private async callPlainJson<T>(s: LlmSettings, system: string, user: string, schema: any): Promise<T> {
+    const jsonSystem = `${system}\n\nRespond with ONLY a single valid JSON object — no markdown code fences, no commentary before or after — matching this JSON schema:\n${JSON.stringify(schema)}`;
+    let content: string;
+    if (s.provider === 'anthropic') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': s.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: s.model || DEFAULT_MODEL.anthropic, max_tokens: 2048,
+          system: jsonSystem, messages: [{ role: 'user', content: user }]
+        })
+      });
+      if (!res.ok) throw new Error(await this.errText(res));
+      const data = await res.json();
+      content = (data?.content || []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('');
+    } else {
+      const provider = s.provider === 'openai' ? 'openai' : 'groq';
+      const res = await fetch(OPENAI_COMPAT_BASE_URL[provider], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.apiKey}` },
+        body: JSON.stringify({
+          model: s.model || DEFAULT_MODEL[provider],
+          messages: [{ role: 'system', content: jsonSystem }, { role: 'user', content: user }]
+        })
+      });
+      if (!res.ok) throw new Error(await this.errText(res));
+      const data = await res.json();
+      content = data?.choices?.[0]?.message?.content || '';
+    }
+    return this.parseLenientJson<T>(content);
+  }
+
+  private parseLenientJson<T>(text: string): T {
+    let s = text.trim();
+    const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(s);
+    if (fence) s = fence[1].trim();
+    if (!s.startsWith('{')) {
+      const start = s.indexOf('{');
+      const end = s.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);
+    }
+    try { return JSON.parse(s) as T; }
+    catch { throw new Error("The model's response wasn't valid JSON — try again, or try a different model."); }
   }
 
   /** Shared by Groq and OpenAI — both speak the identical OpenAI chat-completions + tool-calling format. */
