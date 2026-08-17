@@ -9,7 +9,10 @@ export interface LlmSettings {
 }
 
 const DEFAULT_MODEL: Record<LlmProvider, string> = {
-  groq: 'llama-3.3-70b-versatile',
+  // Groq deprecated llama-3.3-70b-versatile/llama-3.1-8b-instant on 2026-06-17 — current IDs need
+  // the meta-llama/ prefix. Scout is the fast, tool-use-capable default; Maverick (larger, same
+  // prefix) is a better-quality option worth setting manually if grading judgment matters more than speed.
+  groq: 'meta-llama/llama-4-scout-17b-16e-instruct',
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-latest'
 };
