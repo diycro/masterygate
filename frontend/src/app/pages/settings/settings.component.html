@@ -9,11 +9,16 @@
     <div style="font-weight:700;margin-bottom:14px">LLM provider</div>
 
     <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Provider</label>
-    <select [(ngModel)]="provider" (ngModelChange)="onProviderChange()" style="margin-bottom:14px">
-      <option value="groq">Groq (free)</option>
-      <option value="openai">OpenAI</option>
-      <option value="anthropic">Anthropic</option>
+    <select [(ngModel)]="provider" (ngModelChange)="onProviderChange()" style="margin-bottom:6px">
+      <option value="groq">Groq — free</option>
+      <option value="openai">OpenAI — paid</option>
+      <option value="anthropic">Anthropic — paid</option>
     </select>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">
+      <span *ngIf="provider === 'groq'">Groq's free tier covers every model it hosts — no model is paid-only, you just share one rate limit (30 req/min, 14,400/day) across all of them. No card required.</span>
+      <span *ngIf="provider === 'openai'">OpenAI has no ongoing free tier — every model is billed per token from your first request.</span>
+      <span *ngIf="provider === 'anthropic'">Anthropic has no ongoing free tier — every model is billed per token from your first request.</span>
+    </p>
 
     <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">API key</label>
     <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -27,21 +32,20 @@
       <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" *ngIf="provider === 'openai'">platform.openai.com/api-keys</a>
       <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" *ngIf="provider === 'anthropic'">console.anthropic.com/settings/keys</a>
       — stored only in localStorage on this device.
-      <span *ngIf="provider === 'groq'">Groq's free tier needs no card and no billing setup.</span>
     </p>
 
     <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Model</label>
-    <div style="display:flex;gap:8px;margin-bottom:6px">
-      <input [(ngModel)]="model" list="modelChoices" style="flex:1" placeholder="Fetch models, or type an exact model ID">
-      <button class="btn ghost" (click)="refreshModels()" [disabled]="loadingModels" type="button">
-        {{ loadingModels ? 'Fetching…' : 'Fetch models' }}</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn ghost" (click)="refreshModels()" [disabled]="loadingModels" type="button" style="flex:1">
+        {{ loadingModels ? 'Fetching…' : (models.length ? 'Refresh models' : 'Fetch models') }}</button>
     </div>
-    <datalist id="modelChoices">
-      <option *ngFor="let m of models" [value]="m"></option>
-    </datalist>
+    <select *ngIf="models.length" [(ngModel)]="model" style="margin-bottom:8px">
+      <option *ngFor="let m of models" [value]="m">{{m}}</option>
+    </select>
+    <input [(ngModel)]="model" style="margin-bottom:6px" placeholder="Or type an exact model ID">
     <p class="muted" style="font-size:12px;margin-bottom:8px" *ngIf="models.length && !modelsError">
       {{models.length}} model(s) this key can currently use — pulled live from {{provider}}, not hardcoded.
-      Not every one supports the tool-calling this app needs for grading; if one fails, try another from the list.
+      Not every one supports tool-calling, but grading now falls back to plain-JSON prompting automatically when that happens, so any model here should work.
     </p>
     <p style="font-size:12px;margin-bottom:8px;color:var(--warn)" *ngIf="modelsError">{{modelsError}}</p>
     <p class="muted" style="font-size:12px;margin-bottom:18px" *ngIf="!models.length && !modelsError">
