@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://masterygate.dyvexar.workers.dev/sitemap.xml
