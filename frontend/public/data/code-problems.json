@@ -1,0 +1,50 @@
+{
+  "DSA1" : {
+    "id" : "two-sum",
+    "moduleId" : "DSA1",
+    "title" : "Two Sum",
+    "description" : "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. Assume exactly one solution exists.",
+    "starterCode" : "public int[] twoSum(int[] nums, int target) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "import java.util.*;\n\npublic class Solution {\n    {{USER_METHOD}}\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass = 0, total = 0;\n        total++; { int[] r = sol.twoSum(new int[]{2,7,11,15}, 9); boolean ok = Arrays.equals(r, new int[]{0,1}); if(ok) pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=[0, 1] actual=\"+Arrays.toString(r)); }\n        total++; { int[] r = sol.twoSum(new int[]{3,2,4}, 6); boolean ok = Arrays.equals(r, new int[]{1,2}); if(ok) pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=[1, 2] actual=\"+Arrays.toString(r)); }\n        total++; { int[] r = sol.twoSum(new int[]{3,3}, 6); boolean ok = Arrays.equals(r, new int[]{0,1}); if(ok) pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=[0, 1] actual=\"+Arrays.toString(r)); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  },
+  "DSA2" : {
+    "id" : "longest-substr",
+    "moduleId" : "DSA2",
+    "title" : "Longest Substring Without Repeating Characters",
+    "description" : "Given a string s, return the length of the longest substring without repeating characters.",
+    "starterCode" : "public int lengthOfLongestSubstring(String s) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "import java.util.*;\n\npublic class Solution {\n    {{USER_METHOD}}\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass=0,total=0;\n        total++; { int r=sol.lengthOfLongestSubstring(\"abcabcbb\"); boolean ok=r==3; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=3 actual=\"+r); }\n        total++; { int r=sol.lengthOfLongestSubstring(\"bbbbb\"); boolean ok=r==1; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=1 actual=\"+r); }\n        total++; { int r=sol.lengthOfLongestSubstring(\"pwwkew\"); boolean ok=r==3; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=3 actual=\"+r); }\n        total++; { int r=sol.lengthOfLongestSubstring(\"\"); boolean ok=r==0; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=0 actual=\"+r); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  },
+  "DSA3" : {
+    "id" : "valid-parens",
+    "moduleId" : "DSA3",
+    "title" : "Valid Parentheses",
+    "description" : "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid (every bracket is closed by the same type, in the correct order).",
+    "starterCode" : "public boolean isValid(String s) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "import java.util.*;\n\npublic class Solution {\n    {{USER_METHOD}}\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass=0,total=0;\n        total++; { boolean r=sol.isValid(\"()\"); boolean ok=r==true; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=true actual=\"+r); }\n        total++; { boolean r=sol.isValid(\"()[]{}\"); boolean ok=r==true; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=true actual=\"+r); }\n        total++; { boolean r=sol.isValid(\"(]\"); boolean ok=r==false; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=false actual=\"+r); }\n        total++; { boolean r=sol.isValid(\"([)]\"); boolean ok=r==false; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=false actual=\"+r); }\n        total++; { boolean r=sol.isValid(\"{[]}\"); boolean ok=r==true; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=true actual=\"+r); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  },
+  "DSA4" : {
+    "id" : "valid-bst",
+    "moduleId" : "DSA4",
+    "title" : "Validate Binary Search Tree",
+    "description" : "Given the root of a binary tree, determine if it is a valid binary search tree (BST): every node's left subtree contains only values less than the node, and the right subtree only values greater.",
+    "starterCode" : "public boolean isValidBST(TreeNode root) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "import java.util.*;\n\nclass TreeNode {\n    int val; TreeNode left; TreeNode right;\n    TreeNode(int val) { this.val = val; }\n}\n\npublic class Solution {\n    {{USER_METHOD}}\n\n    // Builds a tree from a level-order array with nulls (LeetCode style) — used by the test harness only.\n    static TreeNode build(Integer[] vals) {\n        if (vals.length == 0 || vals[0] == null) return null;\n        TreeNode root = new TreeNode(vals[0]);\n        Deque<TreeNode> q = new ArrayDeque<>();\n        q.add(root);\n        int i = 1;\n        while (!q.isEmpty() && i < vals.length) {\n            TreeNode cur = q.poll();\n            if (i < vals.length) { Integer lv = vals[i++]; if (lv != null) { cur.left = new TreeNode(lv); q.add(cur.left); } }\n            if (i < vals.length) { Integer rv = vals[i++]; if (rv != null) { cur.right = new TreeNode(rv); q.add(cur.right); } }\n        }\n        return root;\n    }\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass=0,total=0;\n        total++; { boolean r=sol.isValidBST(build(new Integer[]{2,1,3})); boolean ok=r==true; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=true actual=\"+r); }\n        total++; { boolean r=sol.isValidBST(build(new Integer[]{5,1,4,null,null,3,6})); boolean ok=r==false; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=false actual=\"+r); }\n        total++; { boolean r=sol.isValidBST(build(new Integer[]{1})); boolean ok=r==true; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=true actual=\"+r); }\n        total++; { boolean r=sol.isValidBST(build(new Integer[]{5,4,6,null,null,3,7})); boolean ok=r==false; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=false actual=\"+r); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  },
+  "DSA5" : {
+    "id" : "connected-components",
+    "moduleId" : "DSA5",
+    "title" : "Number of Connected Components",
+    "description" : "Given n nodes labeled 0..n-1 and a list of undirected edges, return the number of connected components in the graph.",
+    "starterCode" : "public int countComponents(int n, int[][] edges) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "import java.util.*;\n\npublic class Solution {\n    {{USER_METHOD}}\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass=0,total=0;\n        total++; { int r=sol.countComponents(5, new int[][]{{0,1},{1,2},{3,4}}); boolean ok=r==2; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=2 actual=\"+r); }\n        total++; { int r=sol.countComponents(5, new int[][]{{0,1},{1,2},{2,3},{3,4}}); boolean ok=r==1; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=1 actual=\"+r); }\n        total++; { int r=sol.countComponents(4, new int[][]{}); boolean ok=r==4; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=4 actual=\"+r); }\n        total++; { int r=sol.countComponents(1, new int[][]{}); boolean ok=r==1; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=1 actual=\"+r); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  },
+  "DSA6" : {
+    "id" : "climbing-stairs",
+    "moduleId" : "DSA6",
+    "title" : "Climbing Stairs",
+    "description" : "You are climbing a staircase with n steps. Each time you can climb 1 or 2 steps. In how many distinct ways can you reach the top?",
+    "starterCode" : "public int climbStairs(int n) {\n    // Write your solution here\n\n}",
+    "harnessTemplate" : "public class Solution {\n    {{USER_METHOD}}\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        int pass=0,total=0;\n        total++; { int r=sol.climbStairs(2); boolean ok=r==2; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=2 actual=\"+r); }\n        total++; { int r=sol.climbStairs(3); boolean ok=r==3; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=3 actual=\"+r); }\n        total++; { int r=sol.climbStairs(5); boolean ok=r==8; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=8 actual=\"+r); }\n        total++; { int r=sol.climbStairs(1); boolean ok=r==1; if(ok)pass++; System.out.println(\"TEST \"+total+\": \"+(ok?\"PASS\":\"FAIL\")+\" expected=1 actual=\"+r); }\n        System.out.println(\"RESULT: \"+pass+\"/\"+total);\n    }\n}\n"
+  }
+}

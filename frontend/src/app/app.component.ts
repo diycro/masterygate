@@ -4,6 +4,7 @@ import { RouterOutlet, RouterLink, Router, NavigationEnd } from '@angular/router
 import { StoreService } from './services/store.service';
 import { ToastService } from './services/toast.service';
 import { ApiService } from './services/api.service';
+import { LlmService } from './services/llm.service';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +19,7 @@ export class AppComponent {
     public store: StoreService,
     public toastService: ToastService,
     private api: ApiService,
+    private llm: LlmService,
     private router: Router
   ) {
     this.router.events.subscribe(e => {
@@ -26,6 +28,7 @@ export class AppComponent {
   }
 
   initials = computed(() => (this.store.userName() || '??').slice(0, 2).toUpperCase());
+  llmConfigured = computed(() => !!this.llm.settings().apiKey.trim());
 
   refreshStreak() {
     const uid = this.store.userId();

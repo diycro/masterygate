@@ -1,0 +1,41 @@
+[ {
+  "id" : "genai",
+  "title" : "GenAI Application Engineer",
+  "subtitle" : "Build production LLM apps on your Java + cloud stack. Free-first, gated, interview-ready.",
+  "moduleCount" : 7
+}, {
+  "id" : "dsa",
+  "title" : "Data Structures & Algorithms",
+  "subtitle" : "Crack the #1 coding-interview gate — pattern-based, from arrays to graphs to DP.",
+  "moduleCount" : 6
+}, {
+  "id" : "sysdesign",
+  "title" : "System Design",
+  "subtitle" : "Design scalable systems — the senior-level gate, ending with AI system design.",
+  "moduleCount" : 5
+}, {
+  "id" : "javafs",
+  "title" : "Java Full-Stack Engineer",
+  "subtitle" : "Senior-level Java/Spring depth — your actual current stack, interview-ready.",
+  "moduleCount" : 6
+}, {
+  "id" : "python",
+  "title" : "Python Programming",
+  "subtitle" : "Core Python for backend and GenAI engineering — syntax to concurrency, interview-ready.",
+  "moduleCount" : 6
+}, {
+  "id" : "java",
+  "title" : "Core Java Engineer",
+  "subtitle" : "Java the language, deep — collections, concurrency, the JVM, and modern Java 8-21, independent of any framework.",
+  "moduleCount" : 6
+}, {
+  "id" : "spring",
+  "title" : "Spring Framework Engineer",
+  "subtitle" : "The Spring Framework itself — IoC, AOP, MVC, and data access — independent of Spring Boot's auto-configuration layer.",
+  "moduleCount" : 5
+}, {
+  "id" : "springboot",
+  "title" : "Spring Boot Engineer",
+  "subtitle" : "Spring Boot specifically — auto-configuration, starters, Spring Data JPA, security, actuator, and cloud-native microservices.",
+  "moduleCount" : 6
+} ]

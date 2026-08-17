@@ -14,7 +14,7 @@ __pycache__/
 *.pyc
 
 # Local H2 database files
-data/
+backend/data/
 *.mv.db
 *.trace.db
 

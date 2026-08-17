@@ -5,6 +5,7 @@
   <button class="tbtn" [attr.aria-current]="isActive('/dashboard')" routerLink="/dashboard">Dashboard</button>
   <button class="tbtn" routerLink="/mock/start">Mock Interview</button>
   <button class="tbtn" *ngIf="store.topic()" (click)="store.clearTopic()" routerLink="/topics">Change track</button>
+  <button class="tbtn" [class.warn]="!llmConfigured()" routerLink="/settings">{{ llmConfigured() ? 'Settings' : '⚠ Add API key' }}</button>
   <div class="userchip"><span class="avatar">{{initials()}}</span>{{store.userName()}}</div>
   <button class="tbtn" (click)="logout()">Log out</button>
 </header>

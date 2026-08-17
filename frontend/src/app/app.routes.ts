@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'mock/start', canActivate: [authGuard], loadComponent: () => import('./pages/mock-start/mock-start.component').then(m => m.MockStartComponent) },
   { path: 'mock/round', canActivate: [authGuard], loadComponent: () => import('./pages/mock-round/mock-round.component').then(m => m.MockRoundComponent) },
   { path: 'mock/report', canActivate: [authGuard], loadComponent: () => import('./pages/mock-report/mock-report.component').then(m => m.MockReportComponent) },
+  { path: 'settings', canActivate: [authGuard], loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent) },
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' }
 ];

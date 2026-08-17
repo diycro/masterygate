@@ -1,0 +1,47 @@
+<div class="wrap">
+  <span class="eyebrow">Settings</span>
+  <h1>Your API key, your browser, your data</h1>
+  <p class="sub">This app runs entirely in your browser. Curriculum content ships with the app; your progress lives only in
+    this browser's local storage; and grading / "generate more questions" / mock interviews call your own OpenAI or
+    Anthropic API key directly from your browser. The key is never sent anywhere except straight to that provider.</p>
+
+  <div class="card mt-lg" style="padding:20px;max-width:560px">
+    <div style="font-weight:700;margin-bottom:14px">LLM provider</div>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Provider</label>
+    <select [(ngModel)]="provider" (ngModelChange)="onProviderChange()" style="margin-bottom:14px">
+      <option value="openai">OpenAI</option>
+      <option value="anthropic">Anthropic</option>
+    </select>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">API key</label>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <input [type]="showKey ? 'text' : 'password'" [(ngModel)]="apiKey"
+             placeholder="sk-... or sk-ant-..." style="flex:1" autocomplete="off">
+      <button class="btn ghost" (click)="showKey = !showKey" type="button">{{showKey ? 'Hide' : 'Show'}}</button>
+    </div>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">
+      Get a key from
+      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" *ngIf="provider === 'openai'">platform.openai.com/api-keys</a>
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" *ngIf="provider === 'anthropic'">console.anthropic.com/settings/keys</a>
+      — stored only in localStorage on this device.
+    </p>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Model</label>
+    <input [(ngModel)]="model" style="margin-bottom:18px">
+
+    <div style="display:flex;gap:10px">
+      <button class="btn" (click)="save()">Save</button>
+      <button class="btn ghost" (click)="clearKey()" *ngIf="apiKey">Remove key</button>
+    </div>
+  </div>
+
+  <div class="card mt-lg" style="padding:20px;max-width:560px">
+    <div style="font-weight:700;margin-bottom:8px">Local progress</div>
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Gate passes, course completion, resource checkmarks, and mock-interview
+      history all live in this browser only. Clearing your browser's site data (or a different browser/device) starts fresh.</p>
+    <button class="btn ghost" style="color:#b42318;border-color:#f0b4ab" (click)="resetProgress()">
+      {{ confirmingReset ? 'Click again to confirm — this cannot be undone' : 'Clear all local progress' }}
+    </button>
+  </div>
+</div>
