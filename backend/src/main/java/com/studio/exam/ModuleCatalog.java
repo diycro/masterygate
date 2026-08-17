@@ -259,7 +259,7 @@ public class ModuleCatalog {
         add(new Module("M6", t, 6, "Capstone — RAG Assistant",
             List.of("Integrate M1–M5 into one app", "Deploy on AWS", "Defend every design choice"),
             List.of(
-                free("Your capstone spec (this repo)", "Learning Studio", "https://github.com/", "project"),
+                free("Your capstone spec (this repo)", "MasteryGate", "https://github.com/", "project"),
                 free("Spring AI reference", "Spring", "https://docs.spring.io/spring-ai/reference/", "docs")),
             List.of("5-min architecture walkthrough", "Why X not Y for chunking/index/model", "Real latency & cost numbers"),
             List.of(

@@ -370,7 +370,7 @@
     "interviewFocus" : [ "5-min architecture walkthrough", "Why X not Y for chunking/index/model", "Real latency & cost numbers" ],
     "resources" : [ {
       "title" : "Your capstone spec (this repo)",
-      "provider" : "Learning Studio",
+      "provider" : "MasteryGate",
       "url" : "https://github.com/",
       "meta" : "project",
       "free" : true

@@ -1,4 +1,4 @@
-# Learning Studio
+# MasteryGate
 
 An AI-tutor learning platform. This repo is built **feature-by-feature alongside the
 GenAI learning path** — each module you master ships the matching feature.
