@@ -38,4 +38,9 @@
   "title" : "Spring Boot Engineer",
   "subtitle" : "Spring Boot specifically — auto-configuration, starters, Spring Data JPA, security, actuator, and cloud-native microservices.",
   "moduleCount" : 6
+}, {
+  "id" : "git",
+  "title" : "Git & Version Control",
+  "subtitle" : "Real Git, not just add/commit/push — branching models, safely rewriting history, remote workflows, and the commands that get you out of trouble.",
+  "moduleCount" : 6
 } ]

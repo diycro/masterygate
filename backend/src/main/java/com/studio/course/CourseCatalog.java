@@ -35,6 +35,8 @@ public class CourseCatalog {
         buildSpringPlaybook();
         buildSpringBoot();
         buildSpringBootPlaybook();
+        buildGit();
+        buildGitPlaybook();
     }
 
     public boolean hasCourse(String moduleId) {
@@ -5818,5 +5820,786 @@ public class CourseCatalog {
                 "Can you explain the Saga pattern and what a compensating action actually does?"
             ));
         playbookByTopic.put("springboot", pb);
+    }
+
+    // ================================================================ Git track
+    private void buildGit() {
+        buildGit1();
+        buildGit2();
+        buildGit3();
+        buildGit4();
+        buildGit5();
+        buildGit6();
+    }
+
+    // ---------------------------------------------------------------- GIT1 — Git Fundamentals
+    private void buildGit1() {
+        CourseLesson l1 = lesson("git1-l1", "GIT1", 0,
+            "The Three-Tree Model",
+            "Working directory, staging area, repository — the mental model that makes every other Git command make sense",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The command that confuses every beginner",
+                    "Someone edits a file, saves it, then wonders why `git commit` says \"nothing to commit.\" They " +
+                    "edited the file — shouldn't Git already know? The confusion disappears the moment you learn " +
+                    "Git tracks THREE separate places your work can live, and a change has to be explicitly moved " +
+                    "between them one step at a time. Nothing happens automatically, and that's a feature, not a " +
+                    "flaw — it's what lets you commit exactly the changes you mean to, even when you've edited five " +
+                    "files but only want three of them in this commit."),
+                CourseSegment.diagram("s2", "The path a change takes", null,
+                    Diagram.flow("From edit to committed history",
+                        new DiagramNode("Working directory", "the files you actually edit on disk"),
+                        new DiagramNode("Staging area (index)", "git add — a snapshot-in-progress"),
+                        new DiagramNode("Repository (HEAD)", "git commit — sealed into permanent history"))),
+                CourseSegment.code("s3", "Two different diffs, on purpose", null, "bash",
+                    "git diff            # working directory vs staging area — what you HAVEN'T staged yet\n" +
+                    "git diff --staged   # staging area vs last commit — exactly what WILL be committed\n\n" +
+                    "# these show genuinely different things, because staging is a real, separate snapshot —\n" +
+                    "# not just a flag on the working directory"),
+                CourseSegment.concept("s4", "Why `git add` isn't a one-time thing per file",
+                    "Staging a file captures its content AT THAT MOMENT — it doesn't create an ongoing link. If " +
+                    "you edit the file again after staging it, those newest edits are NOT automatically included; " +
+                    "you have to run `git add` again to update the staged snapshot. This trips people up constantly: " +
+                    "they stage a file, keep editing, run `git commit`, and are surprised the commit doesn't include " +
+                    "their latest change."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Explain the three trees\" or \"what's the difference between git diff and git diff --staged\" " +
+                    "is one of the most reliably asked opening Git questions — it's a fast, effective filter for " +
+                    "whether a candidate has a real mental model or has only memorized a sequence of commands.")
+            ),
+            KnowledgeCheck.of(
+                "You edit a file, then run `git add`, then edit the SAME file again. What does `git commit` include?",
+                2,
+                "Staging captures a snapshot at the moment `git add` runs — it doesn't stay linked to the file. Edits made AFTER staging are not included until you `git add` again.",
+                "All your edits, including the ones made after `git add`",
+                "Nothing — Git rejects the commit until you re-stage",
+                "Only the changes that were staged BEFORE your second edit",
+                "Git automatically re-stages the file for you before committing"),
+            KnowledgeCheck.of(
+                "What does `git diff --staged` show that plain `git diff` doesn't?",
+                1,
+                "Plain `git diff` compares working directory vs staging area (unstaged changes). `git diff --staged` compares staging area vs the last commit — exactly what the next commit would contain.",
+                "It shows the same thing, just formatted differently",
+                "It shows staging area vs the last commit — what would actually be committed next",
+                "It shows the full history of the file since it was created",
+                "It shows changes on the remote that you haven't pulled yet")
+        );
+
+        CourseLesson l2 = lesson("git1-l2", "GIT1", 1,
+            "Commits and .gitignore That Don't Waste Everyone's Time",
+            "Why a secret you \"just added to .gitignore\" might still be sitting in your history",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The .gitignore fix that didn't fix anything",
+                    "A developer accidentally commits a file containing an API key. Realizing the mistake, they " +
+                    "immediately add the file to .gitignore and commit that change, satisfied the problem is solved. " +
+                    "It isn't — the key is still sitting, in plain text, in the commit from ten minutes ago, and " +
+                    "in every clone anyone already made. .gitignore only controls what Git treats as \"new\" going " +
+                    "forward; it has zero power over history that already exists."),
+                CourseSegment.code("s2", "Actually untracking a file Git already knows about", null, "bash",
+                    "# adding to .gitignore alone does NOT stop tracking an already-committed file\n" +
+                    "git rm --cached secrets.env     # untrack it, but keep it on disk locally\n" +
+                    "echo \"secrets.env\" >> .gitignore\n" +
+                    "git commit -m \"Stop tracking secrets.env\"\n\n" +
+                    "# NOTE: the secret is still in every earlier commit's history — actually removing it\n" +
+                    "# from history requires a separate history-rewrite (e.g. git filter-repo), and even then\n" +
+                    "# you should treat the leaked secret as compromised and rotate it"),
+                CourseSegment.concept("s3", "What a good commit message is actually FOR",
+                    "The diff already shows WHAT changed — that's not what a commit message needs to repeat. Its " +
+                    "entire value is capturing what the diff can't show: WHY this approach, what alternative was " +
+                    "rejected and why, what bug or context prompted it. A short (~50 char) imperative-mood summary " +
+                    "('Fix null check in parser', not 'Fixed' or 'Fixes') plus a blank line and an optional body is " +
+                    "the widely used convention — many teams formalize it further with prefixes like feat:/fix:/chore:."),
+                CourseSegment.code("s4", "Reading history fast with --oneline --graph", null, "bash",
+                    "git log --oneline --graph --all\n\n" +
+                    "* a1b2c3d (HEAD -> main) Merge feature/login\n" +
+                    "|\\\n" +
+                    "| * e4f5g6h Add password reset flow\n" +
+                    "| * h7i8j9k Add login form\n" +
+                    "|/\n" +
+                    "* k1l2m3n Initial commit\n\n" +
+                    "# --oneline compresses each commit to one line; --graph draws the branch/merge\n" +
+                    "# topology so you can SEE how history actually diverged and came back together"),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"How would you remove a secret that got committed by mistake\" is a real, frequently asked " +
+                    "question precisely because so many developers stop at .gitignore and don't realize the secret " +
+                    "is still sitting in history, readable by anyone with a clone.")
+            ),
+            KnowledgeCheck.of(
+                "A secrets file was accidentally committed, then added to .gitignore in a later commit. Is the secret safe now?",
+                2,
+                ".gitignore only affects untracked files going forward — it has no effect on content already in prior commits. The secret is still fully readable in the earlier commit's history.",
+                "Yes — .gitignore removes it from the repository entirely",
+                "Yes, as long as the file is also deleted from the working directory",
+                "No — the secret is still present in the earlier commit and needs a history rewrite (and rotation) to actually be safe",
+                "No, but only until the next `git gc` runs automatically"),
+            KnowledgeCheck.of(
+                "What is a good commit message's body meant to explain, given that the diff already shows what changed?",
+                1,
+                "A commit message's real value is context the diff can't show: WHY this approach was taken, what was considered and rejected, and what prompted the change — not a restatement of the diff.",
+                "A line-by-line restatement of every change in the diff",
+                "The reasoning and context behind the change — why this approach, not what the diff already shows",
+                "The name of the person who requested the change",
+                "A copy of the relevant test output")
+        );
+
+        addLessons("GIT1", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- GIT2 — Branching & Merging
+    private void buildGit2() {
+        CourseLesson l1 = lesson("git2-l1", "GIT2", 0,
+            "Branches Are Just Pointers",
+            "Why creating a branch is instant, and what actually happens when two branches come back together",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "A branch is a tiny file with a hash in it",
+                    "A Git branch isn't a copy of your project — it's a small reference that holds nothing but a " +
+                    "commit hash. `git branch feature` is instant and costs almost no disk space, because there's " +
+                    "nothing to duplicate. Switching branches just moves HEAD to point somewhere else and updates " +
+                    "the working directory to match that commit's snapshot. This design is deliberate: older " +
+                    "systems that modeled branches as full directory copies made branching slow enough that teams " +
+                    "avoided it — Git optimizes specifically for branching all the time."),
+                CourseSegment.diagram("s2", "Two ways branches come back together", null,
+                    Diagram.compare("Fast-forward vs three-way merge",
+                        CompareColumn.of("Fast-forward",
+                            "Target branch hasn't moved since you branched off it",
+                            "Git just slides the pointer forward",
+                            "No new commit, no conflict possible",
+                            "History stays perfectly linear"),
+                        CompareColumn.of("Three-way merge",
+                            "Both branches have new commits since diverging",
+                            "Git compares both tips against their common ancestor",
+                            "Creates a new merge commit with two parents",
+                            "This is the only case where conflicts can happen"))),
+                CourseSegment.code("s3", "Forcing a merge commit even when fast-forward is possible", null, "bash",
+                    "git merge --no-ff feature-branch\n\n" +
+                    "# some teams prefer this even when a fast-forward would work cleanly, because the\n" +
+                    "# resulting merge commit leaves a visible, permanent record that a feature branch\n" +
+                    "# existed and was merged — useful for later 'when did this feature land' archaeology"),
+                CourseSegment.concept("s4", "Why conflicts can ONLY happen in a three-way merge",
+                    "Git's merge algorithm operates at the line level and can automatically combine non-overlapping " +
+                    "changes — two branches editing different lines of the same file merge cleanly with no human " +
+                    "involved. A conflict only arises when both branches changed the IDENTICAL line differently — " +
+                    "there's no automatic way to know which version (or what combination) is correct, so Git stops " +
+                    "and asks a human to decide."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Explain fast-forward vs three-way merge\" is asked constantly, often as a lead-in to \"now " +
+                    "explain what causes a merge conflict\" — the two questions are really testing the same " +
+                    "underlying mental model from two angles.")
+            ),
+            KnowledgeCheck.of(
+                "Why is creating a new Git branch essentially instant, regardless of project size?",
+                1,
+                "A branch is just a small reference holding a commit hash — nothing about the project's files is copied or duplicated when you create one.",
+                "Git pre-allocates branch storage when the repo is first created",
+                "A branch is just a pointer (a commit hash) — no project files are copied when it's created",
+                "It isn't instant for large projects — creation time scales with repo size",
+                "Branches are created lazily and don't actually exist until first used"),
+            KnowledgeCheck.of(
+                "Two branches diverge, and each has new commits since the split. What kind of merge will Git perform?",
+                0,
+                "Whenever both branches have diverged (each has commits the other lacks), Git must perform a three-way merge, comparing both tips against their common ancestor.",
+                "A three-way merge, comparing both tips against their common ancestor",
+                "A fast-forward merge, since Git always prefers the simpler option",
+                "Git refuses to merge and requires a manual rebase first",
+                "It depends only on which branch is currently checked out")
+        );
+
+        CourseLesson l2 = lesson("git2-l2", "GIT2", 1,
+            "Resolving Conflicts Without Panic",
+            "Reading conflict markers calmly, and picking the right way to combine a messy feature branch",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The conflict that looks scarier than it is",
+                    "A merge conflict message can look alarming the first time — CONFLICT (content), a file that " +
+                    "suddenly has strange <<<<<<< symbols in it, a merge that refuses to finish. Nothing is broken. " +
+                    "Git has simply found a spot where it genuinely can't decide the right answer on its own and is " +
+                    "handing the decision to you, with both versions laid out side by side."),
+                CourseSegment.code("s2", "Reading and resolving the markers", null, "text",
+                    "<<<<<<< HEAD\n" +
+                    "return calculateTotal(items) * 1.08;   // your current branch's version\n" +
+                    "=======\n" +
+                    "return calculateTotal(items) + salesTax(items);   // the incoming branch's version\n" +
+                    ">>>>>>> feature-tax-calc\n\n" +
+                    "# edit the file to keep the correct content (one side, the other, or a manual\n" +
+                    "# combination) and DELETE all three marker lines yourself — Git won't do this part\n" +
+                    "git add pricing.py\n" +
+                    "git commit          # completes the merge — this commit IS the merge commit"),
+                CourseSegment.concept("s3", "Everything between the markers belongs to one side",
+                    "Between <<<<<<< HEAD and ======= is YOUR current branch's version of that exact section. " +
+                    "Between ======= and >>>>>>> <branch-name> is the incoming branch's version. There's no trick " +
+                    "here — you're looking at both candidate answers to the same question, and your job is to " +
+                    "decide (or write) the actually-correct final version."),
+                CourseSegment.diagram("s4", "Three ways to combine a messy feature branch", null,
+                    Diagram.compare("Squash vs rebase-then-merge",
+                        CompareColumn.of("Squash merge",
+                            "Collapses ALL commits into one on the target branch",
+                            "Cleanest possible target history",
+                            "Loses individual commit-level detail",
+                            "Common default for small feature branches"),
+                        CompareColumn.of("Rebase, then fast-forward",
+                            "Replays commits individually on top of target",
+                            "Keeps them separate but makes history linear",
+                            "Often paired with interactive rebase to clean up first",
+                            "Suits larger features with independently meaningful commits"))),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Interviewers sometimes hand you a small file with real conflict markers in a live or take-home " +
+                    "exercise specifically to see if you resolve it calmly and correctly rather than guessing or " +
+                    "deleting the wrong side.")
+            ),
+            KnowledgeCheck.of(
+                "In a conflict, what does the section between ======= and >>>>>>> feature-branch represent?",
+                1,
+                "That section is the incoming branch's (feature-branch's) version of the conflicting content — the section above ======= is your current branch's version.",
+                "A deleted version that should be discarded automatically",
+                "The incoming branch's (feature-branch's) version of that content",
+                "A merged combination Git has already attempted",
+                "Your current branch's version"),
+            KnowledgeCheck.of(
+                "A feature branch has 15 tiny, messy 'wip' commits with no individual meaning. Which combining approach best fits?",
+                0,
+                "A squash merge collapses all 15 commits into one clean commit on the target branch — appropriate when the individual commits don't carry independent meaning worth preserving.",
+                "Squash merge — collapse them into one clean commit since the individual commits aren't independently meaningful",
+                "A regular merge, to preserve maximum historical detail",
+                "Cherry-pick each commit individually onto the target branch",
+                "Delete the branch and redo the work as a single commit from scratch")
+        );
+
+        addLessons("GIT2", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- GIT3 — Working with Remotes
+    private void buildGit3() {
+        CourseLesson l1 = lesson("git3-l1", "GIT3", 0,
+            "Fetch vs Pull, For Real This Time",
+            "The one Git distinction that's asked in almost every interview, explained so it actually sticks",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Fetch looks, pull touches",
+                    "`git fetch` downloads new commits, branches, and tags from the remote into your LOCAL copies " +
+                    "of the remote-tracking branches (like origin/main) — it never touches your working directory " +
+                    "or your current branch. `git pull` is fetch immediately followed by a merge (or rebase, if " +
+                    "configured) of that fetched branch into your current branch — it DOES change your working " +
+                    "directory. One is purely informational; the other actually integrates changes into your work."),
+                CourseSegment.diagram("s2", "What each command actually touches", null,
+                    Diagram.compare("fetch vs pull",
+                        CompareColumn.of("git fetch",
+                            "Updates origin/main locally",
+                            "Working directory: untouched",
+                            "Current branch: untouched",
+                            "Safe to run anytime, just to look"),
+                        CompareColumn.of("git pull",
+                            "= fetch + merge (or rebase)",
+                            "Working directory: updated",
+                            "Current branch: updated",
+                            "Can create a merge commit or conflict"))),
+                CourseSegment.code("s3", "A safer default workflow", null, "bash",
+                    "git fetch origin\n" +
+                    "git log HEAD..origin/main --oneline    # see what's new BEFORE touching your work\n\n" +
+                    "git merge origin/main                  # now decide to integrate — same as `pull` would do\n" +
+                    "# or: git pull --rebase                # pull, but rebase instead of merge (linear history)"),
+                CourseSegment.concept("s4", "Why 'just pull' can bite you mid-work",
+                    "Running `git pull` with uncommitted changes, or expecting a fast-forward that turns out to " +
+                    "need a real merge, can surprise you with an unexpected merge commit or a conflict right in " +
+                    "the middle of something else. Fetching first and looking at what changed is the safer habit — " +
+                    "you decide when and how to integrate, instead of pull deciding for you."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "This is asked so consistently that it's almost a rite of passage — interviewers use it as a " +
+                    "quick, reliable signal of whether a candidate actually understands Git's remote model or has " +
+                    "only ever typed `git pull` on autopilot.")
+            ),
+            KnowledgeCheck.of(
+                "Which command can modify your working directory: `git fetch` or `git pull`?",
+                1,
+                "`git fetch` only updates your local remote-tracking branches (like origin/main) — it never touches your working directory. `git pull` = fetch + merge/rebase, which DOES update your working directory.",
+                "git fetch — pull only updates remote-tracking branches",
+                "git pull — fetch only updates remote-tracking branches, never your working directory",
+                "Both modify the working directory identically",
+                "Neither — both require an explicit `git merge` afterward"),
+            KnowledgeCheck.of(
+                "Why might fetching first and inspecting changes be safer than immediately running `git pull`?",
+                0,
+                "Fetching first lets you see exactly what's new before deciding how (or whether) to integrate it — pull commits you to an immediate merge/rebase that could surprise you mid-work.",
+                "It lets you review incoming changes before integrating them, instead of pull deciding automatically",
+                "Fetch downloads faster than pull over slow connections",
+                "Pull doesn't work if you have any uncommitted changes at all",
+                "There's no real difference — it's purely a style preference")
+        );
+
+        CourseLesson l2 = lesson("git3-l2", "GIT3", 1,
+            "The Fork-and-PR Workflow",
+            "How open-source contribution (and most company internal workflows) actually work end to end",
+            5,
+            List.of(
+                CourseSegment.story("s1", "Contributing to a project you don't have write access to",
+                    "You want to fix a bug in an open-source library. You don't have push access to the real " +
+                    "repository — nobody does, except the maintainers. The fork-and-pull-request workflow exists " +
+                    "exactly for this: you get your own full copy to work in freely, and a pull request is how you " +
+                    "propose merging your work back into the original, without ever needing write access to it."),
+                CourseSegment.diagram("s2", "The full loop", null,
+                    Diagram.flow("From fork to merged",
+                        new DiagramNode("Fork on GitHub", "your own server-side copy"),
+                        new DiagramNode("Clone your fork", "git clone <your-fork-url>"),
+                        new DiagramNode("Branch + commit + push", "to YOUR fork, not upstream"),
+                        new DiagramNode("Open a pull request", "against the upstream repo"),
+                        new DiagramNode("Review + merge", "maintainers decide"))),
+                CourseSegment.code("s3", "Staying in sync with upstream while you work", null, "bash",
+                    "git remote add upstream https://github.com/original-owner/project.git\n" +
+                    "git remote -v\n" +
+                    "# origin    -> your fork (push access)\n" +
+                    "# upstream  -> the original repo (usually read-only for you)\n\n" +
+                    "git fetch upstream\n" +
+                    "git rebase upstream/main     # (or merge) keep your branch current with the real project"),
+                CourseSegment.concept("s4", "Why two remotes, not one",
+                    "`origin` conventionally points at YOUR fork — where your feature branches and pushes go. " +
+                    "`upstream` points at the original project — what you fetch/merge from to stay current. " +
+                    "Without a separate upstream remote, you'd have no direct way to pull in the real project's " +
+                    "new commits; your fork only updates when YOU explicitly push to it, which isn't automatic."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Walk me through how you'd contribute to an open-source project\" or \"describe your PR " +
+                    "workflow at your last job\" is common for any role — being able to name origin vs upstream " +
+                    "specifically, not just wave at 'I open a PR,' signals real hands-on experience.")
+            ),
+            KnowledgeCheck.of(
+                "In the fork-and-PR workflow, where do you push your feature branch?",
+                1,
+                "You push to YOUR fork (conventionally the `origin` remote) since you typically don't have write access to the original upstream repository — the pull request is what proposes merging it back.",
+                "Directly to the upstream repository's main branch",
+                "To your own fork (origin) — you typically lack write access to upstream",
+                "To a special staging remote created by GitHub automatically",
+                "Nowhere — pull requests are created without any push")
+        , KnowledgeCheck.of(
+                "What's the purpose of adding `upstream` as a second remote in a forked-repo setup?",
+                0,
+                "`upstream` lets you fetch/merge the original project's new commits to stay current — without it, your fork only updates when you explicitly push to it yourself.",
+                "It lets you fetch the original project's new commits to stay in sync while you work",
+                "It's required by GitHub for a fork to function at all",
+                "It automatically merges your changes into the original repo",
+                "It replaces the need for pull requests entirely")
+        );
+
+        addLessons("GIT3", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- GIT4 — Rewriting History Safely
+    private void buildGit4() {
+        CourseLesson l1 = lesson("git4-l1", "GIT4", 0,
+            "Reset, Revert, and the Line You Don't Cross",
+            "Three flavors of reset, and the one rule that decides whether reset is even the right tool",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "reset moves HEAD backward — the question is what else it touches",
+                    "`git reset` always moves HEAD (and the current branch pointer) to a different commit. What " +
+                    "differs between --soft, --mixed, and --hard is what happens to the staging area and working " +
+                    "directory along the way — and that difference is exactly what determines whether your changes " +
+                    "survive the operation or vanish from disk."),
+                CourseSegment.diagram("s2", "Three levels of reset", null,
+                    Diagram.compare("What survives after reset HEAD~1",
+                        CompareColumn.of("--soft",
+                            "Staging area: untouched (fully staged)",
+                            "Working directory: untouched",
+                            "The old commit's changes sit staged, ready to recommit differently"),
+                        CompareColumn.of("--hard",
+                            "Staging area: reset to match new HEAD",
+                            "Working directory: reset to match new HEAD",
+                            "Changes are gone from disk (reflog is the only short-term recovery)"))),
+                CourseSegment.code("s3", "--mixed is the default, sitting in between", null, "bash",
+                    "git reset HEAD~1          # --mixed is the default when no flag is given\n" +
+                    "# staging area IS reset to match the new HEAD, but working directory is untouched\n" +
+                    "# result: the old commit's changes become regular, UNSTAGED edits on disk\n\n" +
+                    "git status\n" +
+                    "# Changes not staged for commit:\n" +
+                    "#   modified: pricing.py"),
+                CourseSegment.concept("s4", "Why revert is the safe choice once a commit is shared",
+                    "`git revert` creates a BRAND NEW commit that applies the inverse of a target commit's changes " +
+                    "— history only ever grows forward, nothing is deleted or rewritten. That means everyone who's " +
+                    "already pulled the old history stays perfectly compatible. `git reset` on a shared commit, by " +
+                    "contrast, literally erases it from that branch's history — anyone who already has it now has a " +
+                    "divergent view, which causes real pain on their next pull. The rule of thumb: revert for " +
+                    "anything already pushed and shared; reset is fine for purely local, unpushed work."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Explain reset --soft/--mixed/--hard\" is one of THE most commonly asked Git questions — " +
+                    "precisely naming what happens to each of the three areas (not just 'hard is more extreme') is " +
+                    "what separates a strong answer from a shaky one.")
+            ),
+            KnowledgeCheck.of(
+                "After `git reset --hard HEAD~1`, where do the discarded commit's changes end up?",
+                2,
+                "--hard resets both the staging area AND the working directory to match the new HEAD — the changes are gone from disk (only briefly recoverable through the reflog, not through normal commands).",
+                "Staged, ready to recommit",
+                "Unstaged, sitting as regular edits in the working directory",
+                "Gone from the working directory and staging area (reflog is the only short-term recovery)",
+                "Automatically moved to a new backup branch")
+        , KnowledgeCheck.of(
+                "A commit has already been pushed and pulled by teammates, and needs to be undone. Why is `git revert` preferred over `git reset`?",
+                0,
+                "Revert adds a new commit undoing the change, keeping history append-only and compatible with everyone's existing copy. Reset erases the commit from the branch, creating a divergent history that causes problems for anyone who already pulled it.",
+                "Revert creates a new commit undoing the change, keeping history compatible for everyone who already pulled",
+                "Reset is actually just as safe, revert is only a stylistic preference",
+                "Revert is faster to execute than reset on large repositories",
+                "Reset requires admin permissions on the remote, revert doesn't")
+        );
+
+        CourseLesson l2 = lesson("git4-l2", "GIT4", 1,
+            "Interactive Rebase & the Reflog Safety Net",
+            "Cleaning up a messy commit history — and the command that saves you when you go too far",
+            5,
+            List.of(
+                CourseSegment.code("s1", "Turning 'wip, wip, fix typo' into one clean commit", null, "bash",
+                    "git rebase -i HEAD~4\n\n" +
+                    "pick   a1b2c3d Add login form\n" +
+                    "squash e4f5g6h fix typo\n" +
+                    "reword h7i8j9k Add validation\n" +
+                    "drop   k1l2m3n WIP debug print\n\n" +
+                    "# pick: keep as-is | reword: edit the message | squash/fixup: merge into previous\n" +
+                    "# commit | drop: remove entirely | reorder lines to reorder commits"),
+                CourseSegment.concept("s2", "The one condition that makes this safe",
+                    "Interactive rebase rewrites commits — every commit affected gets a brand-new hash. That's " +
+                    "completely fine for commits that only exist on your local, unpushed branch. The moment those " +
+                    "commits have been pushed and someone else might have pulled them, rewriting creates the exact " +
+                    "same divergent-history problem as a raw `git reset` on shared history. The habit: clean up " +
+                    "freely before you push; treat pushed history as effectively permanent."),
+                CourseSegment.code("s3", "cherry-pick: taking one commit without the whole branch", null, "bash",
+                    "# a critical fix landed on `develop`, and release/2.1 needs exactly that fix RIGHT NOW\n" +
+                    "# — without merging all of develop's other in-progress work\n" +
+                    "git checkout release/2.1\n" +
+                    "git cherry-pick a1b2c3d\n" +
+                    "# creates a NEW commit on release/2.1 with the same changes — a new hash, not the\n" +
+                    "# original commit moved"),
+                CourseSegment.concept("s4", "The reflog: your local undo history for HEAD itself",
+                    "Git keeps a local log of every place HEAD has pointed — every commit, checkout, reset, and " +
+                    "rebase step — even ones that are no longer reachable from any branch. Running `git reflog` " +
+                    "after an over-aggressive `reset --hard` often shows the exact commit hash you just \"lost,\" " +
+                    "letting you `git reset --hard <that-hash>` right back to it. This only works locally and only " +
+                    "for a limited retention window before Git eventually garbage-collects truly unreachable " +
+                    "commits — it's a safety net for recent mistakes, not permanent storage."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Knowing the reflog exists at all is a genuine signal — plenty of developers who are otherwise " +
+                    "comfortable with Git have simply never needed it, so being able to describe it (and when " +
+                    "you've actually used it) stands out.")
+            ),
+            KnowledgeCheck.of(
+                "Why is interactive rebase considered safe on a local, unpushed branch but risky on a shared one?",
+                1,
+                "Rebase rewrites commits, giving each a new hash. On unpushed commits that's harmless since nobody else has them. On pushed/shared commits it creates a divergent history for anyone who already pulled the old versions.",
+                "It's actually equally risky in both cases — there's no real difference",
+                "It rewrites commit hashes; on shared history, that diverges from what others already pulled",
+                "Rebase only works on branches that have never been pushed, technically",
+                "Interactive rebase can only be run by repository administrators")
+        , KnowledgeCheck.of(
+                "After an accidental `git reset --hard`, what command shows the commit hash you can recover?",
+                0,
+                "`git reflog` lists every place HEAD has recently pointed, including commits no longer reachable from any branch — letting you reset back to the lost commit's hash.",
+                "git reflog",
+                "git log --all --lost",
+                "git fsck --recover",
+                "There is no way to see it — the commit is immediately and permanently gone")
+        );
+
+        addLessons("GIT4", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- GIT5 — Team Workflows & Code Review
+    private void buildGit5() {
+        CourseLesson l1 = lesson("git5-l1", "GIT5", 0,
+            "Choosing a Branching Model",
+            "Trunk-based, Git Flow, and GitHub Flow aren't interchangeable — each optimizes for a different release cadence",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "Three models, three different assumptions", null,
+                    Diagram.compare("Long-lived branches vs constant integration",
+                        CompareColumn.of("Git Flow",
+                            "Long-lived develop/release/hotfix branches",
+                            "Built for scheduled, versioned releases",
+                            "Heavyweight — a lot of ceremony",
+                            "Fits installed software with discrete versions"),
+                        CompareColumn.of("Trunk-based / GitHub Flow",
+                            "Short-lived branches, merged rapidly",
+                            "Main is always deployable",
+                            "Incomplete work hides behind feature flags",
+                            "Fits continuously-deployed web services"))),
+                CourseSegment.concept("s2", "Why most modern teams default away from Git Flow",
+                    "Git Flow was designed for a world of scheduled, versioned software releases — think an " +
+                    "installed desktop application shipping v2.1 on a specific date. A team deploying to production " +
+                    "multiple times a day doesn't have discrete 'releases' in that sense, so the extra develop/" +
+                    "release/hotfix branches mostly add ceremony without solving a problem the team actually has. " +
+                    "GitHub Flow (short-lived feature branches, PR, merge straight to an always-deployable main) " +
+                    "fits that reality far better."),
+                CourseSegment.concept("s3", "What makes 'main is always deployable' actually true",
+                    "It's not a promise, it's an outcome of practices: CI runs the full test suite on every PR " +
+                    "before merge is even allowed, so a PR that breaks the build literally can't land. Incomplete " +
+                    "features are hidden behind feature flags rather than left half-built directly in main's code " +
+                    "path — 'merged to main' doesn't have to mean 'fully finished and user-facing yet.' Some teams " +
+                    "go further with continuous deployment, where merging to main auto-triggers a production " +
+                    "deploy — a strong forcing function, since nobody wants to merge something broken straight to prod."),
+                CourseSegment.interviewCorner("s4", "Where this shows up in the interview",
+                    "\"Tell me about the branching strategy you've used\" is close to universal — the strong " +
+                    "answer names WHY that model fit the team's release cadence and size, not just a definition of " +
+                    "the model itself.")
+            ),
+            KnowledgeCheck.of(
+                "Why does Git Flow's heavyweight branch structure often feel like unnecessary ceremony for a continuously-deployed web service?",
+                1,
+                "Git Flow's develop/release/hotfix branches were designed around discrete, scheduled releases — a team deploying many times a day doesn't have that kind of release event, so the extra structure mostly adds process without solving a real problem for them.",
+                "Git Flow doesn't support hotfixes, which continuously-deployed teams need constantly",
+                "It's built around discrete, scheduled releases — which a team deploying many times daily doesn't have",
+                "Git Flow requires a paid GitHub plan to use properly",
+                "It's technically incompatible with automated CI pipelines")
+        , KnowledgeCheck.of(
+                "What actually makes 'main is always deployable' true in GitHub Flow, rather than just an aspiration?",
+                0,
+                "CI gating every PR (broken code can't merge) plus feature flags (incomplete work stays hidden even once merged) are the concrete practices — not a rule anyone just agrees to follow.",
+                "CI runs on every PR before merge, and incomplete features are hidden behind feature flags",
+                "Developers are simply trusted not to break main",
+                "Main is protected by a password only senior engineers know",
+                "It isn't actually true in practice — it's a purely aspirational claim")
+        );
+
+        CourseLesson l2 = lesson("git5-l2", "GIT5", 1,
+            "Pull Requests People Actually Want to Review",
+            "Why PR size is often the single biggest lever a contributor controls",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The 2000-line PR that sat unreviewed for a week",
+                    "A contributor finishes an entire feature in one branch and opens a single sprawling pull " +
+                    "request touching thirty files. Reviewers open it, see the size, and quietly deprioritize it " +
+                    "in favor of something they can actually review carefully in the next fifteen minutes. The " +
+                    "feature isn't bad — but the PR's SIZE alone is what's actually stalling it."),
+                CourseSegment.concept("s2", "What makes a PR fast AND thoroughly reviewed",
+                    "Small, focused scope — one logical change per PR — lets a reviewer hold the whole diff's " +
+                    "intent in their head at once. A clear description explaining WHAT changed and WHY (the " +
+                    "reasoning), not a restatement of the diff itself. Self-review before requesting review, " +
+                    "catching the obvious stuff — leftover debug prints, commented-out code — before a human has " +
+                    "to point it out. A PR that takes ten minutes to review gets a genuinely careful look; one " +
+                    "that takes an hour gets skimmed or deferred, which is a worse outcome for everyone."),
+                CourseSegment.code("s3", "A PR description that actually helps a reviewer", null, "markdown",
+                    "## What\n" +
+                    "Switch the pricing calculation from a flat 8% tax rate to region-based tax lookup.\n\n" +
+                    "## Why\n" +
+                    "Flat rate was a launch-day shortcut; now that we ship in 3 states with different rates,\n" +
+                    "hardcoding one rate is producing incorrect totals for two of them (see #482).\n\n" +
+                    "## How to test\n" +
+                    "Run `pytest tests/test_pricing.py` — new cases cover all 3 regions plus the old default."),
+                CourseSegment.concept("s4", "Small PRs compound across a whole team",
+                    "A bug caught in PR 1 of 5 is cheap to fix immediately. The same bug buried in one giant PR " +
+                    "might not surface until much later, after more code has already been built on top of the " +
+                    "flawed part. Small PRs also merge faster and more often, which keeps everyone's branches " +
+                    "closer to main — directly reducing the size (and pain) of the merge conflicts that show up " +
+                    "later."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"How do you approach code review\" or \"what makes a good pull request\" comes up in almost " +
+                    "any collaborative role's behavioral round — a concrete, specific answer (small scope, clear " +
+                    "why, self-review first) reads far stronger than 'I write clean code and communicate well.'")
+            ),
+            KnowledgeCheck.of(
+                "Why does reviewing a 2000-line PR tend to produce WORSE review quality, not just slower review?",
+                1,
+                "Review quality doesn't scale with more time spent — reviewers genuinely can't hold a very large diff's full context in their head, so large PRs get skimmed rather than carefully reviewed even when a reviewer does eventually look at them.",
+                "Large PRs are always rejected automatically by CI tooling",
+                "Reviewers can't hold a very large diff's full context in their head, so it gets skimmed rather than carefully reviewed",
+                "GitHub technically limits how many lines can be properly displayed",
+                "It doesn't — review quality is unrelated to PR size")
+        , KnowledgeCheck.of(
+                "What should a PR description explain that the diff itself doesn't already show?",
+                0,
+                "The diff already shows WHAT changed; the description's value is explaining WHY — the reasoning, trade-offs, and context — plus how to verify it.",
+                "WHY the change was made — the reasoning and context — plus how to test it",
+                "A line-by-line restatement of the diff for convenience",
+                "The exact time the author spent writing the code",
+                "A list of every file touched, since GitHub doesn't show that automatically")
+        );
+
+        addLessons("GIT5", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- GIT6 — Advanced Git Toolbox
+    private void buildGit6() {
+        CourseLesson l1 = lesson("git6-l1", "GIT6", 0,
+            "Stash and Bisect: The Two Commands That Save Hours",
+            "A clean context switch, and a binary search through history to catch the commit that broke everything",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "stash: a personal, temporary shelf for unfinished work",
+                    "`git stash` takes your uncommitted changes — staged and/or unstaged — and saves them onto a " +
+                    "stack, restoring the working directory to match HEAD cleanly, with no WIP commit polluting " +
+                    "your branch. `git stash pop` (or `apply`) brings those changes back later, from any branch — " +
+                    "exactly what you need when something urgent interrupts half-finished work you're not ready to " +
+                    "commit yet."),
+                CourseSegment.code("s2", "A typical stash-and-switch", null, "bash",
+                    "# mid-way through a feature, an urgent bug report comes in\n" +
+                    "git stash                          # shelve current work, working directory now clean\n" +
+                    "git checkout main\n" +
+                    "git checkout -b hotfix/urgent-bug\n" +
+                    "# ...fix, commit, push, open PR...\n" +
+                    "git checkout feature-branch\n" +
+                    "git stash pop                      # bring the shelved work back exactly as it was"),
+                CourseSegment.concept("s3", "Why stash isn't a substitute for a real commit",
+                    "A stash isn't tied to a branch and isn't meant to be shared with anyone — it's explicitly a " +
+                    "personal, temporary holding area, and stashes are easier to lose track of or accidentally " +
+                    "drop than real commits. If work matters beyond the next few minutes, commit it (even with a " +
+                    "throwaway 'wip' message you'll clean up later) rather than leaving it stashed indefinitely."),
+                CourseSegment.code("s4", "bisect: binary-searching for the commit that broke things", null, "bash",
+                    "git bisect start\n" +
+                    "git bisect bad                     # current commit is broken\n" +
+                    "git bisect good v1.2.0              # this old tag was known good\n" +
+                    "# Git checks out the midpoint commit — test it, then tell it the result:\n" +
+                    "git bisect good   # or: git bisect bad\n" +
+                    "# ...repeats, halving the range each time, until the exact culprit is found\n" +
+                    "git bisect reset\n\n" +
+                    "# with a script that exits non-zero on the bad state:\n" +
+                    "git bisect run ./run_tests.sh       # fully automated — no manual testing needed"),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"How would you find the commit that introduced a regression in a project with thousands of " +
+                    "commits\" is a great debugging-methodology question — recognizing that this is literally " +
+                    "binary search, and that Git has a command built for exactly that, is the answer interviewers " +
+                    "are fishing for.")
+            ),
+            KnowledgeCheck.of(
+                "Why is `git stash` preferable to committing half-finished work when you need to urgently switch context?",
+                1,
+                "Stash cleanly shelves uncommitted changes without creating a WIP commit that pollutes your branch's history — you get a clean working directory to switch away from, and can restore the exact state later with `git stash pop`.",
+                "Stash is required — Git refuses to switch branches with any uncommitted changes",
+                "It shelves the changes cleanly without adding a WIP commit to your branch's history",
+                "Stash automatically fixes any bugs in the uncommitted code before saving it",
+                "Committing is technically impossible when changes are only partially staged")
+        , KnowledgeCheck.of(
+                "Why is `git bisect` so much faster than manually checking commits one by one to find a regression?",
+                0,
+                "Bisect performs a binary search — each test halves the remaining range of suspect commits, so finding the culprit among 1000 commits takes roughly 10 tests instead of up to 1000.",
+                "It's a binary search — each test halves the remaining suspect commits, roughly log2(n) tests instead of n",
+                "It downloads a separate, pre-analyzed copy of the repository",
+                "It only works if the project has fewer than 100 commits total",
+                "It's not actually faster, just more convenient to type")
+        );
+
+        CourseLesson l2 = lesson("git6-l2", "GIT6", 1,
+            "Submodules, Hooks, and Git LFS",
+            "Three tools for the moments plain Git alone doesn't quite fit the job",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "Embedding another repo: two different trade-offs", null,
+                    Diagram.compare("Submodule vs subtree",
+                        CompareColumn.of("Submodule",
+                            "Stores a POINTER to a specific commit",
+                            "Your repo's history/size stays small",
+                            "Needs --recurse-submodules on clone",
+                            "Fits an independently-versioned dependency"),
+                        CompareColumn.of("Subtree",
+                            "Actually merges files + history into yours",
+                            "Normal checkout, no extra commands",
+                            "Your repo grows to include the embedded history",
+                            "Fits code you want to feel natively part of your repo"))),
+                CourseSegment.concept("s2", "Hooks: useful automation, not a security boundary",
+                    "A Git hook (like pre-commit or pre-push) is a script Git runs automatically at a specific " +
+                    "point — commonly used to run linters, formatters, or tests, or to block an obvious secret " +
+                    "pattern before it's committed. But hooks live in the local .git/hooks directory and are NOT " +
+                    "copied when someone clones the repo by default, and any developer can bypass one entirely " +
+                    "with --no-verify or by deleting the file. They're a convenience tool for cooperative " +
+                    "developers — actual enforcement (blocking a secret from ever reaching the remote, requiring " +
+                    "CI to pass before merge) has to happen server-side, in CI or the platform's branch protection " +
+                    "rules."),
+                CourseSegment.code("s3", "A pre-commit hook that catches an obvious secret", null, "bash",
+                    "#!/bin/sh\n" +
+                    "# .git/hooks/pre-commit\n" +
+                    "if git diff --cached | grep -qE 'AKIA[0-9A-Z]{16}'; then\n" +
+                    "  echo \"Blocked: looks like an AWS access key is staged for commit.\"\n" +
+                    "  exit 1\n" +
+                    "fi\n\n" +
+                    "# helpful as a fast local guardrail — but --no-verify bypasses it instantly,\n" +
+                    "# so this is a convenience, not a real security control"),
+                CourseSegment.concept("s4", "Git LFS: keeping large binaries from bloating every clone forever",
+                    "Git's design assumes text that diffs and compresses efficiently — a large binary (a video, a " +
+                    "design file, a dataset) gets stored close to in full for EVERY version committed, since " +
+                    "there's no meaningful line-level diff to compress. The repo balloons, and every future clone " +
+                    "and fetch gets slower and heavier permanently. Git LFS replaces the large file's content in " +
+                    "the repo with a small text pointer, while the actual binary lives on a separate LFS server " +
+                    "and is fetched on demand — keeping the core repo small no matter how many large-file versions " +
+                    "accumulate over the project's life."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "These are usually follow-up questions for roles that plausibly hit them in practice — a game " +
+                    "or ML-adjacent role might ask about LFS specifically, while a platform/DevOps-leaning role " +
+                    "might probe whether you understand that hooks aren't real security enforcement.")
+            ),
+            KnowledgeCheck.of(
+                "Why can't a client-side pre-commit hook be relied on as an actual security control against committing secrets?",
+                2,
+                "Hooks aren't copied on clone by default, and any developer can bypass one instantly with --no-verify or by deleting the script — real enforcement needs to happen server-side, in CI or branch protection.",
+                "Hooks can only scan text files, never binary content",
+                "Hooks require a paid GitHub plan to function at all",
+                "They're not copied on clone by default, and any developer can bypass one with --no-verify",
+                "Pre-commit hooks are deprecated and no longer supported by Git")
+        , KnowledgeCheck.of(
+                "What problem does Git LFS solve for a repository with large binary files?",
+                0,
+                "Without LFS, every version of a large binary is stored close to in full in the repo's history, so it balloons and every clone/fetch gets slower forever. LFS stores a small pointer in the repo and keeps the actual binary on a separate server, fetched on demand.",
+                "It replaces large files with small pointers in the repo, keeping clones small regardless of history",
+                "It compresses binary files losslessly so they take less disk space",
+                "It automatically deletes old versions of large files after 30 days",
+                "It converts binary files into diffable text formats")
+        );
+
+        addLessons("GIT6", l1, l2);
+    }
+
+    private void buildGitPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("git",
+            "Git in the Interview Loop",
+            "Git rarely gets its own dedicated interview round — instead it shows up woven through almost every " +
+            "other round: a live-coding session where you're expected to commit sensibly, a system-design " +
+            "conversation about branching/release strategy, or a quick-fire round of 'gotcha' questions used as a " +
+            "fast filter. Here's how it actually surfaces across a typical loop.",
+            List.of(
+                new CompanyTrack("General Software Engineer loop (most tech companies)",
+                    "Git fundamentals rarely get a whole round to themselves, but weak Git knowledge shows up as " +
+                    "a red flag inside other rounds.",
+                    List.of(
+                        new InterviewRound("Technical phone screen", "45-60 min",
+                            "A handful of quick Git fundamentals questions, often as icebreakers before the main coding problem.",
+                            List.of("Explain fetch vs pull",
+                                    "What's the difference between git reset --soft, --mixed, and --hard?",
+                                    "How would you resolve a merge conflict?"),
+                            "Answer with precision — naming exactly what each command touches (staging area vs working directory) is what separates a strong answer from a vague one."),
+                        new InterviewRound("Live coding / pairing session", "45-90 min",
+                            "You're often expected to commit your work as you go — sensible, atomic commits, not one giant commit at the end.",
+                            List.of("Commit each logical step separately with a clear message",
+                                    "If asked to fix something in an earlier commit, know whether amend, a new commit, or rebase is appropriate"),
+                            "Narrate your Git usage out loud as you go — interviewers are quietly watching whether your habits match what you claim in the phone screen."),
+                        new InterviewRound("System design", "45-60 min",
+                            "Branching/release strategy sometimes comes up directly when discussing how a team ships changes safely.",
+                            List.of("How would you structure branching for a team deploying multiple times a day?",
+                                    "How do you keep main always deployable?"),
+                            "Tie your answer to the team's actual deployment cadence — trunk-based/GitHub Flow for continuous deployment, Git Flow only for genuinely versioned, scheduled releases."))),
+                new CompanyTrack("Senior / Tech Lead loop",
+                    "Expect deeper judgment questions about workflow design and recovering from real incidents, not just command syntax.",
+                    List.of(
+                        new InterviewRound("Technical deep dive", "45-60 min",
+                            "Scenario-based questions probing judgment, not just recall.",
+                            List.of("A teammate force-pushed over shared history — walk me through the recovery",
+                                    "How would you structure code review to actually scale across a growing team?",
+                                    "When would you choose rebase vs merge for integrating a long-running branch?"),
+                            "Ground answers in a real incident you've handled if you have one — specific and concrete beats textbook-correct but generic."),
+                        new InterviewRound("Behavioral / leadership", "30-45 min",
+                            "How you've influenced team practices, not just your individual Git usage.",
+                            List.of("Tell me about a time you improved your team's code review or branching process"),
+                            "Quantify the impact if you can — fewer merge conflicts, faster review turnaround, fewer production incidents traced to a rushed merge.")))
+            ),
+            List.of(
+                "Reaching for `git push --force` as a reflex instead of understanding why it's dangerous on shared history",
+                "Confusing git reset and git revert, or not knowing why one is safe on shared history and the other isn't",
+                "Not knowing the difference between git fetch and git pull precisely",
+                "Adding a leaked secret to .gitignore and believing that alone removes it from history",
+                "Defaulting to Git Flow's heavyweight branches without being able to justify it for the team's actual release cadence",
+                "Writing commit messages that just restate the diff instead of explaining why the change was made"
+            ),
+            List.of(
+                "Can you precisely explain what fetch, pull, reset --soft/--mixed/--hard, and revert each actually do?",
+                "Can you resolve a real merge conflict calmly, reading the markers correctly?",
+                "Can you justify a branching model choice based on a team's actual release cadence, not just habit?",
+                "Do you know why a client-side Git hook isn't a real security boundary?",
+                "Can you describe using the reflog or bisect to recover from or diagnose a real mistake?",
+                "Do your own commit messages and PR descriptions actually follow the practices you'd describe in an answer?"
+            ));
+        playbookByTopic.put("git", pb);
     }
 }

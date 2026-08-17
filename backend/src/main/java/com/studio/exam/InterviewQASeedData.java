@@ -3657,6 +3657,143 @@ public final class InterviewQASeedData {
                 """,
                 "A practical DevOps-adjacent question, common once a Spring Boot role expects some deployment/container ownership.")));
 
+        // ================= Git =================
+        m.put("GIT1", List.of(
+            hi("Explain Git's three-tree model: working directory, staging area, and repository.",
+                "The working directory is the actual files on disk you edit. The staging area (index) is a snapshot-in-progress — exactly what will go into the NEXT commit, which `git add` builds up incrementally and can be a subset of everything you've changed. The repository is the permanent, committed history that `git commit` seals the staged snapshot into. Understanding this model explains why `git diff` (working vs staging) and `git diff --staged` (staging vs last commit) show two genuinely different things.",
+                "The single most foundational Git question — a candidate who can't explain this usually has a shaky mental model for everything else that follows."),
+            hi("Why doesn't adding a file to .gitignore remove it from Git if it was already committed?",
+                ".gitignore only controls which currently-UNTRACKED files Git treats as 'new' — it has zero effect on files already being tracked. To actually stop tracking a file, you need `git rm --cached <file>` (which untracks it but leaves it on disk) followed by a commit; only then does the .gitignore rule apply going forward. The file's content also still exists in every prior commit's history — removing it from the current tree doesn't erase it from history.",
+                "A very common practical gotcha — often paired with 'how would you remove a secret that was already committed,' which needs history rewriting (BFG Repo-Cleaner or git filter-repo), not just .gitignore."),
+            hi("What's the difference between `git diff` and `git diff --staged`?",
+                "`git diff` (no arguments) compares the working directory against the staging area — it shows changes you've made but haven't yet staged with `git add`. `git diff --staged` (or `--cached`) compares the staging area against the last commit — it shows exactly what WOULD go into your next commit if you ran `git commit` right now.",
+                "Tests whether a candidate actually understands the staging area as a distinct third state, not just 'edited vs committed.'"),
+            md("What makes a good commit message, and why does the 50-character summary line convention exist?",
+                "A short (~50 char), imperative-mood summary line ('Add retry logic', not 'Added' or 'Adds'), a blank line, then an optional body explaining WHY — the reasoning, trade-offs, or context that isn't visible in the diff itself. The 50-character limit exists because many tools (git log --oneline, GitHub's commit list, terminal git log) truncate or display best around that length, and forcing brevity also forces you to state the change's essence clearly.",
+                "Shows communication discipline — teams that read history six months later notice immediately whose commit messages were actually useful."),
+            md("What does `git status` tell you that `git log` doesn't, and vice versa?",
+                "`git status` shows the CURRENT state relative to the last commit — which files are staged, unstaged, untracked, or in conflict, plus how far ahead/behind your tracking branch you are. `git log` shows HISTORY — the sequence of commits already made. status answers 'what would happen if I committed/pushed right now'; log answers 'what already happened.'",
+                "A basic fluency check — interviewers use it to gauge how comfortable a candidate is with day-to-day Git, not just theory.")));
+
+        m.put("GIT2", List.of(
+            hi("Why is a Git branch described as 'just a pointer,' and why does that make branching nearly free?",
+                "A branch is a small reference file holding nothing but a commit hash — creating one (`git branch feature`) is instant and costs almost no disk space, since no project files are duplicated. Switching branches (`git checkout`/`git switch`) just moves HEAD to point elsewhere and updates the working directory to match that commit's snapshot. This is a deliberate design choice — it's why Git-based workflows lean on branching constantly, where older systems with heavyweight, copy-based branching discouraged it.",
+                "Tests conceptual understanding of Git's object model, not just command memorization."),
+            hi("What's the difference between a fast-forward merge and a three-way merge?",
+                "A fast-forward merge happens when the branch you're merging into hasn't diverged — its tip is a direct ancestor of the incoming branch, so Git just moves the pointer forward with no new commit and no conflict possible. A three-way merge happens when both branches have new, independent commits since they diverged — Git compares both tips against their common ancestor and creates a new merge commit with two parents, combining both histories. Which one occurs is determined entirely by branch topology.",
+                "A classic question that also tests whether a candidate understands WHY conflicts can only happen in the three-way case."),
+            hi("Walk through resolving a real merge conflict from the command line.",
+                """
+                ```
+                git merge feature-branch
+                # CONFLICT (content): Merge conflict in app.py
+                ```
+                Opening the file shows conflict markers:
+                ```
+                <<<<<<< HEAD
+                current branch's version
+                =======
+                incoming branch's version
+                >>>>>>> feature-branch
+                ```
+                """
+                + "Edit the file to keep the correct content (from one side, the other, or a manual combination), then delete all three marker lines by hand — Git doesn't do this part automatically. Stage the resolved file with `git add app.py`, then `git commit` to complete the merge (the resulting commit IS the merge commit).",
+                "Almost universally asked in some form — interviewers want to see calm, methodical conflict resolution, not panic."),
+            md("Squash merge vs a regular merge vs rebase-then-merge — how do you choose for a messy feature branch?",
+                "A regular merge keeps every individual commit plus a merge commit — complete but noisy if the branch had many small 'wip' commits. A squash merge collapses the entire branch into one clean commit on the target branch — best when the individual commits during development don't matter to future readers. Rebasing the feature branch onto main first (often with interactive rebase to clean up commits), then fast-forward merging, keeps individual meaningful commits but produces fully linear history. Squash is the common default for small feature branches; rebase-then-merge suits larger features where the individual commits are each independently meaningful.",
+                "A judgment question — a strong candidate names the trade-off (history detail vs cleanliness) rather than declaring one 'always right.'"),
+            md("What's the difference between `git branch -d` and `git branch -D`?",
+                "`-d` is a safe delete — Git refuses if the branch has commits that aren't merged into your current branch, protecting against accidental loss of unmerged work. `-D` forces the delete regardless, discarding any unmerged commits with no warning. `-D` is appropriate once you're certain the branch's work is captured elsewhere (e.g., already squash-merged, so Git's unmerged-commit check would otherwise false-flag it) or genuinely abandoned.",
+                "A small but real gotcha — candidates who've only ever used -D without understanding why -d exists reveal they haven't hit the safety check firsthand.")));
+
+        m.put("GIT3", List.of(
+            hi("What's the actual difference between `git fetch` and `git pull`?",
+                "`git fetch` downloads new commits, branches, and tags from the remote into your LOCAL copies of the remote-tracking branches (like origin/main) — it never touches your working directory or current branch. `git pull` is fetch immediately followed by a merge (or rebase, if configured) of the fetched remote branch into your current branch — it DOES modify your working directory. fetch is the safer 'see what's new without touching my work' operation; a common workflow is fetch-then-inspect-then-decide, rather than blindly pulling.",
+                "One of the most reliably asked Git questions in any interview — tests real understanding versus command memorization."),
+            hi("Walk through the fork-and-pull-request workflow for contributing to an open-source project.",
+                "Fork the upstream repo into your own account (a full server-side copy you control), then clone YOUR fork locally. Create a feature branch, make changes, commit, and push to your fork (not upstream, since you typically lack write access there). Open a pull request from your fork's branch against upstream's branch — maintainers review and eventually merge. To stay current with upstream while you work, add it as a second remote (conventionally named `upstream`) and periodically fetch/merge or rebase onto `upstream/main`.",
+                "Extremely common for any role expecting open-source contribution or a fork-based internal workflow."),
+            hi("You get 'rejected — non-fast-forward' on `git push`. What does it mean and what's the correct fix?",
+                "It means the remote branch has commits your local branch doesn't have — a normal push would silently discard them, so Git refuses. The correct fix is to fetch/pull the remote's new commits, merge or rebase them into your local branch, resolve any conflicts, then push again — integrating both sets of changes. The dangerous shortcut, `git push --force`, overwrites the remote branch entirely, permanently discarding whatever was there; `--force-with-lease` is the safer variant since it fails if someone else pushed since you last fetched.",
+                "Tests whether a candidate reaches for force-push as a reflex (a red flag) or understands why it's dangerous and when it's actually appropriate."),
+            md("What is a 'tracking branch,' and what does it save you from typing every time?",
+                "A local branch configured to know which remote branch it corresponds to — set automatically by `git clone` for the default branch, or via `git push -u origin my-branch` / `git branch --set-upstream-to`. Once set, plain `git push`/`git pull` with no arguments know exactly which remote branch to talk to, and `git status` reports how many commits you're ahead or behind. Without it, you'd have to type `git push origin my-branch` explicitly every time.",
+                "A practical fluency question, often surfaced when discussing daily workflow rather than as a standalone question."),
+            md("What does `git clone` set up for you automatically?",
+                "It downloads the full repository history, creates a remote named `origin` pointing back to the source, and checks out a local branch (matching the remote's default branch) that already tracks the corresponding `origin/<branch>` — which is why a fresh clone can immediately push/pull with zero extra configuration.",
+                "A foundational question that's easy to answer shallowly ('it downloads the repo') — a strong answer names the remote and tracking setup specifically.")));
+
+        m.put("GIT4", List.of(
+            hi("Explain the difference between `git reset --soft`, `--mixed`, and `--hard`.",
+                "All three move HEAD (and the current branch) to a different commit, but differ in what happens to the staging area and working directory. `--soft` leaves both the staging area and working directory untouched — the old commit's changes end up fully staged, ready to recommit differently. `--mixed` (the default) resets the staging area to match the new HEAD but leaves the working directory untouched — changes become unstaged edits. `--hard` resets both the staging area AND working directory — the changes are gone from disk (recoverable briefly via reflog, not through normal commands).",
+                "One of the most commonly asked Git questions — a precise answer (naming what happens to EACH of the three areas) clearly separates strong from shaky Git knowledge."),
+            hi("Why is `git revert` considered safe on shared/pushed history while `git reset` is not?",
+                "`git revert` creates a brand-new commit that applies the inverse of the target commit's changes — history only ever grows forward, nothing is deleted or rewritten, so it stays compatible with everyone else's existing history. `git reset` moves the branch pointer backward, literally removing commits from that branch — anyone who already pulled the old history now has a divergent, incompatible view, causing real pain (or requiring a force-push) to reconcile. The rule of thumb: revert for anything already shared; reset only for local, unpushed work.",
+                "A senior-signal question — junior candidates often know reset and revert exist but can't articulate WHY one is safe for shared history and the other isn't."),
+            hi("What does interactive rebase (`git rebase -i`) let you do, and when would you use it?",
+                """
+                ```
+                git rebase -i HEAD~4
+                pick a1b2c3d Add login form
+                squash e4f5g6h fix typo
+                reword h7i8j9k Add validation
+                drop k1l2m3n WIP debug print
+                ```
+                """
+                + "It opens an editable list of recent commits before replaying them, letting you: pick (keep as-is), reword (edit the message), squash/fixup (combine into the previous commit), or drop (remove entirely) — you can also reorder commits by reordering the lines. It's the standard way to turn a messy string of 'wip'/'fix typo' commits into a small number of clean, reviewable commits before opening a pull request — but only on commits that haven't been pushed/shared yet.",
+                "A hands-on question that often comes with a live scenario ('clean up this commit history') in take-home or pairing rounds."),
+            md("What does `git cherry-pick` do, and give a real scenario where you'd use it.",
+                "It takes the changes introduced by ONE specific commit and applies them as a new commit on your current branch, without pulling in anything else from that commit's original branch. A common real scenario: a critical fix lands on `develop`, but you need exactly that fix on `release/2.1` immediately, without merging all of develop's other in-progress work into the release branch. The result is a genuinely new commit with a new hash — not the original commit moved.",
+                "Common in questions about hotfix/release-branch workflows specifically."),
+            md("You just ran `git reset --hard` and lost a commit you needed. Is it recoverable?",
+                "Usually yes, in the short term — Git doesn't immediately garbage-collect unreferenced commits, and `git reflog` keeps a local log of every place HEAD has pointed, including the commit before the reset. Finding that hash in the reflog and running `git reset --hard <hash>` (or cherry-picking it) restores the work. This is a local-only, time-limited safety net, not permanent storage — eventually Git garbage-collects truly unreachable commits.",
+                "Tests whether a candidate knows the reflog exists at all — many developers who are otherwise comfortable with Git have never needed it and don't know it's there.")));
+
+        m.put("GIT5", List.of(
+            hi("Compare trunk-based development, Git Flow, and GitHub Flow.",
+                "Trunk-based development: everyone commits small, frequent changes directly to (or via very short-lived branches rapidly merged into) a single trunk — incomplete work hides behind feature flags rather than long-lived branches. Git Flow: heavyweight, with dedicated long-lived develop/release/hotfix branches alongside main — built for projects with scheduled, versioned releases, often too much ceremony for continuously-deployed web services. GitHub Flow: a lightweight middle ground — short-lived feature branches off main, opened as a PR, reviewed, merged straight to main, which stays always-deployable. Most modern continuously-deployed teams default to GitHub Flow or trunk-based development.",
+                "A very common 'tell me about branching strategies you've used' question — the strong answer names the trade-off driving each choice (release cadence, team size, deployment model), not just definitions."),
+            hi("What makes a pull request easy to review well, versus one that gets rubber-stamped or ignored?",
+                "Small, focused scope — one logical change per PR so the reviewer can hold the whole diff's intent in their head. A clear description of WHAT changed and WHY (the reasoning), not a restatement of the diff. Self-review before requesting review, catching the obvious stuff (debug prints, commented-out code) before a human has to. Size is often the single biggest lever a contributor controls — a PR that takes ten minutes to review gets a genuinely careful review; one that takes an hour gets skimmed or deferred.",
+                "A practical, judgment-based question that reveals real collaborative experience versus purely solo Git usage."),
+            hi("What does semantic versioning (MAJOR.MINOR.PATCH) communicate, and what does a Git tag mark?",
+                "A Git tag is a permanent, non-moving pointer to a specific commit — used to mark 'this exact commit is what shipped as v2.1.0.' Semantic versioning encodes meaning in the number itself: MAJOR increments for breaking/incompatible changes, MINOR for backward-compatible new features, PATCH for backward-compatible bug fixes — letting a consumer decide from the version number alone whether an upgrade is safe to take blindly or needs careful review.",
+                "Common for any role touching library/package publishing or coordinated release processes."),
+            md("How do conventional commit prefixes (feat:, fix:, chore:) support automated changelogs and versioning?",
+                "Each prefix has machine-readable meaning: feat: signals a new feature (typically a MINOR bump), fix: a bug fix (PATCH bump), a BREAKING CHANGE footer forces a MAJOR bump, while chore:/docs:/refactor: mark commits that shouldn't appear in a user-facing changelog at all. Tooling (like semantic-release) can scan history since the last tag, compute the correct next version automatically, and generate a categorized changelog — removing the manual, often-skipped step of hand-writing release notes.",
+                "Signals familiarity with real release-automation tooling, not just manual Git usage."),
+            md("Why do experienced teams prefer many small PRs over one large PR bundling a whole feature?",
+                "Review quality drops sharply with diff size — reviewers can't hold a 2000-line diff's full context in their head, so large PRs get worse review, not more thorough review. A bug caught in PR 1 of 5 is cheap to fix immediately; the same bug buried in one giant PR might not surface until much later, after more code is built on the flawed part. Small PRs also merge faster and more often, keeping everyone's branches closer to main and reducing eventual merge-conflict pain.",
+                "A workflow-maturity question that surfaces whether a candidate has worked on a real team with a review culture.")));
+
+        m.put("GIT6", List.of(
+            hi("What does `git stash` do, and how is it different from just committing work-in-progress?",
+                "It saves your uncommitted changes (staged and/or unstaged) onto a stack and restores the working directory to match HEAD, cleanly, without polluting your branch's history with a WIP commit. `git stash pop` (or `apply`) restores those changes later, from any branch — useful when you need to urgently switch context (fix something else) but aren't ready to commit half-finished work. Unlike a real commit, a stash isn't meant to be shared or relied on long-term — it can be dropped or lost more easily.",
+                "A very common day-to-day workflow question, often phrased as 'how do you context-switch without losing work.'"),
+            hi("How does `git bisect` find the commit that introduced a bug, and why is it so much faster than checking commits one by one?",
+                """
+                ```
+                git bisect start
+                git bisect bad                 # current commit is broken
+                git bisect good v1.2.0          # this old tag was known good
+                # Git checks out the midpoint commit — you test it and mark it:
+                git bisect good   # or: git bisect bad
+                # ...repeats until the exact culprit commit is found
+                git bisect reset
+                ```
+                """
+                + "Each answer halves the remaining range of suspect commits — finding the culprit among 1000 commits takes roughly log2(1000) ≈ 10 tests instead of up to 1000 one-by-one checks. `git bisect run <script>` automates the whole process given a script that exits non-zero on the bad state.",
+                "A great question for testing genuine debugging methodology, not just Git trivia — strong candidates immediately see why binary search applies here."),
+            hi("What's the real trade-off between a Git submodule and a Git subtree?",
+                "A submodule stores a pointer to a specific commit of the external repo — the code isn't copied into your repo's own history, keeping your repo small, but cloning/updating needs extra submodule-specific commands and is a common source of 'why is this folder empty' confusion (forgetting `--recurse-submodules`). A subtree actually merges the external repo's files and history into yours — contributors get a normal checkout with no extra commands, at the cost of your repo's size and history growing to include the embedded project's full history. Submodules fit an independently-versioned external dependency; subtrees fit code you want to feel natively part of your repo.",
+                "A more advanced question, usually reserved for roles that plausibly manage a multi-repo or monorepo-adjacent setup."),
+            md("Why isn't a Git pre-commit hook a real security boundary, even though it can block a commit?",
+                "Hooks live in the local `.git/hooks` directory and are NOT copied when someone clones the repo by default, and any developer can bypass them entirely with `--no-verify` or by deleting the hook file — so they're a convenience/consistency tool for cooperative developers, not enforceable security. Actual enforcement — blocking a secret from ever reaching the remote, requiring CI to pass before merge — has to happen server-side, in CI or the hosting platform's branch protection rules, not in a client-side hook alone.",
+                "Tests whether a candidate understands the trust boundary between client-side tooling and server-side enforcement — a common security-adjacent Git question."),
+            md("Why do large binary files committed directly to Git cause real problems over time, and what does Git LFS do about it?",
+                "Git's design assumes text that diffs and compresses efficiently — every version of a large binary (video, design file, dataset) gets stored close to in full in history, since there's no meaningful line-level diff, so the repo balloons and every clone gets slower and heavier permanently. Git LFS replaces the large file's content in the repo with a small text pointer, while the actual binary is stored on a separate LFS server and fetched on demand — keeping the core repo small regardless of how many large-file versions accumulate.",
+                "Common for any role that plausibly deals with assets (game dev, ML datasets, design files) alongside code.")));
+
         return m;
     }
 
