@@ -25,6 +25,10 @@ public class CourseCatalog {
         buildJavaFullStackPlaybook();
         buildPython();
         buildPythonPlaybook();
+        buildDsa();
+        buildDsaPlaybook();
+        buildSystemDesign();
+        buildSystemDesignPlaybook();
     }
 
     public boolean hasCourse(String moduleId) {
@@ -2955,5 +2959,1588 @@ public class CourseCatalog {
                 "Have you got one real Python project you can walk through end-to-end?"
             ));
         playbookByTopic.put("python", pb);
+    }
+
+    // ================================================================ DSA track
+    private void buildDsa() {
+        buildDsa1();
+        buildDsa2();
+        buildDsa3();
+        buildDsa4();
+        buildDsa5();
+        buildDsa6();
+    }
+
+    // ---------------------------------------------------------------- DSA1 — Arrays, Strings & Hashing
+    private void buildDsa1() {
+        CourseLesson l1 = lesson("dsa1-l1", "DSA1", 0,
+            "Hashing for O(1) Lookup",
+            "Turning an O(n²) brute-force scan into O(n) with one extra data structure",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The brute-force instinct, and why it doesn't scale",
+                    "Given an array, find two numbers that add up to a target. The obvious first instinct: check " +
+                    "every pair — for each element, scan the rest of the array looking for its complement. It " +
+                    "works, but it's O(n²): for 10 elements that's 100 checks, for 10,000 elements that's 100 " +
+                    "million. A hash set turns this into a single O(n) pass, and this exact pattern — trade extra " +
+                    "space for a huge time win — is the single most common technique in array/string interview " +
+                    "problems."),
+                CourseSegment.code("s2", "Two-sum: from O(n²) to O(n)", null, "java",
+                    "// Brute force: O(n^2) time, O(1) space\n" +
+                    "for (int i = 0; i < nums.length; i++) {\n" +
+                    "    for (int j = i + 1; j < nums.length; j++) {\n" +
+                    "        if (nums[i] + nums[j] == target) return new int[]{i, j};\n" +
+                    "    }\n" +
+                    "}\n\n" +
+                    "// Hash map: O(n) time, O(n) space\n" +
+                    "Map<Integer, Integer> seen = new HashMap<>();   // value -> index\n" +
+                    "for (int i = 0; i < nums.length; i++) {\n" +
+                    "    int complement = target - nums[i];\n" +
+                    "    if (seen.containsKey(complement)) return new int[]{seen.get(complement), i};\n" +
+                    "    seen.put(nums[i], i);\n" +
+                    "}"),
+                CourseSegment.concept("s3", "Why this works: the lookup itself is the whole trick",
+                    "The nested-loop version re-scans the array for every element, redoing work. The hash-map " +
+                    "version builds up what it's SEEN so far, and for each new element asks \"have I already seen " +
+                    "the complement I need?\" — an O(1) average-case question. One pass, one map, and the n² " +
+                    "search collapses into a single n-sized loop with constant-time lookups inside it."),
+                CourseSegment.concept("s4", "The trade-off you should say out loud in an interview",
+                    "This isn't free — you're spending O(n) extra space to buy that speed. In an interview, " +
+                    "stating this trade-off explicitly (\"I'm trading O(n) space for O(n) time instead of O(n²) " +
+                    "time and O(1) space\") is exactly the kind of complexity-awareness interviewers are listening " +
+                    "for, not just a working answer."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Two-sum itself is a famous warm-up problem precisely because the O(n²)-to-O(n) hash-map " +
+                    "conversion is the seed pattern for a huge fraction of array/string problems — duplicates, " +
+                    "subarray sums, anagram grouping, and more all lean on the same \"have I seen this before\" " +
+                    "hash-lookup idea.")
+            ),
+            KnowledgeCheck.of(
+                "Why does adding a HashMap turn the two-sum problem from O(n²) into O(n)?",
+                2,
+                "Instead of re-scanning the array for every element (nested loops), the hash map lets you check " +
+                "whether you've already seen a needed complement in O(1) average time, in a single pass — trading O(n) extra space for that speed.",
+                "HashMap operations are always faster than array operations in general",
+                "It reduces the array size that needs to be searched",
+                "It replaces re-scanning with an O(1) average-time lookup for each element, in a single pass, at the cost of O(n) extra space",
+                "It sorts the array first, which makes the search faster"),
+            KnowledgeCheck.of(
+                "What's the space/time trade-off you're making when you use a hash set to avoid a nested loop?",
+                0,
+                "You spend O(n) extra space (storing what you've seen) to bring the time complexity down from " +
+                "O(n²) to O(n) — a very common, worthwhile trade in interview problems.",
+                "O(n) extra space in exchange for O(n) time instead of O(n²)",
+                "There's no trade-off — hash sets are strictly better with no downside",
+                "O(1) extra space in exchange for O(log n) time",
+                "You trade time for space, making the solution slower but using less memory")
+        );
+
+        CourseLesson l2 = lesson("dsa1-l2", "DSA1", 1,
+            "Big-O Thinking & String Patterns",
+            "How to actually talk about complexity out loud, and the frequency-counting pattern that solves half of string problems",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Big-O describes growth, not a stopwatch reading",
+                    "Big-O describes how an algorithm's time or space scales as the input grows — it deliberately " +
+                    "ignores constants and lower-order terms, because what matters at scale is the shape of the " +
+                    "growth curve, not the exact runtime on today's hardware. O(n) and O(2n) are both \"O(n)\" — " +
+                    "the constant factor doesn't change the fundamental scaling behavior as n grows large."),
+                CourseSegment.diagram("s2", "The complexity classes worth having memorized", null,
+                    Diagram.flow("From fastest-growing to slowest",
+                        new DiagramNode("O(1)", "constant — hash lookup"),
+                        new DiagramNode("O(log n)", "binary search"),
+                        new DiagramNode("O(n)", "single pass"),
+                        new DiagramNode("O(n log n)", "sorting"),
+                        new DiagramNode("O(n²)", "nested loops"))),
+                CourseSegment.concept("s3", "Always state complexity before being asked",
+                    "A working solution that never mentions its own time or space complexity leaves the " +
+                    "interviewer to ask for it — and volunteering it unprompted, along with WHY (\"this is O(n) " +
+                    "because we do a single pass with O(1) work per element\"), is one of the cheapest, highest-" +
+                    "value habits you can build for these interviews."),
+                CourseSegment.code("s4", "Frequency counting: the pattern behind anagrams and beyond", null, "java",
+                    "boolean isAnagram(String s, String t) {\n" +
+                    "    if (s.length() != t.length()) return false;\n" +
+                    "    int[] counts = new int[26];\n" +
+                    "    for (char c : s.toCharArray()) counts[c - 'a']++;\n" +
+                    "    for (char c : t.toCharArray()) counts[c - 'a']--;\n" +
+                    "    for (int count : counts) if (count != 0) return false;\n" +
+                    "    return true;\n" +
+                    "}\n" +
+                    "// O(n) time, O(1) space (the alphabet size is a constant, not proportional to input)"),
+                CourseSegment.concept("s5", "Why this generalizes so far beyond just anagrams",
+                    "The frequency-count-in-an-array-or-map idea is the same seed pattern behind \"find the first " +
+                    "non-repeating character,\" \"group anagrams together,\" and \"check if one string is a " +
+                    "permutation of another.\" Once you recognize \"this problem cares about HOW MANY of each " +
+                    "character/element,\" reaching for a frequency map (or a fixed-size array for a known " +
+                    "alphabet) becomes close to automatic."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "Interviewers explicitly grade your complexity analysis, not just correctness — being asked " +
+                    "\"what's the time complexity\" and fumbling the answer after writing perfectly correct code " +
+                    "is a genuinely common way candidates lose points despite solving the problem.")
+            ),
+            KnowledgeCheck.of(
+                "Why does Big-O notation ignore constant factors, like the difference between O(n) and O(2n)?",
+                1,
+                "Big-O describes how an algorithm scales as input grows large — the constant factor doesn't " +
+                "change the fundamental shape of that growth curve, which is what actually matters at scale.",
+                "Constants are impossible to measure accurately in practice",
+                "It describes the shape of the growth curve as input scales, which the constant factor doesn't change",
+                "Modern computers are fast enough that constants never matter",
+                "O(2n) is actually a different, faster complexity class than O(n)"),
+            KnowledgeCheck.of(
+                "Why does checking if two strings are anagrams typically use a frequency array/map instead of comparing characters directly?",
+                0,
+                "Anagram-ness is about whether both strings contain the SAME COUNT of each character, regardless " +
+                "of order — a frequency count directly captures that in O(n) time without needing to sort or compare positions.",
+                "It directly captures 'same count of each character' in O(n) time, without needing to sort or compare positions",
+                "It's the only approach that works for strings longer than 26 characters",
+                "Frequency counting is always faster than any other approach for any string problem",
+                "Sorting both strings and comparing them is not possible in Java")
+        );
+
+        addLessons("DSA1", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- DSA2 — Two Pointers & Sliding Window
+    private void buildDsa2() {
+        CourseLesson l1 = lesson("dsa2-l1", "DSA2", 0,
+            "Two Pointers: Converging From Both Ends",
+            "The pattern that turns an O(n²) pair search on a sorted array into O(n)",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The signal: a sorted array, looking for a pair",
+                    "When a problem involves a SORTED array and asks you to find a pair (or triplet) satisfying " +
+                    "some condition — sums to a target, closest to a target — two pointers is almost always the " +
+                    "intended pattern. Sortedness is the key ingredient: it's what lets you reason about which " +
+                    "direction to move a pointer without re-checking everything."),
+                CourseSegment.code("s2", "Two-sum on a sorted array, without a hash map", null, "java",
+                    "int[] twoSumSorted(int[] nums, int target) {\n" +
+                    "    int left = 0, right = nums.length - 1;\n" +
+                    "    while (left < right) {\n" +
+                    "        int sum = nums[left] + nums[right];\n" +
+                    "        if (sum == target) return new int[]{left, right};\n" +
+                    "        else if (sum < target) left++;    // need a bigger sum -> move left pointer up\n" +
+                    "        else right--;                       // need a smaller sum -> move right pointer down\n" +
+                    "    }\n" +
+                    "    return new int[]{-1, -1};\n" +
+                    "}\n" +
+                    "// O(n) time, O(1) space — no extra hash map needed, because sortedness does the work"),
+                CourseSegment.concept("s3", "Why moving a pointer never loses a valid answer",
+                    "If the sum is too small, moving the LEFT pointer up is the only move that can increase the " +
+                    "sum — moving right down can only decrease it further. Every skipped pair is guaranteed not " +
+                    "to work, because sortedness lets you reason about the whole remaining range at once instead " +
+                    "of checking each pair individually. That's what collapses the search from O(n²) pairs down " +
+                    "to O(n) pointer moves."),
+                CourseSegment.concept("s4", "Two pointers vs the hash-map approach from the last lesson",
+                    "Both solve two-sum in O(n) time — the difference is space and a precondition. The hash-map " +
+                    "version works on an UNSORTED array in O(n) space. The two-pointer version needs the array " +
+                    "sorted first (or already sorted) but then needs only O(1) extra space. If the array isn't " +
+                    "already sorted and you'd have to sort it just for this, that sort itself costs O(n log n), " +
+                    "which changes the trade-off calculation."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Two pointers vs hash map\" is a very common follow-up once you solve two-sum one way — " +
+                    "being ready to name the other approach and its trade-off (space vs a sortedness precondition) " +
+                    "shows breadth beyond just knowing one trick.")
+            ),
+            KnowledgeCheck.of(
+                "Why does the two-pointer technique specifically require the array to be sorted?",
+                1,
+                "Sortedness is what lets you safely reason about which direction to move a pointer without " +
+                "re-checking every pair — if the sum is too small, only moving the left pointer up can help, which wouldn't be knowable in an unsorted array.",
+                "It doesn't actually require sorting, that's a common misconception",
+                "Sortedness lets you safely decide which pointer to move without re-checking every pair",
+                "Sorting is only needed to make the output easier to read",
+                "Two pointers requires sorting because Java arrays are always sorted by default"),
+            KnowledgeCheck.of(
+                "The array is already sorted. Should you prefer the two-pointer approach or the hash-map approach for two-sum, and why?",
+                0,
+                "Since it's already sorted, two pointers gets you O(n) time with only O(1) extra space — no need " +
+                "to pay for a hash map's O(n) space when sortedness already does the work for free.",
+                "Two pointers — O(n) time with O(1) space, since sortedness is already available for free",
+                "Hash map — it's always faster regardless of whether the array is sorted",
+                "Neither — you should always sort first and then use a hash map",
+                "It makes no difference which one you choose")
+        );
+
+        CourseLesson l2 = lesson("dsa2-l2", "DSA2", 1,
+            "Sliding Window: Fixed vs Variable",
+            "Why a variable-size window is O(n), not O(n²), even though it looks like nested loops",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The signal: a CONTIGUOUS subarray or substring",
+                    "Sliding window applies when a problem asks about a contiguous subarray or substring — " +
+                    "longest, shortest, or an optimal one meeting some condition. The core idea: instead of " +
+                    "re-scanning from scratch for every possible starting point, maintain a \"window\" (a left and " +
+                    "right boundary) and slide it across the input, expanding or shrinking as needed."),
+                CourseSegment.code("s2", "Longest substring without repeating characters", null, "java",
+                    "int lengthOfLongestSubstring(String s) {\n" +
+                    "    Set<Character> window = new HashSet<>();\n" +
+                    "    int left = 0, maxLen = 0;\n" +
+                    "    for (int right = 0; right < s.length(); right++) {\n" +
+                    "        while (window.contains(s.charAt(right))) {\n" +
+                    "            window.remove(s.charAt(left));\n" +
+                    "            left++;                          // SHRINK from the left until valid again\n" +
+                    "        }\n" +
+                    "        window.add(s.charAt(right));           // EXPAND to include the new character\n" +
+                    "        maxLen = Math.max(maxLen, right - left + 1);\n" +
+                    "    }\n" +
+                    "    return maxLen;\n" +
+                    "}"),
+                CourseSegment.concept("s3", "Why this is O(n), even with a while loop nested inside a for loop",
+                    "It looks like it could be O(n²) — a while loop inside a for loop — but each character is " +
+                    "added to the window at most once (by the for loop) and removed at most once (by the while " +
+                    "loop). Since every character does at most two units of work total across the ENTIRE run, the " +
+                    "total work is O(n), not O(n²) — this \"each element enters and leaves the window at most " +
+                    "once\" argument is exactly how you justify the complexity out loud."),
+                CourseSegment.diagram("s4", "Fixed-size vs variable-size windows", null,
+                    Diagram.compare("Two window shapes",
+                        CompareColumn.of("Fixed-size window",
+                            "Window size is given (e.g., \"every subarray of size k\")",
+                            "Slide by exactly one each step",
+                            "Example: max sum of any k consecutive elements"),
+                        CompareColumn.of("Variable-size window",
+                            "Window grows/shrinks based on a condition",
+                            "Expand right, shrink left when invalid",
+                            "Example: longest substring without repeats"))),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Being able to justify \"why is this O(n) and not O(n²)\" when a sliding-window solution has a " +
+                    "nested-looking loop is one of the most common complexity-analysis challenges interviewers " +
+                    "throw at sliding-window solutions specifically — have the \"each element enters/leaves at " +
+                    "most once\" argument ready.")
+            ),
+            KnowledgeCheck.of(
+                "A sliding-window solution has a while loop nested inside a for loop. Why is the overall complexity still O(n), not O(n²)?",
+                2,
+                "Each element is added to the window at most once (by the outer loop) and removed at most once " +
+                "(by the inner loop) — across the entire run, that's at most 2n total operations, which is still O(n).",
+                "Nested loops are always O(n) regardless of what's inside them",
+                "The while loop only runs on the first iteration of the for loop",
+                "Each element enters and leaves the window at most once total, so the combined work across the whole run is still O(n)",
+                "This is actually O(n^2), and sliding window solutions are always slower than they appear"),
+            KnowledgeCheck.of(
+                "What's the key difference between a fixed-size and a variable-size sliding window?",
+                0,
+                "A fixed-size window's size is given upfront and slides by a constant step; a variable-size " +
+                "window grows and shrinks dynamically based on whether the current window still satisfies some condition.",
+                "Fixed-size windows have a known size given upfront; variable-size windows grow/shrink based on a condition",
+                "Fixed-size windows are always faster than variable-size windows",
+                "Variable-size windows can only be used on sorted arrays",
+                "There is no real difference — both are implemented identically")
+        );
+
+        addLessons("DSA2", l1, l2);
+    }
+    // ---------------------------------------------------------------- DSA3 — Stacks, Queues & Linked Lists
+    private void buildDsa3() {
+        CourseLesson l1 = lesson("dsa3-l1", "DSA3", 0,
+            "Stacks: LIFO for Matching & Undo",
+            "Recognizing the 'most recent thing matters most' shape, and the monotonic-stack trick built on top of it",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The signal: nested structure, or 'undo the most recent'",
+                    "A stack (Last-In-First-Out) is the natural fit whenever a problem has a nested structure " +
+                    "— matching brackets, nested function calls — or needs to reverse or undo the MOST RECENT " +
+                    "action first. The core insight: whatever you pushed most recently is exactly what you need " +
+                    "to check or pop first."),
+                CourseSegment.code("s2", "Valid parentheses, the canonical stack problem", null, "java",
+                    "boolean isValid(String s) {\n" +
+                    "    Deque<Character> stack = new ArrayDeque<>();\n" +
+                    "    Map<Character, Character> pairs = Map.of(')', '(', ']', '[', '}', '{');\n" +
+                    "    for (char c : s.toCharArray()) {\n" +
+                    "        if (pairs.containsValue(c)) {\n" +
+                    "            stack.push(c);                          // opening bracket -> push\n" +
+                    "        } else if (pairs.containsKey(c)) {\n" +
+                    "            if (stack.isEmpty() || stack.pop() != pairs.get(c)) return false;  // must match the top\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "    return stack.isEmpty();   // nothing left un-closed\n" +
+                    "}"),
+                CourseSegment.concept("s3", "Why the stack, specifically, makes this correct",
+                    "When you hit a closing bracket, it must match the MOST RECENTLY opened, still-unclosed " +
+                    "bracket — that's exactly what a stack's top gives you for free. Any other structure (a queue, " +
+                    "a plain counter) either loses the ordering information or can't tell you WHICH type of " +
+                    "bracket is expected next."),
+                CourseSegment.concept("s4", "Monotonic stacks: a stack that stays sorted as you go",
+                    "A monotonic stack keeps its elements in increasing (or decreasing) order at all times, " +
+                    "popping off anything that would violate that order before pushing a new element. It's the " +
+                    "standard technique for \"next greater element\" style problems — for each element, quickly " +
+                    "find the next one to its right that's bigger, in O(n) total instead of an O(n²) nested scan."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Valid parentheses is a near-universal warm-up problem specifically because the stack pattern " +
+                    "it teaches generalizes directly into monotonic-stack problems, expression evaluation, and " +
+                    "even how a real compiler parses nested syntax.")
+            ),
+            KnowledgeCheck.of(
+                "Why is a stack (not a queue) the right structure for checking matched parentheses?",
+                1,
+                "A closing bracket must match the MOST RECENTLY opened, still-unclosed bracket — that's exactly " +
+                "what a stack's top gives you directly. A queue would give you the OLDEST unclosed bracket instead, which is the wrong one.",
+                "Stacks are always faster than queues for any problem",
+                "A closing bracket must match the most recently opened bracket, which is exactly what a stack's top provides",
+                "Queues can't store characters, only numbers",
+                "It doesn't actually matter — either structure works equally well"),
+            KnowledgeCheck.of(
+                "What does a monotonic stack maintain, and what class of problem is it typically used for?",
+                0,
+                "It keeps elements in strictly increasing (or decreasing) order, popping violators before pushing " +
+                "new ones — the standard technique for 'next greater/smaller element' style problems in O(n) instead of O(n^2).",
+                "Elements in increasing (or decreasing) order at all times, used for 'next greater element' style problems",
+                "A count of how many times each element has been pushed",
+                "Elements sorted alphabetically, used only for string problems",
+                "A record of the maximum depth of nested brackets")
+        );
+
+        CourseLesson l2 = lesson("dsa3-l2", "DSA3", 1,
+            "Linked Lists: Pointer Manipulation",
+            "Reversing a list without extra memory, and the fast/slow pointer trick that detects a cycle in O(1) space",
+            5,
+            List.of(
+                CourseSegment.code("s1", "Reversing a singly linked list in place", null, "java",
+                    "ListNode reverseList(ListNode head) {\n" +
+                    "    ListNode prev = null;\n" +
+                    "    ListNode curr = head;\n" +
+                    "    while (curr != null) {\n" +
+                    "        ListNode next = curr.next;   // save the next node BEFORE overwriting the pointer\n" +
+                    "        curr.next = prev;              // reverse this node's pointer\n" +
+                    "        prev = curr;\n" +
+                    "        curr = next;\n" +
+                    "    }\n" +
+                    "    return prev;   // prev is now the new head\n" +
+                    "}\n" +
+                    "// O(n) time, O(1) space — no new nodes, no extra list"),
+                CourseSegment.concept("s2", "Why you must save `next` before overwriting `curr.next`",
+                    "Once you set curr.next = prev, you've destroyed the only pointer that told you what came " +
+                    "next in the ORIGINAL list — if you hadn't saved it first, the rest of the list would be " +
+                    "unreachable. This save-before-overwrite discipline is the core mechanical habit for every " +
+                    "in-place linked-list manipulation problem."),
+                CourseSegment.diagram("s3", "Fast & slow pointers: detecting a cycle", null,
+                    Diagram.cycle("Floyd's cycle detection",
+                        new DiagramNode("slow", "moves 1 step at a time"),
+                        new DiagramNode("fast", "moves 2 steps at a time"),
+                        new DiagramNode("they meet", "if and only if there's a cycle"))),
+                CourseSegment.code("s4", "Floyd's cycle detection", null, "java",
+                    "boolean hasCycle(ListNode head) {\n" +
+                    "    ListNode slow = head, fast = head;\n" +
+                    "    while (fast != null && fast.next != null) {\n" +
+                    "        slow = slow.next;          // 1 step\n" +
+                    "        fast = fast.next.next;      // 2 steps\n" +
+                    "        if (slow == fast) return true;   // they've met -> there's a cycle\n" +
+                    "    }\n" +
+                    "    return false;   // fast reached the end -> no cycle\n" +
+                    "}\n" +
+                    "// O(n) time, O(1) space — no visited-set needed"),
+                CourseSegment.concept("s5", "Why the fast pointer is guaranteed to catch the slow one",
+                    "If there's no cycle, the fast pointer simply reaches the end first and the loop terminates. " +
+                    "If there IS a cycle, once the slow pointer enters it, the fast pointer is gaining exactly one " +
+                    "position on the slow pointer every iteration — since they're both looping around a finite " +
+                    "cycle, the fast pointer is mathematically guaranteed to lap the slow one and land on the same " +
+                    "node eventually. This is the O(1)-space alternative to using a HashSet of visited nodes."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"Reverse a linked list\" is one of the single most commonly asked coding problems anywhere " +
+                    "— and being able to also explain fast/slow pointers unprompted (as the memory-efficient " +
+                    "alternative to a visited-set) is a strong signal in the very common follow-up about cycle " +
+                    "detection.")
+            ),
+            KnowledgeCheck.of(
+                "Why must you save `curr.next` into a temporary variable BEFORE setting `curr.next = prev` when reversing a linked list?",
+                1,
+                "Overwriting curr.next destroys the only pointer to the rest of the original list — if you hadn't " +
+                "saved it first, you'd have no way to continue traversing the remainder of the list.",
+                "It's not actually necessary — this is just a defensive coding habit",
+                "Overwriting curr.next destroys your only pointer to the rest of the original list, making it unreachable",
+                "Java requires all variables to be assigned before a loop can execute",
+                "It prevents a NullPointerException on the first iteration"),
+            KnowledgeCheck.of(
+                "Why does the fast/slow pointer technique detect a cycle using only O(1) extra space, instead of a HashSet of visited nodes?",
+                0,
+                "The fast pointer gains one position on the slow pointer every iteration once both are inside the " +
+                "cycle — since they're looping around a finite cycle, it's mathematically guaranteed to eventually land on the same node, with no extra storage needed.",
+                "The fast pointer is guaranteed to eventually catch up to and meet the slow pointer if a cycle exists, needing no extra storage",
+                "It doesn't actually detect all cycles, only cycles of even length",
+                "HashSets are not allowed to store linked list nodes in Java",
+                "The two pointers must always start at different nodes for this to work")
+        );
+
+        addLessons("DSA3", l1, l2);
+    }
+    // ---------------------------------------------------------------- DSA4 — Trees & Binary Search Trees
+    private void buildDsa4() {
+        CourseLesson l1 = lesson("dsa4-l1", "DSA4", 0,
+            "Tree Traversals: DFS vs BFS",
+            "Three ways to walk a tree depth-first, and when you actually need breadth-first instead",
+            5,
+            List.of(
+                CourseSegment.code("s1", "The three DFS orders, all built from the same shape", null, "java",
+                    "void preorder(TreeNode node, List<Integer> out) {\n" +
+                    "    if (node == null) return;\n" +
+                    "    out.add(node.val);              // ROOT first\n" +
+                    "    preorder(node.left, out);\n" +
+                    "    preorder(node.right, out);\n" +
+                    "}\n\n" +
+                    "void inorder(TreeNode node, List<Integer> out) {\n" +
+                    "    if (node == null) return;\n" +
+                    "    inorder(node.left, out);\n" +
+                    "    out.add(node.val);              // ROOT in the MIDDLE\n" +
+                    "    inorder(node.right, out);\n" +
+                    "}\n\n" +
+                    "void postorder(TreeNode node, List<Integer> out) {\n" +
+                    "    if (node == null) return;\n" +
+                    "    postorder(node.left, out);\n" +
+                    "    postorder(node.right, out);\n" +
+                    "    out.add(node.val);              // ROOT last\n" +
+                    "}"),
+                CourseSegment.concept("s2", "The only thing that changes between the three is WHEN you visit the root",
+                    "All three traversals visit left, root, and right in some order — the only difference is " +
+                    "WHERE the \"visit the root\" line sits relative to the two recursive calls. Preorder is " +
+                    "useful for copying/serializing a tree (root before children lets you rebuild it top-down). " +
+                    "Postorder is useful when children must be processed before their parent (like computing a " +
+                    "subtree's height, or safely deleting a tree bottom-up)."),
+                CourseSegment.diagram("s3", "BFS: level by level, using a queue instead of the call stack", null,
+                    Diagram.flow("Level-order traversal",
+                        new DiagramNode("Queue starts", "with just the root"),
+                        new DiagramNode("Dequeue a node", "visit it"),
+                        new DiagramNode("Enqueue its children", "left, then right"),
+                        new DiagramNode("Repeat", "until the queue is empty"))),
+                CourseSegment.concept("s4", "Why BFS needs an explicit queue, while DFS gets recursion for free",
+                    "DFS naturally follows the call stack — each recursive call goes as deep as possible before " +
+                    "returning, which IS depth-first behavior. BFS needs to visit nodes level by level instead, " +
+                    "which requires explicitly tracking \"what's next\" in a queue, since recursion's call stack " +
+                    "structurally can't give you that breadth-first order for free."),
+                CourseSegment.concept("s5", "When you actually need BFS instead of DFS",
+                    "Reach for BFS specifically when the problem is about LEVELS — \"find the minimum depth,\" " +
+                    "\"return the tree level by level,\" \"find the closest node meeting some condition.\" DFS is " +
+                    "usually simpler to write and is the right default for anything else — subtree computations, " +
+                    "path-finding, and most \"visit every node\" problems."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"Implement in-order traversal\" is a common warm-up specifically because in-order traversal " +
+                    "of a BST produces SORTED output — a property the next lesson builds directly on top of.")
+            ),
+            KnowledgeCheck.of(
+                "What's the only actual difference between preorder, inorder, and postorder traversal?",
+                1,
+                "All three visit left, root, and right — the only difference is WHERE the 'visit the root' step " +
+                "happens relative to the two recursive calls (before, between, or after visiting the children).",
+                "They visit completely different sets of nodes",
+                "The position of the 'visit the root' step relative to the two recursive calls on the children",
+                "Preorder and postorder are recursive, while inorder is iterative",
+                "Only preorder actually visits every node in the tree"),
+            KnowledgeCheck.of(
+                "Why does BFS (level-order) traversal require an explicit queue, while DFS traversals can just use plain recursion?",
+                0,
+                "DFS naturally follows the call stack's depth-first behavior for free — BFS needs to track " +
+                "'what's next' across an entire level explicitly, which recursion's call stack structurally can't provide.",
+                "DFS's recursive call stack naturally gives depth-first order; BFS needs an explicit queue to track level-by-level order",
+                "BFS is actually impossible to implement using recursion at all, under any circumstances",
+                "Queues are required by the Java language for any tree traversal",
+                "There's no real difference — both could use either a queue or recursion equally well")
+        );
+
+        CourseLesson l2 = lesson("dsa4-l2", "DSA4", 1,
+            "BST Properties & Validation",
+            "Why in-order traversal of a BST is always sorted, and the bounds-carrying trick for validating one",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The BST invariant, stated precisely",
+                    "In a valid Binary Search Tree, every node's value is greater than ALL values in its left " +
+                    "subtree and less than ALL values in its right subtree — not just greater than its immediate " +
+                    "left child and less than its immediate right child. That distinction (the WHOLE subtree, not " +
+                    "just the direct child) is exactly what makes validating a BST trickier than it first looks."),
+                CourseSegment.code("s2", "The tempting but WRONG validation approach", null, "java",
+                    "// WRONG: only checks the immediate children, not the whole subtree\n" +
+                    "boolean isValidBSTWrong(TreeNode node) {\n" +
+                    "    if (node == null) return true;\n" +
+                    "    if (node.left != null && node.left.val >= node.val) return false;\n" +
+                    "    if (node.right != null && node.right.val <= node.val) return false;\n" +
+                    "    return isValidBSTWrong(node.left) && isValidBSTWrong(node.right);\n" +
+                    "}\n" +
+                    "// Fails on a tree where a node's grandchild violates the bound, even though\n" +
+                    "// its immediate parent-child relationship looks fine locally."),
+                CourseSegment.code("s3", "The correct approach: carry min/max bounds down the recursion", null, "java",
+                    "boolean isValidBST(TreeNode node, Long min, Long max) {\n" +
+                    "    if (node == null) return true;\n" +
+                    "    if ((min != null && node.val <= min) || (max != null && node.val >= max)) return false;\n" +
+                    "    return isValidBST(node.left, min, (long) node.val)     // right bound tightens\n" +
+                    "        && isValidBST(node.right, (long) node.val, max);   // left bound tightens\n" +
+                    "}\n" +
+                    "// Call as: isValidBST(root, null, null)"),
+                CourseSegment.concept("s4", "Why carrying bounds down fixes the bug",
+                    "Each recursive call narrows the allowed range for its subtree — going left, the max bound " +
+                    "tightens to the parent's value; going right, the min bound tightens. This correctly enforces " +
+                    "\"every value in this ENTIRE subtree must respect the ancestor constraints,\" not just the " +
+                    "immediate parent-child relationship, which is exactly the gap in the naive version."),
+                CourseSegment.concept("s5", "The other correct approach: in-order traversal must be strictly increasing",
+                    "Since in-order traversal of a valid BST always visits nodes in sorted order, an equally " +
+                    "valid check is: do an in-order traversal, and confirm the resulting sequence is strictly " +
+                    "increasing. Both approaches are O(n) time — the bounds-carrying version avoids building an " +
+                    "extra list, while the in-order version is often considered more intuitive to explain."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "Validate BST is a famous problem specifically BECAUSE the naive \"check immediate children\" " +
+                    "solution looks correct and passes simple test cases — catching your own bug here, or " +
+                    "avoiding it from the start, is a genuine signal of careful reasoning under interview " +
+                    "pressure.")
+            ),
+            KnowledgeCheck.of(
+                "Why is checking only 'is this node greater than its immediate left child and less than its immediate right child' NOT sufficient to validate a BST?",
+                1,
+                "The BST property requires every node to respect bounds from its ENTIRE subtree — a grandchild " +
+                "several levels down could violate an ancestor's constraint even while every immediate parent-child pair looks locally correct.",
+                "It's actually completely sufficient — this is a valid way to validate a BST",
+                "A node deeper in the subtree could violate an ancestor's bound even though every immediate parent-child pair looks fine",
+                "Because BSTs can contain duplicate values, which breaks any comparison approach",
+                "This check only fails for trees with more than 1000 nodes"),
+            KnowledgeCheck.of(
+                "Why does in-order traversal of a valid BST always produce values in sorted order?",
+                0,
+                "In-order visits left subtree, then the node, then right subtree — combined with the BST property " +
+                "(everything in the left subtree is smaller, everything in the right subtree is larger), this recursively produces a strictly increasing sequence.",
+                "Because in-order visits left, then root, then right — which combined with the BST property produces increasing order recursively",
+                "It's a coincidence that only holds for balanced BSTs, not all valid BSTs",
+                "It only works if the tree was built by inserting values in sorted order originally",
+                "In-order traversal doesn't actually guarantee sorted order for a BST")
+        );
+
+        addLessons("DSA4", l1, l2);
+    }
+    // ---------------------------------------------------------------- DSA5 — Graphs (BFS/DFS)
+    private void buildDsa5() {
+        CourseLesson l1 = lesson("dsa5-l1", "DSA5", 0,
+            "Representing & Traversing Graphs",
+            "Adjacency list vs matrix, and the visited-set that stands between BFS/DFS and an infinite loop",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "Two ways to represent the same graph", null,
+                    Diagram.compare("Adjacency list vs matrix",
+                        CompareColumn.of("Adjacency list",
+                            "O(V + E) space — proportional to actual edges",
+                            "O(1) to list a node's neighbors",
+                            "Better for SPARSE graphs (most real-world graphs)"),
+                        CompareColumn.of("Adjacency matrix",
+                            "O(V²) space — regardless of actual edge count",
+                            "O(1) to check if a specific edge exists",
+                            "Better for DENSE graphs or frequent edge-existence checks"))),
+                CourseSegment.code("s2", "BFS on a graph — the visited set is not optional", null, "java",
+                    "void bfs(Map<Integer, List<Integer>> graph, int start) {\n" +
+                    "    Set<Integer> visited = new HashSet<>();\n" +
+                    "    Queue<Integer> queue = new LinkedList<>();\n" +
+                    "    queue.add(start);\n" +
+                    "    visited.add(start);          // mark visited BEFORE enqueueing, not after dequeueing\n" +
+                    "    while (!queue.isEmpty()) {\n" +
+                    "        int node = queue.poll();\n" +
+                    "        process(node);\n" +
+                    "        for (int neighbor : graph.getOrDefault(node, List.of())) {\n" +
+                    "            if (!visited.contains(neighbor)) {\n" +
+                    "                visited.add(neighbor);\n" +
+                    "                queue.add(neighbor);\n" +
+                    "            }\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.concept("s3", "Why graphs need a visited set but trees don't",
+                    "A tree, by definition, has no cycles — recursing or queueing through it can never revisit a " +
+                    "node, so tree traversal code never needs to track what it's already seen. A graph CAN have " +
+                    "cycles, so without an explicit visited set, BFS or DFS can loop forever, bouncing between the " +
+                    "same handful of connected nodes indefinitely. This is the single most common graph-traversal " +
+                    "bug in an interview setting."),
+                CourseSegment.concept("s4", "Marking visited at the right moment matters",
+                    "Marking a node visited when you ENQUEUE it (not when you dequeue it) prevents the same node " +
+                    "from being added to the queue multiple times before it's ever processed — a subtle but real " +
+                    "bug if you get the timing wrong, especially in a densely connected graph where many nodes " +
+                    "share neighbors."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"How do you avoid an infinite loop traversing a graph\" is asked precisely because forgetting " +
+                    "the visited set is such a common, easy mistake under interview time pressure — mentioning it " +
+                    "proactively, before being asked, is a small but real signal of experience.")
+            ),
+            KnowledgeCheck.of(
+                "Why would you choose an adjacency list over an adjacency matrix for a large, sparse graph?",
+                1,
+                "An adjacency list uses O(V + E) space, proportional to the actual number of edges — an adjacency " +
+                "matrix always uses O(V^2) space regardless of how few edges actually exist, wasting enormous space on a sparse graph.",
+                "Adjacency matrices don't support directed graphs",
+                "An adjacency list's space is proportional to actual edges (O(V+E)), while a matrix always costs O(V^2) regardless of sparsity",
+                "Adjacency lists are always faster for every single graph operation",
+                "Matrices can only represent graphs with fewer than 100 nodes"),
+            KnowledgeCheck.of(
+                "Why do graph traversals need an explicit visited set, when tree traversals typically don't?",
+                0,
+                "Trees have no cycles by definition, so traversal can never revisit a node — graphs CAN have " +
+                "cycles, so without tracking visited nodes explicitly, BFS/DFS can loop forever bouncing between already-seen nodes.",
+                "Graphs can contain cycles, so without tracking visited nodes, traversal can loop forever",
+                "Trees are always smaller than graphs, so tracking visited nodes isn't worth the overhead",
+                "Visited sets are only needed for weighted graphs, not unweighted ones",
+                "This is a Java-specific requirement that doesn't apply in other languages")
+        );
+
+        CourseLesson l2 = lesson("dsa5-l2", "DSA5", 1,
+            "Shortest Path & Topological Sort",
+            "Why BFS finds the shortest path in an unweighted graph for free, and what topological sort actually orders",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "BFS explores in expanding 'rings' — which is exactly what shortest path needs",
+                    "In an UNWEIGHTED graph, BFS visits all nodes at distance 1 before any node at distance 2, all " +
+                    "nodes at distance 2 before distance 3, and so on. That level-by-level expansion means the " +
+                    "FIRST time BFS reaches a target node is guaranteed to be via the shortest possible path — no " +
+                    "extra bookkeeping needed, just track each node's distance as you enqueue it."),
+                CourseSegment.code("s2", "Shortest path in an unweighted graph", null, "java",
+                    "int shortestPath(Map<Integer, List<Integer>> graph, int start, int target) {\n" +
+                    "    Map<Integer, Integer> distance = new HashMap<>();\n" +
+                    "    Queue<Integer> queue = new LinkedList<>();\n" +
+                    "    queue.add(start);\n" +
+                    "    distance.put(start, 0);\n" +
+                    "    while (!queue.isEmpty()) {\n" +
+                    "        int node = queue.poll();\n" +
+                    "        if (node == target) return distance.get(node);\n" +
+                    "        for (int neighbor : graph.getOrDefault(node, List.of())) {\n" +
+                    "            if (!distance.containsKey(neighbor)) {\n" +
+                    "                distance.put(neighbor, distance.get(node) + 1);\n" +
+                    "                queue.add(neighbor);\n" +
+                    "            }\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "    return -1;   // target unreachable\n" +
+                    "}"),
+                CourseSegment.concept("s3", "Why DFS can't give you this guarantee",
+                    "DFS plunges as deep as possible down one path before backtracking — it might stumble onto " +
+                    "the target via a long, winding route long before it ever tries the actual shortest path. " +
+                    "There's no natural way to guarantee \"shortest\" with DFS on an unweighted graph; BFS's level-" +
+                    "by-level structure is what makes the guarantee possible in the first place."),
+                CourseSegment.concept("s4", "Topological sort: ordering nodes so every dependency comes first",
+                    "A topological sort produces a linear ordering of a Directed Acyclic Graph's nodes such that " +
+                    "for every directed edge A -> B, A appears before B in the ordering. It's the exact structure " +
+                    "behind \"course prerequisites\" problems (take course A before course B) and build-dependency " +
+                    "resolution (compile module A before module B) — anywhere \"this must happen before that\" " +
+                    "needs to be turned into one valid overall order."),
+                CourseSegment.concept("s5", "The catch: it only exists if the graph has no cycle",
+                    "If the dependency graph has a cycle (A depends on B, B depends on A), no valid ordering can " +
+                    "exist — you'd need to do both before the other. This is exactly why topological sort " +
+                    "algorithms (like Kahn's algorithm, tracking in-degree, or DFS with a post-order reversal) " +
+                    "double as cycle detectors: if you can't produce a valid ordering covering every node, the " +
+                    "graph must contain a cycle."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"Course schedule\" (can you finish all courses given prerequisites) is a very common " +
+                    "topological-sort problem specifically because it tests two things at once: building the " +
+                    "graph correctly from the input, and recognizing that \"is this even possible\" IS a cycle-" +
+                    "detection question in disguise.")
+            ),
+            KnowledgeCheck.of(
+                "Why does BFS (not DFS) guarantee finding the shortest path in an unweighted graph?",
+                2,
+                "BFS explores in expanding 'rings' — visiting all nodes at distance 1 before distance 2, and so " +
+                "on — so the first time it reaches a target, that's guaranteed to be via the shortest route. DFS has no such guarantee, since it plunges deep down one path first.",
+                "DFS is actually just as good for this — there's no real difference",
+                "BFS always visits fewer total nodes than DFS",
+                "BFS explores level by level, so the first time it reaches the target is guaranteed to be via the shortest path",
+                "BFS only works correctly on trees, not general graphs"),
+            KnowledgeCheck.of(
+                "Why can a topological sort only exist for a graph with no cycles?",
+                1,
+                "A cycle (A depends on B, B depends on A) has no valid ordering — you'd need both to come before " +
+                "the other, which is impossible, so any graph with a cycle cannot be topologically sorted at all.",
+                "Cycles just make the sort slower, but it can still technically complete",
+                "A cycle creates a contradictory ordering requirement (A before B before A) that no linear order can satisfy",
+                "Topological sort is only defined for undirected graphs",
+                "This is a limitation specific to Kahn's algorithm, not a fundamental one")
+        );
+
+        addLessons("DSA5", l1, l2);
+    }
+    // ---------------------------------------------------------------- DSA6 — Recursion & Dynamic Programming
+    private void buildDsa6() {
+        CourseLesson l1 = lesson("dsa6-l1", "DSA6", 0,
+            "Recursion: Base Cases & the Call Stack",
+            "Every recursive function is really just a base case plus trust that the smaller call already works",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The two things every recursive function needs",
+                    "A base case — the smallest version of the problem, answered directly with no further " +
+                    "recursion — and a recursive case that breaks the problem into a smaller version of ITSELF, " +
+                    "trusting that the recursive call correctly solves that smaller version. Missing or " +
+                    "unreachable base case is the single most common source of infinite recursion and " +
+                    "StackOverflowError."),
+                CourseSegment.code("s2", "Factorial: the simplest possible example of the shape", null, "java",
+                    "int factorial(int n) {\n" +
+                    "    if (n <= 1) return 1;             // BASE CASE: the smallest version, answered directly\n" +
+                    "    return n * factorial(n - 1);        // RECURSIVE CASE: trust the smaller call is correct\n" +
+                    "}\n" +
+                    "// factorial(4) = 4 * factorial(3) = 4 * (3 * factorial(2)) = ...\n" +
+                    "// Each call waits on the call stack for the one below it to return."),
+                CourseSegment.concept("s3", "The 'trust the recursion' mental model",
+                    "The hardest part of writing recursive code is resisting the urge to mentally trace through " +
+                    "every single call. Instead: write the base case, then write the recursive case ASSUMING the " +
+                    "recursive call already correctly solves the smaller problem — don't try to unwind the whole " +
+                    "call chain in your head. This trust is exactly what makes recursive solutions to tree and " +
+                    "graph problems tractable to write."),
+                CourseSegment.concept("s4", "Why deep, unbounded recursion crashes",
+                    "Each recursive call adds a new frame to the call stack, and the stack has a fixed size limit " +
+                    "— recurse too deep (often from a missing or unreachable base case) and you hit a " +
+                    "StackOverflowError. This is exactly why an iterative loop is sometimes preferred over " +
+                    "recursion for problems that could recurse very deep, like processing a very long linked list."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "When your recursive solution isn't working, the very first thing to check — before assuming " +
+                    "the logic is wrong — is whether the base case is actually reachable from every possible " +
+                    "input; this single habit resolves a surprising fraction of \"my recursion isn't working\" " +
+                    "bugs live in an interview.")
+            ),
+            KnowledgeCheck.of(
+                "What are the two essential parts every correct recursive function needs?",
+                1,
+                "A base case (the smallest version, answered directly with no further recursion) and a recursive " +
+                "case (breaking the problem into a smaller version of itself, trusting the recursive call is correct).",
+                "A loop counter and a return statement",
+                "A base case answered directly, and a recursive case that trusts a smaller recursive call is correct",
+                "A try/catch block and a StackOverflowError handler",
+                "An array to store all intermediate results"),
+            KnowledgeCheck.of(
+                "What's the most common cause of a StackOverflowError in a recursive function?",
+                2,
+                "A missing or unreachable base case — without one, the recursion never stops, and each unstoppable " +
+                "recursive call adds another frame to the fixed-size call stack until it overflows.",
+                "Using too many local variables inside the function",
+                "Calling the function from inside a loop",
+                "A missing or unreachable base case, causing recursion that never terminates",
+                "Returning a value instead of using System.out.println")
+        );
+
+        CourseLesson l2 = lesson("dsa6-l2", "DSA6", 1,
+            "Dynamic Programming: Memoization to Tabulation",
+            "The exact moment plain recursion becomes exponential, and the one-line fix that brings it back to linear",
+            6,
+            List.of(
+                CourseSegment.story("s1", "Why naive recursive Fibonacci is secretly catastrophic",
+                    "fibonacci(n) = fibonacci(n-1) + fibonacci(n-2) looks perfectly innocent — until you notice " +
+                    "that computing fibonacci(5) recomputes fibonacci(3) TWICE, fibonacci(2) THREE times, and the " +
+                    "redundancy compounds exponentially as n grows. Naive recursive Fibonacci is O(2ⁿ) — for " +
+                    "n=40 that's over a trillion redundant calls, all computing answers that were already computed " +
+                    "moments earlier."),
+                CourseSegment.diagram("s2", "The two signals that mean 'this is a DP problem'", null,
+                    Diagram.flow("Spotting DP",
+                        new DiagramNode("Overlapping subproblems", "same smaller call, computed repeatedly"),
+                        new DiagramNode("Optimal substructure", "the best overall answer is built from best sub-answers"),
+                        new DiagramNode("Both present?", "cache it — that's DP"))),
+                CourseSegment.code("s3", "Memoization: recursion, plus a cache", null, "java",
+                    "Map<Integer, Long> memo = new HashMap<>();\n" +
+                    "long fibonacci(int n) {\n" +
+                    "    if (n <= 1) return n;\n" +
+                    "    if (memo.containsKey(n)) return memo.get(n);   // already computed — reuse it\n" +
+                    "    long result = fibonacci(n - 1) + fibonacci(n - 2);\n" +
+                    "    memo.put(n, result);\n" +
+                    "    return result;\n" +
+                    "}\n" +
+                    "// O(n) time, O(n) space — the SAME recursive structure, just never redoing work"),
+                CourseSegment.code("s4", "Tabulation: the same idea, built bottom-up instead", null, "java",
+                    "long fibonacciTabulated(int n) {\n" +
+                    "    if (n <= 1) return n;\n" +
+                    "    long[] dp = new long[n + 1];\n" +
+                    "    dp[0] = 0; dp[1] = 1;\n" +
+                    "    for (int i = 2; i <= n; i++) {\n" +
+                    "        dp[i] = dp[i - 1] + dp[i - 2];   // build up from the base cases, no recursion at all\n" +
+                    "    }\n" +
+                    "    return dp[n];\n" +
+                    "}\n" +
+                    "// O(n) time, O(n) space — and no call-stack depth risk, since there's no recursion"),
+                CourseSegment.concept("s5", "Memoization vs tabulation: same complexity win, different shape",
+                    "Memoization is top-down: keep the natural recursive structure, add a cache, done — often the " +
+                    "easiest to derive directly from a brute-force recursive solution. Tabulation is bottom-up: " +
+                    "build the answer iteratively from the base cases up, avoiding recursion (and its call-stack " +
+                    "depth risk) entirely, and it's usually what people mean by \"DP\" in the classic table-filling " +
+                    "sense."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "Climbing stairs and Fibonacci-shaped problems are the canonical DP warm-ups precisely because " +
+                    "the exponential-to-linear transformation via caching is the exact same trick that scales up " +
+                    "to every harder DP problem — knapsack, longest common subsequence, edit distance all lean on " +
+                    "the identical \"cache the overlapping subproblem\" idea.")
+            ),
+            KnowledgeCheck.of(
+                "What makes naive recursive Fibonacci O(2ⁿ) instead of O(n)?",
+                1,
+                "The same smaller subproblems (like fibonacci(3)) get recomputed repeatedly from scratch by " +
+                "different branches of the recursion tree — that redundant, repeated work compounds exponentially as n grows.",
+                "Recursive function calls are always exponentially slow in Java",
+                "The same subproblems get recomputed repeatedly by different branches of the recursion, and that redundancy compounds exponentially",
+                "It's actually O(n) already — this is a common misconception",
+                "Fibonacci numbers themselves grow exponentially, which is unrelated to the algorithm's complexity"),
+            KnowledgeCheck.of(
+                "What's the core difference between memoization and tabulation as two ways to implement DP?",
+                2,
+                "Memoization is top-down — keep the natural recursive structure and add a cache. Tabulation is " +
+                "bottom-up — build the answer iteratively from the base cases, with no recursion at all.",
+                "Memoization is always faster than tabulation",
+                "Tabulation uses recursion; memoization does not",
+                "Memoization is top-down recursion plus a cache; tabulation is bottom-up, building iteratively with no recursion",
+                "They solve fundamentally different classes of problems")
+        );
+
+        addLessons("DSA6", l1, l2);
+    }
+    private void buildDsaPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("dsa",
+            "The DSA Coding Interview, Round by Round",
+            "Data structures and algorithms rounds are the most consistently-tested part of any software " +
+            "engineering interview loop, regardless of the actual job. Here's how the coding portion of the loop " +
+            "typically runs, from the first online assessment through the onsite.",
+            List.of(
+                new CompanyTrack("Big Tech (FAANG-style)",
+                    "The most heavily structured, DSA-heavy loop — expect 4-6 discrete coding rounds across the " +
+                    "whole process, each scored somewhat independently.",
+                    List.of(
+                        new InterviewRound("Online assessment", "60-90 min",
+                            "Two or three auto-graded problems, timed, usually on a platform like HackerRank or CodeSignal.",
+                            List.of("A medium-difficulty array/string or tree problem",
+                                    "A harder problem testing DP or graph fundamentals"),
+                            "Practice under real time pressure beforehand — the OA filters out a large fraction of candidates purely on speed and correctness."),
+                        new InterviewRound("Phone screen(s)", "45-60 min each",
+                            "One live coding problem per screen, solved and explained out loud.",
+                            List.of("Implement and optimize a solution, discussing your approach before coding",
+                                    "Explain your solution's time/space complexity once finished"),
+                            "Narrate your thinking as you go — silence while you code is a real handicap in a live interview."),
+                        new InterviewRound("Onsite coding rounds", "45-60 min each, 2-4 rounds",
+                            "Multiple back-to-back coding problems, often increasing in difficulty or ambiguity.",
+                            List.of("A problem requiring you to first clarify ambiguous requirements",
+                                    "A follow-up asking you to handle an edge case or scale the solution up"),
+                            "Always restate the problem and clarify edge cases before writing any code — jumping straight into coding is a common, costly mistake."),
+                        new InterviewRound("System design (mid-level and above)", "45-60 min",
+                            "A separate round from the coding rounds, evaluating architecture rather than algorithms.",
+                            List.of("Design a system with specific scale requirements, discussed collaboratively"),
+                            "This round is scored completely separately from your coding rounds — strong coding does not compensate for a weak design round."))),
+                new CompanyTrack("Mid-size Tech / Growth Company",
+                    "Fewer total rounds than a FAANG-style loop, often combining a coding round with practical " +
+                    "engineering judgment in the same session.",
+                    List.of(
+                        new InterviewRound("Technical screen", "45-60 min",
+                            "One or two coding problems, often slightly more practical/less puzzle-like than FAANG-style questions.",
+                            List.of("A problem closer to a realistic engineering task than a pure algorithm puzzle"),
+                            "A clean, well-tested, correct solution to a simpler problem often beats a messy attempt at a harder one."),
+                        new InterviewRound("Onsite / virtual onsite", "half day",
+                            "A mix of 1-2 coding rounds, a system design round, and behavioral conversations.",
+                            List.of("A coding round combined with a discussion of trade-offs in your approach"),
+                            "Be ready to discuss WHY you chose your approach, not just produce working code."))),
+                new CompanyTrack("Fast-moving Startup",
+                    "The shortest, most compressed loop — DSA still shows up, but usually just one round, " +
+                    "sometimes replaced entirely with a practical take-home.",
+                    List.of(
+                        new InterviewRound("Technical screen", "45-60 min",
+                            "Often a single coding problem plus a broader technical conversation.",
+                            List.of("A moderate coding problem, sometimes followed by 'how would you productionize this?'"),
+                            "Startups often care as much about your reasoning and communication as the raw algorithmic difficulty — talk through your thinking."),
+                        new InterviewRound("Take-home or pairing session (sometimes in place of DSA)", "2-4 hrs",
+                            "A more realistic engineering task instead of, or in addition to, a pure algorithm problem.",
+                            List.of("Build a small feature demonstrating both correctness and code quality"),
+                            "Treat this as seriously as a DSA round — for many startups, it carries just as much weight.")))
+            ),
+            List.of(
+                "Jumping straight into coding without restating the problem or clarifying edge cases first",
+                "Going silent while coding instead of narrating your reasoning out loud",
+                "Not stating time/space complexity unprompted once the solution is working",
+                "Freezing when a brute-force solution is 'good enough' to start with — a working O(n^2) beats no solution",
+                "Not testing your own solution against an edge case (empty input, single element, duplicates) before declaring it done",
+                "Memorizing solutions to specific problems instead of internalizing the underlying pattern"
+            ),
+            List.of(
+                "Can you solve a new problem by first identifying which pattern it matches (hashing, two pointers, sliding window, DP)?",
+                "Do you state time and space complexity unprompted, with a one-sentence justification?",
+                "Can you trace through your own solution on a small example before declaring it finished?",
+                "Have you practiced explaining your approach OUT LOUD before writing code, not just solving silently?",
+                "Can you identify when a problem needs a visited set (graphs) or a base case (recursion) before writing any code?",
+                "Do you have a mental checklist of edge cases (empty, single element, all duplicates, negative numbers) you check automatically?"
+            ));
+        playbookByTopic.put("dsa", pb);
+    }
+    // ================================================================ System Design track
+    private void buildSystemDesign() {
+        buildSd1();
+        buildSd2();
+        buildSd3();
+        buildSd4();
+        buildSd5();
+    }
+
+    // ---------------------------------------------------------------- SD1 — Fundamentals: Scaling & Load Balancing
+    private void buildSd1() {
+        CourseLesson l1 = lesson("sd1-l1", "SD1", 0,
+            "Vertical vs Horizontal Scaling",
+            "Why nearly every real system design answer eventually points toward horizontal scaling",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Two different ways to handle more load",
+                    "Vertical scaling means making ONE machine bigger — more CPU, more RAM. It's simple: no " +
+                    "architectural changes needed, your code doesn't even need to know it happened. Horizontal " +
+                    "scaling means adding MORE machines and spreading load across them. It's more complex to set " +
+                    "up, but it scales far beyond what any single machine could ever handle."),
+                CourseSegment.diagram("s2", "Where each one hits a wall", null,
+                    Diagram.compare("Vertical vs horizontal scaling",
+                        CompareColumn.of("Vertical scaling",
+                            "Simple — no code changes needed",
+                            "Hard physical ceiling (biggest machine money can buy)",
+                            "Single point of failure — one machine, one outage"),
+                        CompareColumn.of("Horizontal scaling",
+                            "Scales far beyond any single machine's limits",
+                            "Requires load balancing and stateless servers",
+                            "Naturally more fault-tolerant — one instance dying doesn't take down the service"))),
+                CourseSegment.concept("s3", "The real reason horizontal scaling usually wins the argument",
+                    "Vertical scaling has a hard ceiling — eventually there's no bigger machine to buy, and the " +
+                    "cost curve for ever-larger machines gets steep well before that ceiling. It's also a single " +
+                    "point of failure: one instance means one outage takes the whole service down. Horizontal " +
+                    "scaling trades upfront simplicity for a system that can keep growing and survive individual " +
+                    "instance failures — which is why almost every system-design answer eventually lands there for " +
+                    "anything meant to scale seriously."),
+                CourseSegment.concept("s4", "The prerequisite nobody mentions until it bites them: statelessness",
+                    "Horizontal scaling only works cleanly if any server can handle any request — which means " +
+                    "servers can't hold onto per-user session state locally. If server A remembers a user's " +
+                    "shopping cart in its own memory and the load balancer routes that user's next request to " +
+                    "server B, the cart is gone. The fix is moving session state into a shared store (a database " +
+                    "or a cache like Redis) that every server instance can reach."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Nearly every system design interview opens by establishing scale requirements, and the " +
+                    "instant you propose \"multiple servers,\" a good interviewer will ask \"how do you handle " +
+                    "session state\" — having statelessness ready as your answer, unprompted, is a strong opening " +
+                    "signal.")
+            ),
+            KnowledgeCheck.of(
+                "What's the fundamental ceiling that eventually forces most growing systems toward horizontal scaling?",
+                1,
+                "Vertical scaling has a hard physical limit — eventually there's no bigger machine to buy, and " +
+                "it remains a single point of failure the whole time. Horizontal scaling has no such ceiling and is naturally more fault-tolerant.",
+                "Vertical scaling is always more expensive from the very first server",
+                "There's a hard physical ceiling on how big one machine can get, and it remains a single point of failure",
+                "Horizontal scaling requires no additional architectural changes",
+                "Vertical scaling is deprecated and no longer supported by cloud providers"),
+            KnowledgeCheck.of(
+                "Why does horizontal scaling require servers to be stateless?",
+                0,
+                "If any server can receive any request (which is the whole point of load balancing across many " +
+                "servers), a server can't hold onto per-user state locally — the next request from that user might land on a completely different instance.",
+                "Because any server can receive any given request, so per-user state stored locally on one server would be invisible to the others",
+                "Stateless servers are always faster than stateful ones",
+                "It's a requirement imposed by cloud providers, not an architectural necessity",
+                "Statelessness is only needed for read-heavy workloads, not write-heavy ones")
+        );
+
+        CourseLesson l2 = lesson("sd1-l2", "SD1", 1,
+            "Load Balancing & Statelessness",
+            "What a load balancer actually decides, and the latency-vs-throughput trade-off that shapes every design conversation",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "A load balancer's real job: distribute, and detect failure",
+                    "A load balancer sits in front of a fleet of servers and routes each incoming request to one " +
+                    "of them — spreading load so no single instance gets overwhelmed. Just as important: it " +
+                    "continuously health-checks the servers behind it, and stops routing traffic to any instance " +
+                    "that's failing, so a single dead server doesn't take down requests routed to it."),
+                CourseSegment.diagram("s2", "A few common routing strategies", null,
+                    Diagram.flow("How a load balancer picks a server",
+                        new DiagramNode("Round robin", "cycle through servers in order"),
+                        new DiagramNode("Least connections", "send to the least-busy server"),
+                        new DiagramNode("Consistent hashing", "same client -> same server, when needed"))),
+                CourseSegment.concept("s3", "Why statelessness is the thing that actually makes load balancing work",
+                    "A load balancer can only freely route ANY request to ANY server if the servers themselves " +
+                    "don't privately remember anything about a specific user. That's the direct payoff of the " +
+                    "statelessness discussed in the last lesson: it's not just an abstract best practice, it's " +
+                    "the precondition that makes \"send this request wherever there's capacity\" actually safe to " +
+                    "do."),
+                CourseSegment.concept("s4", "Latency vs throughput: two different numbers, easy to conflate",
+                    "Latency is the time for ONE request to complete. Throughput is how many requests the system " +
+                    "handles PER SECOND, in aggregate. They're related but not the same, and optimizing for one " +
+                    "can hurt the other — batching multiple requests together can raise throughput (processing " +
+                    "many at once is more efficient) while making each individual request wait longer for its " +
+                    "batch to fill, which raises latency."),
+                CourseSegment.concept("s5", "Why this trade-off matters in a design interview",
+                    "When you propose batching, caching, or async processing to improve throughput, a good " +
+                    "interviewer expects you to acknowledge the latency cost — and vice versa. Naming BOTH sides " +
+                    "of a trade-off, rather than presenting a change as a pure win, is exactly the kind of " +
+                    "senior-level thinking these rounds are testing for."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"What does a load balancer actually do, beyond just splitting traffic\" is a common opening " +
+                    "question — health-checking and failing over away from dead instances is the part candidates " +
+                    "most often forget to mention.")
+            ),
+            KnowledgeCheck.of(
+                "Beyond distributing traffic, what's the other critical job a load balancer performs?",
+                1,
+                "It continuously health-checks the servers behind it and stops routing traffic to any instance " +
+                "that's failing — this failover behavior is just as important as the traffic distribution itself.",
+                "It compresses all outgoing responses to save bandwidth",
+                "It health-checks servers and stops routing traffic to failing instances",
+                "It automatically scales the number of servers up or down",
+                "It encrypts all traffic between the client and the servers"),
+            KnowledgeCheck.of(
+                "Batching requests together tends to increase throughput. What's the corresponding cost, and why?",
+                2,
+                "Individual requests may need to wait for their batch to fill before being processed — raising " +
+                "throughput (aggregate requests handled per second) at the cost of latency (time for any one request to complete).",
+                "Batching has no real downside — it's a pure improvement",
+                "Batching only works for read requests, never writes",
+                "Individual requests may wait longer for their batch to fill, increasing latency even as aggregate throughput improves",
+                "Batching requires horizontal scaling to be enabled first")
+        );
+
+        addLessons("SD1", l1, l2);
+    }
+
+    // ---------------------------------------------------------------- SD2 — Databases & Data Modeling
+    private void buildSd2() {
+        CourseLesson l1 = lesson("sd2-l1", "SD2", 0,
+            "SQL vs NoSQL: Picking the Right Model",
+            "The question isn't which is 'better' — it's which trade-off your access pattern actually needs",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "Two different bets about your data", null,
+                    Diagram.compare("SQL vs NoSQL",
+                        CompareColumn.of("SQL (relational)",
+                            "Strong consistency, ACID transactions",
+                            "Structured schema, relations, joins",
+                            "Best when correctness/relationships matter most"),
+                        CompareColumn.of("NoSQL (non-relational)",
+                            "Flexible/schema-less data",
+                            "Denormalized for fast reads without joins",
+                            "Best when write throughput and easy horizontal scale matter most"))),
+                CourseSegment.concept("s1b", "...and the other side of that bet",
+                    "NoSQL databases bet the opposite way: flexible or schema-less data, denormalized for fast " +
+                    "reads without joins, and horizontal scaling that's often easier to achieve than with a " +
+                    "traditional relational database. The right choice depends entirely on what your system " +
+                    "actually needs — strict correctness and relationships, or raw write throughput and easy " +
+                    "horizontal scale."),
+                CourseSegment.concept("s2", "When SQL is the right bet",
+                    "Choose a relational database when your data has real relationships that matter (orders " +
+                    "belong to customers, which belong to accounts), when you need ACID transactions (a bank " +
+                    "transfer must debit one account and credit another atomically, or not at all), or when " +
+                    "complex queries with joins and aggregations are core to how the system is used."),
+                CourseSegment.concept("s3", "When NoSQL is the right bet",
+                    "Choose NoSQL when the data is naturally flexible or evolving (different documents don't need " +
+                    "identical shapes), when write throughput at massive scale matters more than complex queries, " +
+                    "or when the access pattern is simple key-based lookups without needing relational joins — a " +
+                    "user session store, a product catalog, an activity feed."),
+                CourseSegment.concept("s4", "The trap: treating this as a popularity contest instead of a fit question",
+                    "A weak answer picks NoSQL because it \"scales better\" without asking what the actual access " +
+                    "pattern needs. A strong answer states the ACTUAL requirement first (\"this needs multi-row " +
+                    "transactional consistency because money is involved\") and lets that requirement drive the " +
+                    "choice — sometimes landing on SQL even in a system that also uses NoSQL elsewhere for a " +
+                    "different piece of data."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Would you use SQL or NoSQL here\" is asked specifically to see whether you reason from " +
+                    "requirements or from a mental preference — the strongest answers often conclude \"it depends " +
+                    "on this specific piece of data,\" using both in the same system for different purposes.")
+            ),
+            KnowledgeCheck.of(
+                "What should actually drive a SQL vs NoSQL decision in a system design interview?",
+                1,
+                "The real access pattern and consistency requirements of that specific data — not a general " +
+                "preference for one technology, and not 'NoSQL scales better' as a blanket justification without examining what's actually needed.",
+                "Whichever technology is currently more popular or trending",
+                "The actual access pattern and consistency requirements of the specific data involved",
+                "SQL should always be the default choice for any new system",
+                "NoSQL should always be chosen for any system expecting significant scale"),
+            KnowledgeCheck.of(
+                "Why might a bank transfer feature specifically need a SQL/relational database, even in a system that uses NoSQL elsewhere?",
+                0,
+                "A transfer needs to debit one account and credit another atomically — an ACID transaction " +
+                "guarantee that relational databases provide natively, which most NoSQL databases don't offer with the same strength.",
+                "It needs ACID transactions to atomically debit one account and credit another, which relational databases guarantee natively",
+                "NoSQL databases cannot store numeric values like currency amounts",
+                "SQL databases are always faster than NoSQL databases for any operation",
+                "This is a regulatory requirement in every country, unrelated to the technology's actual guarantees")
+        );
+
+        CourseLesson l2 = lesson("sd2-l2", "SD2", 1,
+            "Sharding, Replication & CAP",
+            "Two different scaling techniques that get conflated constantly, and the theorem that explains why you can't have it all",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "Sharding vs replication: they solve different problems", null,
+                    Diagram.compare("Two ways to scale a database",
+                        CompareColumn.of("Sharding",
+                            "Splits DATA across multiple nodes",
+                            "Each shard holds a different subset of rows",
+                            "Solves: write throughput, dataset too big for one machine"),
+                        CompareColumn.of("Replication",
+                            "Copies the SAME data to multiple nodes",
+                            "Every replica holds the full dataset",
+                            "Solves: read scaling, availability/failover"))),
+                CourseSegment.concept("s2", "Why these two are so often confused",
+                    "Both involve \"more than one database node,\" which is exactly why they blur together in " +
+                    "casual conversation — but they solve genuinely different problems. Sharding is about " +
+                    "SPREADING data out because one machine can't hold or write it all fast enough. Replication " +
+                    "is about DUPLICATING data so reads can be spread across more machines, and so the system " +
+                    "survives losing any single node. Many real systems use both, for different reasons."),
+                CourseSegment.concept("s3", "The CAP theorem, stated practically",
+                    "Under a network partition (some nodes can't talk to others — which WILL eventually happen at " +
+                    "scale), you must choose between Consistency (every read sees the latest write, everywhere) " +
+                    "and Availability (every request gets a response, even if it might be stale). You cannot have " +
+                    "both during the partition — this isn't a design failure, it's a mathematical reality of " +
+                    "distributed systems."),
+                CourseSegment.concept("s4", "Choosing CP or AP is itself the design decision",
+                    "A banking ledger typically chooses CP (Consistency + Partition tolerance) — better to refuse " +
+                    "a request than show a wrong balance. A social media feed typically chooses AP (Availability + " +
+                    "Partition tolerance) — showing a slightly-stale feed beats showing an error page. Naming " +
+                    "WHICH side you'd choose for a given system, and why, is the actual point of bringing up CAP " +
+                    "in an interview — reciting the theorem alone answers nothing."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "CAP theorem is one of the most commonly name-dropped concepts in system design interviews — " +
+                    "and also one of the most commonly recited without application. The strong move is connecting " +
+                    "it to the SPECIFIC system being designed: \"this is a banking system, so I'd lean CP here.\"")
+            ),
+            KnowledgeCheck.of(
+                "What's the key difference between what sharding and replication each solve?",
+                1,
+                "Sharding splits DIFFERENT data across nodes (solving write throughput and dataset size); " +
+                "replication copies the SAME data across nodes (solving read scaling and availability/failover).",
+                "They're two names for exactly the same technique",
+                "Sharding splits different data across nodes for write scale; replication copies the same data across nodes for read scale and availability",
+                "Sharding is only used for NoSQL databases; replication is only used for SQL",
+                "Replication always requires more storage than sharding, in every case"),
+            KnowledgeCheck.of(
+                "According to the CAP theorem, what must you choose between during a network partition?",
+                2,
+                "Consistency (every read sees the latest write everywhere) versus Availability (every request " +
+                "gets a response, even if potentially stale) — you cannot fully guarantee both while a partition is occurring.",
+                "Speed versus security",
+                "SQL versus NoSQL",
+                "Consistency versus availability — you can't fully guarantee both while a partition is occurring",
+                "Sharding versus replication")
+        );
+
+        addLessons("SD2", l1, l2);
+    }
+    // ---------------------------------------------------------------- SD3 — Caching, Queues & Async
+    private void buildSd3() {
+        CourseLesson l1 = lesson("sd3-l1", "SD3", 0,
+            "Caching Strategies & Invalidation",
+            "\"There are only two hard things in computer science: cache invalidation and naming things\" — earning that joke",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Why cache at all",
+                    "A cache stores a copy of expensive-to-compute or expensive-to-fetch data somewhere faster to " +
+                    "access — in memory instead of on disk, in your application instead of over the network to a " +
+                    "database. The payoff is real and immediate: lower latency for the requests that hit the " +
+                    "cache, and less load on the underlying database, which often becomes the bottleneck in a " +
+                    "growing system."),
+                CourseSegment.diagram("s2", "Cache-aside vs write-through", null,
+                    Diagram.compare("Two common caching strategies",
+                        CompareColumn.of("Cache-aside (lazy loading)",
+                            "App checks cache first, falls back to DB on a miss",
+                            "App writes to DB, then invalidates/updates the cache",
+                            "Simple, but a brief stale window is possible after a write"),
+                        CompareColumn.of("Write-through",
+                            "Every write goes to the cache AND the DB together",
+                            "Reads are always fresh",
+                            "Higher write latency, since every write pays the cache cost too"))),
+                CourseSegment.concept("s3", "The genuinely hard problem: knowing when cached data is stale",
+                    "The data changed at the source, but the cache doesn't know yet — that's cache invalidation, " +
+                    "and it's hard because there's no perfect answer, only trade-offs. A TTL (time-to-live) " +
+                    "auto-expires entries after a fixed window, trading some staleness for simplicity. Explicit " +
+                    "invalidation clears a cache entry the moment its underlying data changes, but requires " +
+                    "reliably catching every single code path that could change that data — miss one, and you " +
+                    "have silently stale data with no expiry to eventually fix it."),
+                CourseSegment.concept("s4", "Why this earns its reputation as one of the two hard problems",
+                    "It's not that invalidation is conceptually complicated — it's that getting it WRONG produces " +
+                    "a specific, nasty failure mode: the system looks like it's working, tests often pass, and " +
+                    "then a user sees data that's subtly, silently wrong, with no error anywhere to point at the " +
+                    "cause. That combination — hard to get right, and hard to even notice when it's wrong — is " +
+                    "exactly what the famous line is about."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Any time you propose adding a cache in a design interview, expect the immediate follow-up: " +
+                    "\"how do you handle invalidation when the underlying data changes?\" — having cache-aside vs " +
+                    "write-through, and a specific invalidation strategy, ready is close to mandatory once caching " +
+                    "enters the conversation.")
+            ),
+            KnowledgeCheck.of(
+                "What's the main trade-off cache-aside makes compared to write-through?",
+                1,
+                "Cache-aside is simpler, but leaves a brief window after a write where the cache could be stale " +
+                "before it's invalidated/updated — write-through avoids that by writing to both together, at the cost of higher write latency.",
+                "Cache-aside is always slower for both reads and writes",
+                "Cache-aside is simpler but allows a brief stale window after a write; write-through avoids that at the cost of write latency",
+                "Write-through cannot be used with a relational database",
+                "There's no real trade-off — write-through is strictly better in every case"),
+            KnowledgeCheck.of(
+                "Why is cache invalidation considered one of the genuinely hard problems in computer science, rather than just a minor implementation detail?",
+                0,
+                "Getting it wrong produces silently stale data with no error to point at — the system appears to " +
+                "work, tests often pass, and a user just sees subtly wrong data with no obvious cause to trace back.",
+                "Getting it wrong produces silently stale data with no error — hard to get right AND hard to even notice when it's wrong",
+                "It's actually a solved problem with one universally correct approach",
+                "It only matters for caches larger than 1GB in size",
+                "It's difficult purely because of naming conventions for cache keys")
+        );
+
+        CourseLesson l2 = lesson("sd3-l2", "SD3", 1,
+            "Message Queues & Async Processing",
+            "Why decoupling a producer from a consumer with a queue turns a fragile chain into a resilient system",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The synchronous chain that breaks under its own load",
+                    "An order-placement endpoint synchronously calls payment processing, then inventory " +
+                    "reservation, then sends a confirmation email — all within the same request. If the email " +
+                    "service is slow, the whole checkout is slow. If it's briefly down, checkout FAILS entirely, " +
+                    "even though the order itself was placed successfully. A message queue breaks this chain " +
+                    "apart."),
+                CourseSegment.diagram("s2", "Decoupling with a queue", null,
+                    Diagram.flow("Producer and consumer, no longer tightly coupled",
+                        new DiagramNode("Order placed", "producer publishes an event"),
+                        new DiagramNode("Queue", "holds the message durably"),
+                        new DiagramNode("Email consumer", "processes independently, at its own pace"))),
+                CourseSegment.concept("s3", "What decoupling actually buys you",
+                    "The order-placement request no longer waits on the email service at all — it publishes a " +
+                    "message and returns immediately. If the email consumer is slow, orders keep flowing; the " +
+                    "queue just holds messages a bit longer. If the email consumer is briefly DOWN, messages wait " +
+                    "safely in the queue until it recovers, instead of the whole checkout failing. This is the " +
+                    "core value of async processing: a slow or failing downstream step no longer takes the whole " +
+                    "system down with it."),
+                CourseSegment.concept("s4", "Queues also smooth out spiky load",
+                    "A sudden burst of traffic — a flash sale, a viral moment — can produce far more work than " +
+                    "downstream consumers can process in real time. Without a queue, that burst either overwhelms " +
+                    "the consumers directly or gets dropped. With a queue, the burst is absorbed and buffered, and " +
+                    "consumers process it at their own sustainable pace instead of being forced to scale " +
+                    "instantly to match the spike."),
+                CourseSegment.concept("s5", "The cost: you're trading synchronous simplicity for eventual consistency",
+                    "With a queue, the email genuinely might not send for a few seconds (or longer, under load) " +
+                    "after the order completes — that's eventual, not immediate, consistency. For some workflows " +
+                    "that's completely fine (a confirmation email); for others it's not (you can't queue " +
+                    "\"charge the customer\" and just hope it happens eventually without careful design). Naming " +
+                    "which parts of a workflow can tolerate that delay is the actual design skill here."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"What would you make asynchronous, and what would you keep synchronous\" is a very common " +
+                    "follow-up once you introduce a queue — the strong answer explicitly separates steps that " +
+                    "need an immediate result (payment authorization) from steps that don't (sending a receipt " +
+                    "email).")
+            ),
+            KnowledgeCheck.of(
+                "How does introducing a message queue between order placement and email sending change what happens if the email service goes down briefly?",
+                2,
+                "Instead of the whole checkout failing (since it's no longer waiting synchronously on email), the " +
+                "message simply waits safely in the queue until the email service recovers — order placement itself is unaffected.",
+                "Orders would stop being accepted until email service recovers",
+                "The queue would immediately fail and drop the message",
+                "The message waits safely in the queue until the email service recovers, without affecting order placement at all",
+                "Nothing changes — a queue doesn't help with downstream outages"),
+            KnowledgeCheck.of(
+                "What's the real cost of moving a step from synchronous to asynchronous processing via a queue?",
+                1,
+                "That step no longer happens immediately — you're trading synchronous immediacy for eventual " +
+                "consistency, which is fine for some workflows (a confirmation email) but requires careful thought for others.",
+                "Async processing is strictly worse and has no real benefits",
+                "You trade immediate/synchronous completion for eventual consistency — fine for some workflows, riskier for others",
+                "Queues always lose messages under high load",
+                "Async processing requires switching your entire database to NoSQL")
+        );
+
+        addLessons("SD3", l1, l2);
+    }
+    // ---------------------------------------------------------------- SD4 — Scalable APIs & Microservices
+    private void buildSd4() {
+        CourseLesson l1 = lesson("sd4-l1", "SD4", 0,
+            "Monolith vs Microservices",
+            "The trade-off is real on both sides — this is not a question with one universally correct answer",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "What each architecture actually optimizes for", null,
+                    Diagram.compare("Monolith vs microservices",
+                        CompareColumn.of("Monolith",
+                            "One deployable unit, one codebase",
+                            "Simple to build, test, and deploy early on",
+                            "Every part scales together — even if only one piece needs it"),
+                        CompareColumn.of("Microservices",
+                            "Independently deployable services",
+                            "Each service scales and deploys on its own",
+                            "Real cost: network calls, data consistency, and operational overhead"))),
+                CourseSegment.concept("s2", "Why 'just use microservices' is a red flag answer",
+                    "Microservices solve real problems — independent scaling, independent deploys, teams that can " +
+                    "move without stepping on each other. They also introduce real, non-optional costs: what used " +
+                    "to be an in-process function call becomes a network call that can fail, data that used to " +
+                    "live in one transaction now has to stay consistent across service boundaries, and you need " +
+                    "real operational maturity (monitoring, tracing, deployment automation) to run many services " +
+                    "well. Reaching for microservices as a default, rather than a deliberate trade-off, is a " +
+                    "common interview red flag."),
+                CourseSegment.concept("s3", "When a monolith is genuinely the right call",
+                    "For a new product, an early-stage startup, or a system where the team is small, a monolith " +
+                    "is usually the right starting point — you don't yet know where the real scaling bottlenecks " +
+                    "will be, and premature microservices architecture adds real complexity before you've earned " +
+                    "the need for it. Many successful systems deliberately stay monolithic far longer than " +
+                    "conventional wisdom suggests."),
+                CourseSegment.concept("s4", "When microservices earn their cost",
+                    "Once different parts of a system have genuinely different scaling needs (a video-encoding " +
+                    "service needs different resources than a user-profile service), or once team size grows " +
+                    "large enough that independent deployability becomes essential to avoid constant coordination " +
+                    "overhead, the trade-off starts favoring microservices — the operational cost is now buying " +
+                    "something the system genuinely needs."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "A senior-level answer to \"monolith or microservices\" almost always starts with \"it depends " +
+                    "on...\" and names the actual factors (team size, scaling needs, operational maturity) rather " +
+                    "than picking a side reflexively — that framing alone is a strong signal.")
+            ),
+            KnowledgeCheck.of(
+                "Why is reflexively choosing microservices for a new, small system often considered a red flag in an interview?",
+                1,
+                "Microservices introduce real costs (network calls that can fail, cross-service data consistency, " +
+                "operational overhead) that aren't worth paying before a system has actually earned the need for independent scaling/deployment.",
+                "Microservices are objectively worse than monoliths in every situation",
+                "The real costs (network calls, data consistency, ops overhead) aren't worth paying until the system genuinely needs independent scaling",
+                "Microservices cannot be implemented using Spring Boot",
+                "This is only a red flag for non-Java systems"),
+            KnowledgeCheck.of(
+                "What's a genuine, concrete reason to migrate from a monolith toward microservices?",
+                2,
+                "Different parts of the system have genuinely different scaling needs, or team size has grown " +
+                "large enough that independent deployability is needed to avoid constant coordination overhead between teams.",
+                "Microservices are more modern and trending in the industry",
+                "It makes the initial development phase faster and simpler",
+                "Different parts of the system have genuinely different scaling needs, or team size requires independent deployability",
+                "It eliminates the need for a load balancer entirely")
+        );
+
+        CourseLesson l2 = lesson("sd4-l2", "SD4", 1,
+            "Resilience Patterns for Service Calls",
+            "Timeouts, retries, and circuit breakers — the three-layer defense against a dependency having a bad day",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The layer everyone forgets first: an explicit timeout",
+                    "Without an explicit timeout, a call to a slow dependency can hang indefinitely, tying up the " +
+                    "calling thread (and, at scale, an entire thread pool) waiting for a response that may never " +
+                    "come. A timeout is the most basic resilience primitive there is, and it's still a common gap " +
+                    "in real systems — every network call needs one, tuned to a reasonable bound for that specific " +
+                    "call."),
+                CourseSegment.concept("s2", "Retries with backoff: for transient, not persistent, failures",
+                    "A retry re-attempts a failed call, on the assumption the failure was transient (a brief " +
+                    "network blip, a momentary overload). Retrying immediately can make things WORSE by piling " +
+                    "more load onto an already-struggling service — exponential backoff (waiting progressively " +
+                    "longer between each retry) gives the dependency room to recover instead of hammering it " +
+                    "harder while it's already failing."),
+                CourseSegment.diagram("s3", "Three layers of defense, working together", null,
+                    Diagram.flow("Calling a downstream dependency safely",
+                        new DiagramNode("Timeout", "don't wait forever"),
+                        new DiagramNode("Retry with backoff", "for transient failures"),
+                        new DiagramNode("Circuit breaker", "stop trying once it's clearly down"))),
+                CourseSegment.concept("s4", "Circuit breaker: the layer that stops retries from becoming the problem",
+                    "If a dependency is genuinely down (not just transiently blipping), retrying forever just " +
+                    "wastes resources and adds latency to every caller. A circuit breaker tracks failure rates and " +
+                    "\"opens\" after enough consecutive failures — further calls fail immediately with a fallback " +
+                    "response instead of even attempting the call, until a cooldown period passes and it " +
+                    "cautiously tries again."),
+                CourseSegment.concept("s5", "Why all three together, not just one",
+                    "A timeout alone still lets you hammer a struggling service with retries. Retries alone " +
+                    "without a circuit breaker can turn a brief outage into a much longer one, by keeping load on " +
+                    "a service that needs breathing room to recover. All three together form a coherent defense: " +
+                    "bound how long you wait, retry sensibly for genuinely transient issues, and stop entirely " +
+                    "once it's clear the dependency needs time to recover."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"What happens if this downstream service is slow or down\" is one of the most reliable " +
+                    "system-design follow-up questions there is — having all three layers (timeout, retry with " +
+                    "backoff, circuit breaker) ready, and explaining how they work TOGETHER, is a strong, complete " +
+                    "answer.")
+            ),
+            KnowledgeCheck.of(
+                "Why is retrying a failed call immediately (with no backoff) potentially worse than not retrying at all?",
+                0,
+                "If the dependency is already struggling or overloaded, immediate retries pile even more load " +
+                "onto it right when it needs relief — exponential backoff gives it room to recover instead of compounding the problem.",
+                "Immediate retries can pile more load onto an already-struggling dependency, making its recovery harder",
+                "Retries are never useful and should always be avoided",
+                "Immediate retries always succeed, so backoff is unnecessary overhead",
+                "This only matters for GET requests, not POST requests"),
+            KnowledgeCheck.of(
+                "What specific problem does a circuit breaker solve that timeouts and retries alone don't?",
+                2,
+                "If a dependency is genuinely down (not just transiently blipping), retries alone can keep " +
+                "hammering it, extending an outage — a circuit breaker stops calling entirely after enough failures, giving the dependency room to recover.",
+                "It makes individual calls complete faster",
+                "It eliminates the need for timeouts on any call",
+                "It stops calling a dependency entirely once it's clearly failing, instead of retries continuing to add load during an outage",
+                "It automatically restarts the failing downstream service")
+        );
+
+        addLessons("SD4", l1, l2);
+    }
+    // ---------------------------------------------------------------- SD5 — AI System Design
+    private void buildSd5() {
+        CourseLesson l1 = lesson("sd5-l1", "SD5", 0,
+            "Designing a RAG Pipeline at Scale",
+            "Everything from earlier system-design modules, applied to a retrieval-augmented generation system",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "The components, at a glance", null,
+                    Diagram.stack("A production RAG system",
+                        new DiagramNode("Ingestion pipeline", "chunk -> embed -> store"),
+                        new DiagramNode("Vector store", "sharded/replicated at scale"),
+                        new DiagramNode("Retriever", "hybrid search + re-rank"),
+                        new DiagramNode("LLM gateway", "caching, routing, rate limits"),
+                        new DiagramNode("Generation", "answer with citations"))),
+                CourseSegment.concept("s2", "This is a system design problem wearing a GenAI costume",
+                    "Strip away the LLM-specific vocabulary and a RAG system design question is the exact same " +
+                    "shape as any other: an ingestion/write path, a storage layer with scale trade-offs, a " +
+                    "retrieval path with latency requirements, and a generation step at the end. Everything from " +
+                    "earlier system-design lessons — sharding, caching, load balancing, async processing — applies " +
+                    "directly, just applied to embeddings and LLM calls instead of rows in a SQL table."),
+                CourseSegment.concept("s3", "Scaling the vector store specifically",
+                    "At real scale (tens or hundreds of millions of vectors), a single-node vector index stops " +
+                    "being viable — the same sharding and replication ideas from the databases module apply: " +
+                    "shard the vector index across nodes by some partition key, replicate for read throughput and " +
+                    "failover, and choose your ANN index (HNSW vs IVF) based on the same recall/speed/memory " +
+                    "trade-off covered in the embeddings module."),
+                CourseSegment.concept("s4", "The new failure modes this specific system introduces",
+                    "Beyond the usual scaling concerns, a RAG system adds LLM-specific risks: retrieval returning " +
+                    "irrelevant context (a data-quality problem, not just a scale problem), the LLM call itself " +
+                    "being the slowest and most expensive part of the whole request (which shapes your caching " +
+                    "strategy differently than a typical CRUD API), and needing an evaluation pipeline just to " +
+                    "know whether the system is actually producing good answers — a concern a typical CRUD " +
+                    "service never has to think about."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "\"Design a RAG system\" increasingly shows up even in general system-design rounds, not just " +
+                    "GenAI-specific ones — leading with the same estimation-and-requirements-gathering discipline " +
+                    "you'd use for any system design question (before jumping to architecture) is exactly what " +
+                    "separates a strong answer here too.")
+            ),
+            KnowledgeCheck.of(
+                "Why does a RAG system design question draw so heavily on general (non-AI) system design fundamentals?",
+                1,
+                "Strip away the LLM-specific vocabulary and it has the same shape as any system: an ingestion " +
+                "path, a storage layer with scale trade-offs, a retrieval path with latency needs, and a final processing step — general scaling/caching/sharding concepts apply directly.",
+                "It doesn't — RAG systems require entirely different design principles",
+                "The underlying shape (ingestion, storage, retrieval, processing) is the same as any system design problem, just applied to embeddings and LLM calls",
+                "RAG systems never need to scale beyond a single server",
+                "System design fundamentals only apply to relational databases"),
+            KnowledgeCheck.of(
+                "What's a failure mode specific to a RAG system that a typical CRUD API design wouldn't need to consider?",
+                2,
+                "Retrieval returning irrelevant context is a data-quality problem specific to RAG, not just a " +
+                "scale problem — and evaluating whether the system produces genuinely good answers requires an evaluation pipeline a typical CRUD service never needs.",
+                "Database connection pooling",
+                "Load balancer health checks",
+                "Retrieval returning irrelevant context, and needing an evaluation pipeline to know if answers are actually good",
+                "Handling concurrent writes to the same row")
+        );
+
+        CourseLesson l2 = lesson("sd5-l2", "SD5", 1,
+            "The LLM Gateway Pattern",
+            "One central layer for caching, routing, and cost control — instead of every service reinventing it",
+            5,
+            List.of(
+                CourseSegment.story("s1", "The problem that emerges once more than one service calls an LLM",
+                    "One team builds a chatbot feature calling an LLM API directly. Another team builds a " +
+                    "summarization feature, also calling the LLM API directly. A third team builds a " +
+                    "classification feature — same thing. Now there are three different places implementing " +
+                    "caching (or not), three different places handling rate limits (or not), and three different " +
+                    "places tracking cost (or not) — with no single view of total spend or usage across the " +
+                    "company."),
+                CourseSegment.diagram("s2", "What a gateway centralizes", null,
+                    Diagram.flow("One request, one gateway, many concerns handled once",
+                        new DiagramNode("Client request"),
+                        new DiagramNode("LLM Gateway", "cache check, model routing, rate limit"),
+                        new DiagramNode("Cheap model", "for easy requests"),
+                        new DiagramNode("Frontier model", "reserved for hard requests"))),
+                CourseSegment.concept("s3", "Caching and model routing, centralized once",
+                    "An LLM gateway sits between every internal caller and the actual LLM provider, handling " +
+                    "exact and semantic caching in ONE place (instead of three different teams each half-" +
+                    "implementing it), and routing requests to a cheaper, faster model for simple calls while " +
+                    "reserving the most capable (and most expensive) model for calls that genuinely need it — " +
+                    "logic that's far better centralized than duplicated per team."),
+                CourseSegment.concept("s4", "Rate limiting, retries, and cost tracking as shared infrastructure",
+                    "The gateway also enforces per-team or per-key rate limits (so one team's traffic spike can't " +
+                    "exhaust the shared LLM budget or provider quota for everyone else), handles retries and " +
+                    "provider fallback centrally, and gives a single, unified view of usage and cost across the " +
+                    "entire organization — instead of that visibility being scattered (or missing) across every " +
+                    "individual service's own logs."),
+                CourseSegment.concept("s5", "Why this is the same idea as an API Gateway from the microservices module",
+                    "An LLM gateway is architecturally the same pattern as a general API Gateway — a single choke " +
+                    "point that centralizes cross-cutting concerns instead of duplicating them across every " +
+                    "caller. Recognizing that connection, and explicitly naming it, is exactly the kind of pattern-" +
+                    "matching across topics that a strong system design answer demonstrates."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "\"How would you control LLM costs across an organization with many teams building AI " +
+                    "features\" is a very concrete, senior-level question — the LLM gateway pattern is the direct, " +
+                    "expected answer, and connecting it explicitly to the general API Gateway pattern is a strong " +
+                    "signal of transferable system-design thinking.")
+            ),
+            KnowledgeCheck.of(
+                "What problem emerges when multiple teams each call an LLM API directly, without a shared gateway?",
+                0,
+                "Caching, rate limiting, and cost tracking end up duplicated (or missing) across each team's " +
+                "separate implementation, with no unified visibility into total organizational spend or usage.",
+                "Caching, rate limiting, and cost tracking get duplicated or missed across teams, with no unified cost/usage visibility",
+                "The LLM provider will refuse to serve more than one team",
+                "Each team's requests will automatically be rate-limited to zero",
+                "This is not actually a real problem in practice"),
+            KnowledgeCheck.of(
+                "How does an LLM gateway relate architecturally to the general API Gateway pattern from the microservices module?",
+                1,
+                "They're the same underlying pattern — a single choke point that centralizes cross-cutting " +
+                "concerns (auth, rate limiting, routing) instead of duplicating that logic across every individual caller/service.",
+                "They are unrelated patterns that happen to share a name",
+                "Both centralize cross-cutting concerns in one place instead of duplicating them across every caller",
+                "An LLM gateway replaces the need for an API Gateway entirely",
+                "API Gateways can only route HTTP traffic, never LLM calls")
+        );
+
+        addLessons("SD5", l1, l2);
+    }
+    private void buildSystemDesignPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("sysdesign",
+            "The System Design Interview, Round by Round",
+            "System design rounds are where mid-level and senior engineers are actually differentiated — there's " +
+            "rarely one right answer, and the interviewer is grading your reasoning process as much as the final " +
+            "architecture. Here's how the round tends to run, and what's actually being evaluated underneath it.",
+            List.of(
+                new CompanyTrack("Big Tech (Senior/Staff-level focus)",
+                    "A single, high-stakes 45-60 minute round, but one that carries disproportionate weight in " +
+                    "the overall hiring decision, especially for senior and staff-level roles.",
+                    List.of(
+                        new InterviewRound("Requirements gathering", "5-10 min",
+                            "The first, most commonly rushed part — clarifying scope, scale, and what's actually in-bounds.",
+                            List.of("Design a URL shortener / a rate limiter / a notification system",
+                                    "What's the expected read/write ratio and scale?"),
+                            "Never skip this — ask about scale (users, requests/sec, data volume) before drawing a single box."),
+                        new InterviewRound("High-level design", "15-20 min",
+                            "Sketching the major components and how data flows between them.",
+                            List.of("Draw the main components: clients, load balancer, services, data stores"),
+                            "Start broad and simple, then let the interviewer's follow-ups pull you into the areas they care about."),
+                        new InterviewRound("Deep dive", "15-20 min",
+                            "The interviewer picks one or two components and asks you to go much deeper.",
+                            List.of("How exactly does your database handle this specific access pattern at scale?",
+                                    "Walk through what happens when this component fails"),
+                            "This is where most of the actual signal comes from — depth on the parts they probe matters more than breadth everywhere."),
+                        new InterviewRound("Trade-offs & wrap-up", "5-10 min",
+                            "Justifying your choices and naming what you'd reconsider at a different scale.",
+                            List.of("What would you change if traffic were 100x higher?",
+                                    "What are the weaknesses of your current design?"),
+                            "Proactively naming a real weakness in your own design is a strong signal, not an admission of failure."))),
+                new CompanyTrack("Mid-size Tech Company",
+                    "Similar shape to the big-tech loop but often slightly more grounded in a real, concrete " +
+                    "product scenario the company actually operates.",
+                    List.of(
+                        new InterviewRound("System design round", "45-60 min",
+                            "Often based on a scaled-down version of a real system the company runs.",
+                            List.of("Design a feature closely related to the company's actual product"),
+                            "Research the company's actual product/scale beforehand — a design grounded in their real context lands better than a generic textbook answer."),
+                        new InterviewRound("Follow-up technical discussion", "30 min",
+                            "A more conversational round digging into specific technical decisions from the main round.",
+                            List.of("Why did you choose that specific database/caching strategy?"),
+                            "Be ready to defend earlier choices with trade-offs, not just restate what you already said."))),
+                new CompanyTrack("Startup",
+                    "System design still appears, but often more practically scoped — 'how would you actually " +
+                    "build this, given our team size and constraints' rather than a hypothetical planet-scale system.",
+                    List.of(
+                        new InterviewRound("Practical system design", "30-45 min",
+                            "Designing something closer to what you'd actually build in the role, at realistic scale.",
+                            List.of("Design a feature for our actual product at our actual current scale"),
+                            "Resist the urge to over-engineer for hypothetical massive scale — right-sizing the design for the actual context is the signal here."),
+                        new InterviewRound("Technical + culture conversation", "30 min",
+                            "A blended discussion of technical judgment and how you'd operate on a small team.",
+                            List.of("How would you balance moving fast against building it 'the right way'?"),
+                            "Startups often value pragmatic trade-off judgment over textbook-perfect architecture — say so explicitly.")))
+            ),
+            List.of(
+                "Jumping straight to drawing boxes before clarifying requirements and scale",
+                "Designing for a hypothetical planet-scale system when the actual requirements don't call for it",
+                "Naming a technology (like 'Kafka' or 'Redis') without explaining what problem it's actually solving here",
+                "Not being able to explain what happens when a specific component fails",
+                "Presenting your design as having no weaknesses instead of proactively naming real trade-offs",
+                "Getting stuck deep in one component's details for 30 minutes instead of covering the full system first"
+            ),
+            List.of(
+                "Do you have a consistent opening framework (requirements -> scale estimate -> high-level design -> deep dive) you use every time?",
+                "Can you do a back-of-envelope scale estimate (requests/sec, storage, bandwidth) out loud, quickly?",
+                "Can you name the CAP trade-off your design makes, and why, for the specific system being designed?",
+                "Can you explain what happens when any single component in your design fails?",
+                "Have you practiced explicitly naming a weakness in your own design before being asked?",
+                "Can you connect concepts across topics (e.g., an LLM gateway is really just an API Gateway) to show transferable understanding?"
+            ));
+        playbookByTopic.put("sysdesign", pb);
     }
 }
