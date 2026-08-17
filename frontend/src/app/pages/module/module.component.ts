@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { StoreService } from '../../services/store.service';
 import { AppStateService } from '../../services/app-state.service';
@@ -16,7 +16,7 @@ interface VideoItem { title: string; provider: string; url: string; meta: string
 @Component({
   selector: 'app-module',
   standalone: true,
-  imports: [CommonModule, FormsModule, QaBankComponent, CodePracticeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, QaBankComponent, CodePracticeComponent],
   templateUrl: './module.component.html'
 })
 export class ModuleComponent implements OnInit {

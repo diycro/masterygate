@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { LlmProvider, LlmService } from '../../services/llm.service';
 import { LocalStoreService } from '../../services/local-store.service';
 import { ToastService } from '../../services/toast.service';
+import { YoutubeService } from '../../services/youtube.service';
 
 @Component({
   selector: 'app-settings',
@@ -22,11 +23,20 @@ export class SettingsComponent {
   loadingModels = false;
   modelsError: string | null = null;
 
-  constructor(private llm: LlmService, private local: LocalStoreService, private toast: ToastService) {
+  youtubeApiKey: string;
+  showYoutubeKey = false;
+
+  constructor(
+    private llm: LlmService,
+    private local: LocalStoreService,
+    private toast: ToastService,
+    private youtube: YoutubeService
+  ) {
     const s = this.llm.settings();
     this.provider = s.provider;
     this.apiKey = s.apiKey;
     this.model = s.model;
+    this.youtubeApiKey = this.youtube.apiKey();
   }
 
   private readonly allProviders: LlmProvider[] = ['groq', 'openai', 'anthropic'];
@@ -68,6 +78,17 @@ export class SettingsComponent {
     this.models = [];
     this.llm.save({ provider: this.provider, apiKey: '', model: this.model.trim() });
     this.toast.show('API key removed.', 'info');
+  }
+
+  saveYoutubeKey() {
+    this.youtube.save(this.youtubeApiKey);
+    this.toast.show('YouTube API key saved — stored only in this browser.', 'info');
+  }
+
+  clearYoutubeKey() {
+    this.youtubeApiKey = '';
+    this.youtube.save('');
+    this.toast.show('YouTube API key removed.', 'info');
   }
 
   resetProgress() {

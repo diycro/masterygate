@@ -60,6 +60,29 @@
   </div>
 
   <div class="card mt-lg" style="padding:20px;max-width:560px">
+    <div style="font-weight:700;margin-bottom:14px">YouTube videos <span class="muted" style="font-weight:400;font-size:12.5px">— optional</span></div>
+    <p class="sub" style="font-size:13px;margin-bottom:14px">Each module page can show real, highly-viewed tutorial videos ranked by view count instead of a
+      blind search link. This needs your own free YouTube Data API v3 key, called directly from your browser — never sent anywhere else.</p>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px">YouTube Data API v3 key</label>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <input [type]="showYoutubeKey ? 'text' : 'password'" [(ngModel)]="youtubeApiKey"
+             placeholder="AIza..." style="flex:1" autocomplete="off">
+      <button class="btn ghost" (click)="showYoutubeKey = !showYoutubeKey" type="button">{{showYoutubeKey ? 'Hide' : 'Show'}}</button>
+    </div>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">
+      Get a free key from the <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>
+      — create a project, enable "YouTube Data API v3", then create an API key under Credentials.
+      Free tier: 10,000 quota units/day (roughly 75-100 module lookups) — stored only in localStorage on this device.
+    </p>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn" (click)="saveYoutubeKey()">Save</button>
+      <button class="btn ghost" (click)="clearYoutubeKey()" *ngIf="youtubeApiKey">Remove key</button>
+    </div>
+  </div>
+
+  <div class="card mt-lg" style="padding:20px;max-width:560px">
     <div style="font-weight:700;margin-bottom:8px">Local progress</div>
     <p class="muted" style="font-size:13px;margin-bottom:14px">Gate passes, course completion, resource checkmarks, and mock-interview
       history all live in this browser only. Clearing your browser's site data (or a different browser/device) starts fresh.</p>

@@ -41,7 +41,7 @@
         <div class="rt">▶ Browse top free videos on YouTube <span class="ext">↗</span></div>
         <div class="rm">opens YouTube's most-relevant results for this module — no key needed</div>
       </a>
-      <p class="muted" style="margin-top:10px">Optional: set a free <span class="mono">YOUTUBE_API_KEY</span> to list the top videos with view counts inline here instead.</p>
+      <p class="muted" style="margin-top:10px">Optional: add a free <a routerLink="/settings">YouTube API key in Settings</a> to list the top videos with view counts inline here instead.</p>
     </div>
     <ng-container *ngIf="!videosLoading && videos.length">
       <a class="vhero" [href]="videos[0].url" target="_blank" rel="noopener">

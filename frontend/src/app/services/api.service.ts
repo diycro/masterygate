@@ -9,6 +9,7 @@ import { ContentService, GateQuestion } from './content.service';
 import { LocalStoreService } from './local-store.service';
 import { GradingService } from './grading.service';
 import { CodeExecService } from './code-exec.service';
+import { YoutubeService } from './youtube.service';
 
 interface GateSessionState {
   moduleId: string; topicId: string; questions: GateQuestion[]; index: number; scores: number[];
@@ -34,7 +35,8 @@ export class ApiService {
     private content: ContentService,
     private local: LocalStoreService,
     private grading: GradingService,
-    private codeExec: CodeExecService
+    private codeExec: CodeExecService,
+    private youtube: YoutubeService
   ) {}
 
   // ---- auth (local profile only — no server) ----
@@ -55,7 +57,14 @@ export class ApiService {
     })));
   }
 
-  videos(_moduleId: string): Observable<any[]> { return of([]); } // no YouTube API in the static build
+  videos(moduleId: string): Observable<any[]> { return from(this.loadVideos(moduleId)); }
+
+  private async loadVideos(moduleId: string): Promise<any[]> {
+    if (!this.youtube.configured) return [];
+    const mod = await this.content.getModule(moduleId);
+    if (!mod) return [];
+    return this.youtube.topVideos(moduleId, mod.title);
+  }
 
   // ---- progress ----
   progress(_userId: string, topic: string): Observable<ProgressMap> {
