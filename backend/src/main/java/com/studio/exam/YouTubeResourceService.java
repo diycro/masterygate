@@ -65,6 +65,26 @@ public class YouTubeResourceService {
         QUERIES.put("PY4", "python decorators generators tutorial");
         QUERIES.put("PY5", "python testing pytest tutorial");
         QUERIES.put("PY6", "python concurrency asyncio tutorial");
+
+        QUERIES.put("JAVA1", "java oop concepts tutorial");
+        QUERIES.put("JAVA2", "java collections framework tutorial");
+        QUERIES.put("JAVA3", "java exception handling nio tutorial");
+        QUERIES.put("JAVA4", "java multithreading concurrency tutorial");
+        QUERIES.put("JAVA5", "jvm internals garbage collection tutorial");
+        QUERIES.put("JAVA6", "java 17 21 new features tutorial");
+
+        QUERIES.put("SPR1", "spring dependency injection ioc tutorial");
+        QUERIES.put("SPR2", "spring aop tutorial");
+        QUERIES.put("SPR3", "spring mvc tutorial");
+        QUERIES.put("SPR4", "spring data access transactions tutorial");
+        QUERIES.put("SPR5", "spring testing junit mockito tutorial");
+
+        QUERIES.put("SB1", "spring boot auto configuration tutorial");
+        QUERIES.put("SB2", "spring boot data jpa tutorial");
+        QUERIES.put("SB3", "spring boot rest api validation tutorial");
+        QUERIES.put("SB4", "spring boot security jwt oauth2 tutorial");
+        QUERIES.put("SB5", "spring boot actuator observability tutorial");
+        QUERIES.put("SB6", "spring boot microservices kafka resilience4j tutorial");
     }
     private static final long MIN_VIEWS = 30_000;   // "viewed by a large group" floor
     private static final int MAX_RESULTS = 4;

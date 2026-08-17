@@ -34,6 +34,9 @@ public class ModuleCatalog {
         buildSystemDesign();
         buildJavaFullStack();
         buildPython();
+        buildJava();
+        buildSpring();
+        buildSpringBoot();
     }
 
     private void add(Module m) {
@@ -672,5 +675,454 @@ public class ModuleCatalog {
                 q("py6q4", "Before optimizing slow Python code, what should you do first, and why?",
                     "profile it (e.g., with cProfile or a line profiler) to find where time is ACTUALLY being spent, rather than guessing",
                     "most code has one or two real bottlenecks — optimizing code that isn't actually slow wastes effort and adds complexity for no measurable benefit"))));
+    }
+
+    // ------------------------------------------------------------------ Core Java track (standalone)
+    private void buildJava() {
+        String t = "java";
+        topics.put(t, new Topic(t, "Core Java Engineer",
+                "Java the language, deep — collections, concurrency, the JVM, and modern Java 8-21, independent of any framework."));
+
+        add(new Module("JAVA1", t, 0, "OOP & Language Fundamentals",
+            List.of("The four pillars of OOP in Java", "String immutability & the string pool", "equals/hashCode/toString contracts", "Access modifiers & packages"),
+            List.of(
+                free("Java OOP concepts", "GeeksforGeeks", "https://www.geeksforgeeks.org/java/object-oriented-programming-oops-concept-in-java/", "guide"),
+                free("Why String is immutable in Java", "Baeldung", "https://www.baeldung.com/java-string-immutable", "guide"),
+                free("Java Language Specification", "Oracle docs", "https://docs.oracle.com/javase/specs/", "docs"),
+                paid("Java Programming Masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=java+programming+masterclass", "search")),
+            List.of("Explain each OOP pillar with a Java example", "Why overriding equals() requires overriding hashCode()", "== vs .equals() on objects and Strings"),
+            List.of(
+                q("java1q1", "What are the four pillars of OOP, and how does Java express each one?",
+                    "encapsulation: private fields + public getters/setters hide internal state",
+                    "inheritance: extends/implements lets a class reuse and specialize another type's behavior",
+                    "polymorphism: a subclass reference used through its parent type, with the actual overridden method resolved at runtime (dynamic dispatch)",
+                    "abstraction: abstract classes and interfaces expose a contract without committing to implementation details"),
+                q("java1q2", "Why is String immutable in Java, and what is the string constant pool?",
+                    "immutability makes String safe to share across threads without synchronization, safe as a HashMap key (hashCode can be cached), and safe to intern",
+                    "the string pool is a special memory area where literal strings are cached and reused — two identical literals point to the same object, saving memory",
+                    "string concatenation with + creates new objects, which is why StringBuilder is preferred in loops"),
+                q("java1q3", "What is the contract between equals() and hashCode(), and what breaks if you violate it?",
+                    "if two objects are equal per equals(), they MUST return the same hashCode()",
+                    "the reverse isn't required — unequal objects may share a hash code (a collision), just less efficiently",
+                    "violating this contract breaks hash-based collections like HashMap/HashSet: an object can be 'lost' (inserted under one bucket, looked up in another) even though equals() says it should be found"),
+                q("java1q4", "== vs .equals() — what's the difference for objects, and why does it matter for String specifically?",
+                    "== compares references (are these the same object in memory) for any object type",
+                    ".equals() compares logical/value equality, as defined by the class's own override",
+                    "for Strings, two different literals may or may not be == depending on interning, so relying on == for string comparison is a common, subtle bug — always use .equals()"))));
+
+        add(new Module("JAVA2", t, 1, "Collections Framework Deep Dive",
+            List.of("List/Set/Map implementations & internals", "Comparable vs Comparator", "Fail-fast vs fail-safe iterators", "Choosing the right collection"),
+            List.of(
+                free("Java Collections Framework overview", "Oracle docs", "https://docs.oracle.com/javase/tutorial/collections/", "docs"),
+                free("HashMap vs TreeMap vs LinkedHashMap", "Baeldung", "https://www.baeldung.com/java-hashmap-vs-treemap-vs-linkedhashmap", "guide"),
+                free("ConcurrentModificationException explained", "Baeldung", "https://www.baeldung.com/java-concurrentmodificationexception", "guide"),
+                paid("Java Collections & Generics deep dive", "Udemy", "https://www.udemy.com/courses/search/?q=java+collections+framework", "search")),
+            List.of("Pick the right List/Set/Map for a scenario and justify it", "Explain ConcurrentModificationException", "Comparable vs Comparator, with when to use each"),
+            List.of(
+                q("java2q1", "HashSet vs TreeSet vs LinkedHashSet — how do they differ and when would you pick each?",
+                    "HashSet: no ordering guarantee, O(1) average add/contains, backed by a HashMap",
+                    "LinkedHashSet: preserves insertion order, small extra overhead over HashSet",
+                    "TreeSet: keeps elements sorted (natural order or a Comparator), O(log n) operations, backed by a red-black tree",
+                    "pick HashSet by default for pure uniqueness, LinkedHashSet when insertion order matters for iteration/output, TreeSet when you need sorted iteration"),
+                q("java2q2", "What causes a ConcurrentModificationException, and how do you safely remove elements while iterating?",
+                    "structurally modifying a collection (add/remove) directly while iterating over it with a for-each loop invalidates the iterator's internal modCount check",
+                    "fix by using the Iterator's own remove() method, or a CopyOnWriteArrayList/ConcurrentHashMap for concurrent scenarios, or collecting items to remove and removing them after the loop"),
+                q("java2q3", "Comparable vs Comparator — what's the difference and when do you use each?",
+                    "Comparable: implemented BY the class itself (compareTo), defines that type's single 'natural' ordering",
+                    "Comparator: a separate strategy object (compare), lets you define multiple different orderings without touching the class, and can be composed (thenComparing)",
+                    "use Comparable when there's one obvious default ordering; use Comparator for ad-hoc or multiple orderings, especially for classes you don't own"),
+                q("java2q4", "Why is it usually a bad idea to use a mutable object as a HashMap key?",
+                    "the key's hashCode is used to place it in a bucket at insertion time",
+                    "if the key object is later mutated in a way that changes its hashCode/equals result, the map can no longer find it in the correct bucket — the entry becomes effectively lost",
+                    "prefer immutable keys (String, wrapper types, records, or objects deliberately designed to be immutable)"))));
+
+        add(new Module("JAVA3", t, 2, "Exceptions, I/O & NIO",
+            List.of("Checked vs unchecked exceptions", "try-with-resources & the AutoCloseable contract", "Custom exception design", "java.nio basics"),
+            List.of(
+                free("Java exceptions tutorial", "Oracle docs", "https://docs.oracle.com/javase/tutorial/essential/exceptions/", "docs"),
+                free("try-with-resources", "Baeldung", "https://www.baeldung.com/java-try-with-resources", "guide"),
+                free("java.nio.file basics", "Baeldung", "https://www.baeldung.com/java-nio-2-file-api", "guide"),
+                paid("Java exception handling best practices", "Udemy", "https://www.udemy.com/courses/search/?q=java+exception+handling", "search")),
+            List.of("Checked vs unchecked, with a design rationale", "Explain try-with-resources under the hood", "When to write a custom exception"),
+            List.of(
+                q("java3q1", "Checked vs unchecked exceptions — what's the difference, and how should you decide which to use for a new exception type?",
+                    "checked exceptions (extend Exception, not RuntimeException) must be declared or caught — the compiler enforces handling",
+                    "unchecked exceptions (extend RuntimeException) don't require declaration — used for programming errors or conditions the caller usually can't recover from",
+                    "modern guidance leans toward unchecked for most application exceptions, reserving checked exceptions for conditions a caller is genuinely expected to recover from"),
+                q("java3q2", "What does try-with-resources do, and what interface must a resource implement to use it?",
+                    "the resource must implement AutoCloseable (or Closeable)",
+                    "the compiler automatically generates a finally block that calls close() on the resource(s), even if an exception is thrown, in reverse order of declaration",
+                    "this eliminates the boilerplate and bug-risk of manually writing finally { resource.close(); }"),
+                q("java3q3", "When does it make sense to create a custom exception class instead of reusing a built-in one?",
+                    "when the exception represents a distinct, meaningful business/domain condition callers need to catch and handle specifically (e.g., InsufficientFundsException)",
+                    "custom exceptions can carry extra context (fields) relevant to that failure",
+                    "avoid overusing custom exceptions for cases a standard exception (IllegalArgumentException, IllegalStateException) already covers clearly"),
+                q("java3q4", "What's the difference between the older java.io streams and java.nio, at a conceptual level?",
+                    "java.io is stream-based and blocking — you read/write sequentially and the thread blocks while waiting",
+                    "java.nio adds buffer/channel-based I/O and (via NIO.2 in java.nio.file) a much better file API (Path, Files), plus non-blocking/selector-based I/O for scalable network servers",
+                    "for typical file operations today, java.nio.file's Files/Path API is preferred over the legacy File class"))));
+
+        add(new Module("JAVA4", t, 3, "Multithreading & Concurrency",
+            List.of("Thread lifecycle & creation", "ExecutorService & thread pools", "Locks, synchronized & the Java Memory Model", "CompletableFuture & async composition"),
+            List.of(
+                free("Java Concurrency in Practice (summary/guide)", "Baeldung", "https://www.baeldung.com/java-concurrency", "guide"),
+                free("ExecutorService guide", "Baeldung", "https://www.baeldung.com/java-executor-service-tutorial", "guide"),
+                free("Java Memory Model explained", "Baeldung", "https://www.baeldung.com/java-volatile", "guide"),
+                paid("Java Multithreading & Concurrency", "Udemy", "https://www.udemy.com/courses/search/?q=java+concurrency", "search")),
+            List.of("Explain the Java Memory Model & volatile", "Design a thread pool for a workload", "CompletableFuture composition (thenApply/thenCompose)"),
+            List.of(
+                q("java4q1", "What does the volatile keyword guarantee, and what does it NOT guarantee?",
+                    "volatile guarantees visibility — a write to a volatile field is immediately visible to all threads (no stale cached value), and it prevents certain reorderings",
+                    "it does NOT guarantee atomicity for compound operations like i++ — a read-modify-write on a volatile field can still race",
+                    "use volatile for simple flags/single-value visibility; use synchronized/atomic classes/locks when you need atomicity too"),
+                q("java4q2", "Why prefer an ExecutorService/thread pool over creating raw new Thread() instances?",
+                    "creating a new OS thread per task is expensive (memory + context-switch overhead) and gives you no control over concurrency limits",
+                    "a thread pool reuses a bounded set of worker threads, queues excess work, and gives you lifecycle control (shutdown, awaitTermination) and back-pressure",
+                    "choosing pool size/type (fixed, cached, work-stealing/ForkJoinPool) should match whether the workload is CPU-bound or I/O-bound"),
+                q("java4q3", "What is a race condition, and name two different ways to prevent one on a shared counter.",
+                    "a race condition happens when multiple threads read-modify-write shared state without coordination, so the final result depends on unlucky interleaving",
+                    "option 1: synchronize the critical section (synchronized block/method or a Lock) so only one thread mutates it at a time",
+                    "option 2: use an atomic class (AtomicInteger/AtomicLong) which performs the update via a lock-free CAS (compare-and-swap) loop"),
+                q("java4q4", "What does CompletableFuture.thenApply vs thenCompose do differently, and why does that distinction matter?",
+                    "thenApply transforms the result with a plain function (T -> U) — use it when the next step is synchronous",
+                    "thenCompose chains to another CompletableFuture-returning function (T -> CompletableFuture<U>) and flattens the result — use it when the next step is itself async, to avoid nested futures",
+                    "using thenApply where thenCompose is needed produces a CompletableFuture<CompletableFuture<U>>, which is almost never what you want"))));
+
+        add(new Module("JAVA5", t, 4, "JVM Internals & Memory Management",
+            List.of("JVM memory areas (heap, stack, metaspace)", "Garbage collection algorithms", "Class loading", "Reading a stack trace & basic JVM tuning"),
+            List.of(
+                free("JVM architecture overview", "Baeldung", "https://www.baeldung.com/jvm-architecture", "guide"),
+                free("Garbage Collection tuning guide", "Oracle docs", "https://docs.oracle.com/en/java/javase/21/gctuning/", "docs"),
+                free("Class loading in Java", "Baeldung", "https://www.baeldung.com/java-classloaders", "guide"),
+                paid("JVM Internals for Java developers", "Udemy", "https://www.udemy.com/courses/search/?q=jvm+internals", "search")),
+            List.of("Draw the JVM memory layout from memory", "Compare G1, Parallel and ZGC at a high level", "Explain a ClassNotFoundException vs NoClassDefFoundError"),
+            List.of(
+                q("java5q1", "What are the main JVM runtime memory areas, and what lives in each?",
+                    "heap: all objects and arrays live here, shared across threads, divided into young (eden + survivor) and old generation",
+                    "stack: one per thread, holds method call frames — local variables and partial results; a runaway recursion causes a StackOverflowError here",
+                    "metaspace (replaced PermGen since Java 8): class metadata, native memory rather than heap",
+                    "an OutOfMemoryError can come from any of these being exhausted, and the specific message tells you which"),
+                q("java5q2", "At a high level, how does a generational garbage collector (like G1) decide what to collect, and why generational?",
+                    "the 'weak generational hypothesis' observes most objects die young — so the young generation is collected frequently and cheaply (minor GC), promoting survivors to the old generation",
+                    "the old generation is collected less often since most long-lived objects genuinely stay alive, making full/mixed collections rarer and more expensive",
+                    "G1 further divides the heap into regions and prioritizes collecting the regions with the most garbage first ('garbage first')"),
+                q("java5q3", "What's the difference between ClassNotFoundException and NoClassDefFoundError?",
+                    "ClassNotFoundException: a checked exception thrown when code explicitly tries to load a class by name (e.g., Class.forName) and it isn't found on the classpath",
+                    "NoClassDefFoundError: an Error thrown when a class WAS available at compile time but is missing at runtime when the JVM tries to link/use it — often a packaging/classpath mismatch between build and deploy"),
+                q("java5q4", "What's the difference between a memory leak in Java and one in a language like C, given Java has garbage collection?",
+                    "Java can still leak memory — not by forgetting to free it, but by keeping unintended references alive (e.g., a growing static collection, unclosed listeners, ThreadLocal not cleared) so the GC can never reclaim those objects",
+                    "the fix is finding and breaking the unwanted reference chain (often via a heap dump analysis tool), not manual memory management"))));
+
+        add(new Module("JAVA6", t, 5, "Modern Java (8-21) Features",
+            List.of("Streams & lambdas", "Optional", "Records & sealed classes", "Pattern matching & virtual threads"),
+            List.of(
+                free("Java Stream API tutorial", "Baeldung", "https://www.baeldung.com/java-8-streams", "guide"),
+                free("Java Records", "Baeldung", "https://www.baeldung.com/java-record-keyword", "guide"),
+                free("Virtual Threads (JEP 444)", "Oracle docs", "https://openjdk.org/jeps/444", "docs"),
+                paid("Java 17-21 new features masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=java+17+21+new+features", "search")),
+            List.of("Write a non-trivial Stream pipeline", "Explain why Optional isn't meant for fields/parameters", "Records vs classes, and what virtual threads change"),
+            List.of(
+                q("java6q1", "What's the difference between an intermediate and a terminal Stream operation, and why does that matter for performance?",
+                    "intermediate operations (map, filter, sorted) are LAZY — they just build up a pipeline description and don't run anything yet",
+                    "a terminal operation (collect, forEach, reduce) triggers actual evaluation of the whole pipeline, element by element",
+                    "laziness lets the JVM avoid unnecessary work, e.g., short-circuiting with findFirst() without processing the whole source"),
+                q("java6q2", "Why is Optional generally discouraged as a field type or method parameter?",
+                    "Optional was designed specifically as a RETURN type to signal 'this method may not have a result', to be checked by the caller instead of returning null",
+                    "using it as a field adds serialization/boilerplate overhead with no real benefit over just allowing the field to be null (and documenting that)",
+                    "using it as a parameter forces every caller to wrap a value in Optional.of just to call the method — overloading or a sensible default is usually cleaner"),
+                q("java6q3", "What problem do Java records solve, and what do you get 'for free' by declaring one?",
+                    "records eliminate the boilerplate of a plain immutable data-carrier class",
+                    "declaring record Point(int x, int y) {} automatically generates a canonical constructor, private final fields, accessor methods (x(), y()), and correct equals/hashCode/toString based on the components",
+                    "records are implicitly final and can't extend another class (though they can implement interfaces), reinforcing that they're meant to model simple immutable data"),
+                q("java6q4", "What are virtual threads (Java 21), and what kind of workload benefits most from them?",
+                    "virtual threads are lightweight threads managed by the JVM rather than mapped 1:1 to an OS thread — you can create millions of them cheaply",
+                    "they benefit I/O-bound workloads most: a virtual thread that blocks on I/O (e.g., a DB call, an HTTP call) is 'unmounted' from its carrier OS thread, freeing that OS thread to run other virtual threads, instead of the OS thread sitting idle",
+                    "they don't speed up CPU-bound work — for that, the number of CPU cores is still the real limit"))));
+    }
+
+    // ------------------------------------------------------------------ Spring Framework track (standalone)
+    private void buildSpring() {
+        String t = "spring";
+        topics.put(t, new Topic(t, "Spring Framework Engineer",
+                "The Spring Framework itself — IoC, AOP, MVC, and data access — independent of Spring Boot's auto-configuration layer."));
+
+        add(new Module("SPR1", t, 0, "IoC Container & Dependency Injection",
+            List.of("Inversion of Control & the ApplicationContext", "Constructor vs setter vs field injection", "Bean scopes", "Java config vs XML vs component scanning"),
+            List.of(
+                free("Spring IoC container", "Spring", "https://docs.spring.io/spring-framework/reference/core/beans/introduction.html", "docs"),
+                free("Spring dependency injection", "Baeldung", "https://www.baeldung.com/spring-dependency-injection", "guide"),
+                free("Spring bean scopes", "Baeldung", "https://www.baeldung.com/spring-bean-scopes", "guide"),
+                paid("Spring Framework 6 masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+framework+6", "search")),
+            List.of("Explain IoC vs DI precisely", "Justify constructor injection as the default", "Name all standard bean scopes and when each applies"),
+            List.of(
+                q("spr1q1", "What's the difference between Inversion of Control and Dependency Injection?",
+                    "IoC is the broader principle: control over object creation/wiring is inverted from the code itself to a container/framework",
+                    "DI is ONE specific technique for achieving IoC — the container supplies (injects) a component's dependencies rather than the component looking them up or creating them itself",
+                    "other IoC techniques exist (e.g., service locator) but DI is what Spring is built around"),
+                q("spr1q2", "Why does Spring documentation recommend constructor injection as the default choice?",
+                    "it makes required dependencies explicit and allows fields to be declared final (immutable after construction)",
+                    "it fails fast at application startup if a required dependency is missing, rather than surfacing a NullPointerException later at runtime",
+                    "it makes unit testing trivial — you just call the constructor with mocks, no reflection or Spring context needed",
+                    "field injection, by contrast, hides dependencies, allows constructing an incomplete object, and requires a DI framework (or reflection) even in tests"),
+                q("spr1q3", "List Spring's standard bean scopes and when you'd use each.",
+                    "singleton (default): one instance per Spring container — the right choice for stateless, shared services",
+                    "prototype: a new instance every time the bean is requested — for stateful or non-thread-safe objects",
+                    "request/session/application: web-aware scopes tied to an HTTP request, session, or ServletContext respectively — used for web-tier beans that must not be shared across users"),
+                q("spr1q4", "What's the difference between @Component, @Service, @Repository and @Controller, given they all register a bean the same way?",
+                    "functionally, all four are stereotypes of @Component and register a bean identically via component scanning",
+                    "the more specific ones add semantic meaning for readability AND extra framework behavior — @Repository enables Spring's exception translation (wrapping JDBC/JPA exceptions into Spring's DataAccessException hierarchy)",
+                    "using the right stereotype documents the layer a class belongs to, which also helps AOP pointcuts that target a layer by annotation"))));
+
+        add(new Module("SPR2", t, 1, "AOP & Cross-Cutting Concerns",
+            List.of("Aspect-oriented programming concepts", "Advice types (before/after/around)", "Proxy-based AOP (JDK dynamic vs CGLIB)", "@Transactional under the hood"),
+            List.of(
+                free("Spring AOP", "Spring", "https://docs.spring.io/spring-framework/reference/core/aop.html", "docs"),
+                free("Introduction to Spring AOP", "Baeldung", "https://www.baeldung.com/spring-aop", "guide"),
+                free("Spring @Transactional internals", "Baeldung", "https://www.baeldung.com/transaction-configuration-with-jpa-and-spring", "guide"),
+                paid("Spring AOP deep dive", "Udemy", "https://www.udemy.com/courses/search/?q=spring+aop", "search")),
+            List.of("Explain a cross-cutting concern with an example", "JDK dynamic proxy vs CGLIB proxy", "Why calling a @Transactional method from within the same class doesn't work"),
+            List.of(
+                q("spr2q1", "What problem does AOP solve, and what's a concrete example of a cross-cutting concern in a typical Spring app?",
+                    "cross-cutting concerns are behaviors needed across many unrelated classes (logging, security checks, transaction management, caching) that would otherwise be duplicated in every method",
+                    "AOP lets you define that behavior ONCE as an aspect and apply it declaratively wherever a pointcut expression matches, keeping business logic classes focused on their actual responsibility",
+                    "example: @Transactional itself is implemented as AOP advice wrapping a method call in a transaction"),
+                q("spr2q2", "How does Spring implement AOP under the hood — JDK dynamic proxies vs CGLIB?",
+                    "Spring AOP is proxy-based: it wraps your bean in a proxy object that intercepts method calls",
+                    "JDK dynamic proxies are used when the target class implements at least one interface — the proxy implements the same interface(s)",
+                    "CGLIB proxies (subclassing) are used when there's no interface — the proxy subclasses the target class at runtime, which is why AOP doesn't work on final classes/methods"),
+                q("spr2q3", "Why does calling a @Transactional-annotated method from another method in the SAME class not actually start a transaction?",
+                    "Spring AOP proxies work by intercepting calls made TO the proxy from outside — an internal self-invocation (this.method()) bypasses the proxy entirely and calls the real method directly",
+                    "fix by injecting a self-reference/using AopContext.currentProxy(), or better, moving the @Transactional method into a separate collaborating bean that gets called through its own proxy"),
+                q("spr2q4", "What's the difference between @Before, @AfterReturning, @AfterThrowing, @After and @Around advice?",
+                    "@Before runs before the method; @AfterReturning runs after a successful return; @AfterThrowing runs only if an exception propagates out; @After runs regardless (like finally)",
+                    "@Around is the most powerful: it wraps the whole invocation, receives a ProceedingJoinPoint, and can choose whether/when to call proceed(), inspect/modify the return value, or short-circuit the call entirely"))));
+
+        add(new Module("SPR3", t, 2, "Spring MVC & Web Layer",
+            List.of("DispatcherServlet request lifecycle", "@RequestMapping family & content negotiation", "Bean Validation in controllers", "Global exception handling"),
+            List.of(
+                free("Spring Web MVC", "Spring", "https://docs.spring.io/spring-framework/reference/web/webmvc.html", "docs"),
+                free("Spring MVC request lifecycle", "Baeldung", "https://www.baeldung.com/spring-mvc-handlermapping-handleradapter", "guide"),
+                free("Spring exception handling for REST", "Baeldung", "https://www.baeldung.com/exception-handling-for-rest-with-spring", "guide"),
+                paid("Spring MVC masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+mvc", "search")),
+            List.of("Trace a request from DispatcherServlet to the response", "Explain @Valid + BindingResult", "@ControllerAdvice vs per-controller @ExceptionHandler"),
+            List.of(
+                q("spr3q1", "Walk through what happens to an HTTP request from the moment it hits DispatcherServlet.",
+                    "DispatcherServlet (the front controller) receives the request and asks a HandlerMapping which controller method should handle it",
+                    "a HandlerAdapter invokes that controller method, resolving method arguments (path variables, request body, etc.) along the way",
+                    "the controller returns a value; if it's a ResponseEntity or an @ResponseBody-annotated result, an HttpMessageConverter serializes it (e.g., to JSON) directly to the response",
+                    "if it's a view name instead, a ViewResolver locates and renders the corresponding view"),
+                q("spr3q2", "How do you validate an incoming request body, and what happens if validation fails?",
+                    "annotate the parameter with @Valid (or @Validated) and the DTO fields with Bean Validation annotations (@NotNull, @Size, @Email, etc.)",
+                    "by default, a failed validation throws MethodArgumentNotValidException, which Spring Boot turns into a 400 response automatically",
+                    "alternatively, add a BindingResult parameter right after the @Valid argument to inspect errors yourself instead of letting the exception propagate"),
+                q("spr3q3", "@ControllerAdvice with @ExceptionHandler vs a try/catch in each controller method — why prefer the former?",
+                    "@ControllerAdvice centralizes exception-to-response mapping in ONE place, applied globally across all (or a targeted subset of) controllers",
+                    "it keeps controller methods focused on the happy path instead of repeating the same error-formatting logic everywhere",
+                    "it produces consistent error response shapes across the whole API, which API consumers can rely on"),
+                q("spr3q4", "What's the difference between @RequestParam, @PathVariable and @RequestBody?",
+                    "@RequestParam binds a query string parameter (?name=value) or form field",
+                    "@PathVariable binds a segment of the URI path itself (e.g., /users/{id})",
+                    "@RequestBody deserializes the entire HTTP request body (typically JSON) into a Java object using an HttpMessageConverter"))));
+
+        add(new Module("SPR4", t, 3, "Data Access & Transactions",
+            List.of("JdbcTemplate vs ORM options", "Spring's transaction abstraction", "Transaction propagation & isolation", "Exception translation"),
+            List.of(
+                free("Spring Data Access", "Spring", "https://docs.spring.io/spring-framework/reference/data-access.html", "docs"),
+                free("Spring transaction management", "Spring", "https://docs.spring.io/spring-framework/reference/data-access/transaction.html", "docs"),
+                free("Spring's DataAccessException hierarchy", "Baeldung", "https://www.baeldung.com/spring-dataexception", "guide"),
+                paid("Spring Data Access masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+data+access", "search")),
+            List.of("Explain declarative vs programmatic transactions", "Propagation levels beyond REQUIRED", "Why Spring wraps JDBC exceptions"),
+            List.of(
+                q("spr4q1", "What's the difference between declarative and programmatic transaction management in Spring, and which does Spring generally recommend?",
+                    "declarative: annotate a method with @Transactional and let an AOP proxy start/commit/rollback the transaction around it — no transaction code in your business logic",
+                    "programmatic: manually use TransactionTemplate or PlatformTransactionManager to control transaction boundaries in code",
+                    "Spring recommends declarative for the vast majority of cases — it's less error-prone and keeps transaction concerns out of business logic; programmatic is reserved for cases needing fine-grained control within a single method"),
+                q("spr4q2", "Explain REQUIRED, REQUIRES_NEW, and NESTED propagation, and how they differ in rollback behavior.",
+                    "REQUIRED (default): joins the caller's existing transaction if one exists, else starts a new one — a rollback anywhere in that shared transaction rolls back everything",
+                    "REQUIRES_NEW: always suspends any existing transaction and starts a fully independent new one — the outer transaction's rollback does NOT undo what the inner one already committed",
+                    "NESTED: uses a savepoint within the SAME physical transaction — a rollback in the nested part can be contained (rolled back to the savepoint) without necessarily rolling back the whole outer transaction, but it's still tied to the outer transaction's ultimate commit/rollback"),
+                q("spr4q3", "What is Spring's DataAccessException hierarchy, and why does it matter that it's unchecked?",
+                    "Spring translates low-level, technology-specific exceptions (SQLException, Hibernate exceptions, etc.) into a consistent, technology-agnostic DataAccessException hierarchy",
+                    "being unchecked (a RuntimeException subtype) means callers aren't forced to catch/declare it everywhere, and the abstraction lets you swap the underlying persistence technology without changing every catch clause up the call stack",
+                    "this translation is what @Repository's stereotype behavior enables via a BeanPostProcessor"),
+                q("spr4q4", "When would you reach for JdbcTemplate instead of an ORM like Hibernate/Spring Data JPA?",
+                    "when you need tight control over the exact SQL executed (complex reporting queries, bulk operations, performance-critical paths where ORM-generated SQL is suboptimal)",
+                    "JdbcTemplate removes JDBC boilerplate (connection/statement/resultset handling, resource closing) while still letting you write raw SQL",
+                    "for typical CRUD-heavy domain-object persistence, an ORM/Spring Data JPA is usually more productive; JdbcTemplate is the pragmatic escape hatch"))));
+
+        add(new Module("SPR5", t, 4, "Spring Testing",
+            List.of("Spring TestContext framework", "@ContextConfiguration & context caching", "Test slices (@WebMvcTest, @DataJpaTest)", "Mocking beans in a Spring test"),
+            List.of(
+                free("Testing the Spring MVC", "Spring", "https://docs.spring.io/spring-framework/reference/testing.html", "docs"),
+                free("Spring Boot Test annotations guide", "Baeldung", "https://www.baeldung.com/spring-tests", "guide"),
+                free("Mockito with Spring", "Baeldung", "https://www.baeldung.com/mockito-spring", "guide"),
+                paid("Spring Testing masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+testing", "search")),
+            List.of("Explain Spring's test context caching", "MockMvc vs a real running server for a controller test", "@MockBean vs a manually constructed mock"),
+            List.of(
+                q("spr5q1", "Why does Spring's TestContextFramework cache the ApplicationContext between test classes, and what can accidentally break that caching?",
+                    "starting a full Spring context is expensive; caching it (keyed by its configuration) lets many test classes share the SAME context instead of rebuilding it per class, dramatically speeding up a test suite",
+                    "anything that changes the effective configuration key breaks the cache and forces a rebuild — e.g., different @ActiveProfiles, different @MockBean sets, or different context configuration classes between test classes",
+                    "minimizing unique context configurations across a test suite is a real, practical performance technique"),
+                q("spr5q2", "What does MockMvc give you that a full @SpringBootTest with a real embedded server doesn't, for testing a controller?",
+                    "MockMvc simulates HTTP requests/responses against the DispatcherServlet WITHOUT starting an actual network server/port — faster, and still exercises the real MVC request-handling pipeline (argument resolution, validation, exception handling, serialization)",
+                    "a full embedded-server test (@SpringBootTest(webEnvironment=RANDOM_PORT) + a real HTTP client) is slower but verifies actual network behavior end-to-end, useful for a smaller number of true integration tests"),
+                q("spr5q3", "What's the difference between a test slice like @WebMvcTest and the full @SpringBootTest?",
+                    "@WebMvcTest loads only the web layer (controllers, filters, MVC infra) and auto-configures MockMvc, leaving service/repository beans unloaded — you supply mocks (e.g., @MockBean) for them",
+                    "@SpringBootTest loads the entire application context, which is thorough but much slower — appropriate for true end-to-end integration tests, not for testing one controller in isolation")
+            )));
+    }
+
+    // ------------------------------------------------------------------ Spring Boot track (standalone)
+    private void buildSpringBoot() {
+        String t = "springboot";
+        topics.put(t, new Topic(t, "Spring Boot Engineer",
+                "Spring Boot specifically — auto-configuration, starters, Spring Data JPA, security, actuator, and cloud-native microservices."));
+
+        add(new Module("SB1", t, 0, "Auto-Configuration & Starters",
+            List.of("@SpringBootApplication under the hood", "How auto-configuration is triggered & ordered", "Starter dependencies", "Externalized configuration & profiles"),
+            List.of(
+                free("Spring Boot auto-configuration", "Spring", "https://docs.spring.io/spring-boot/reference/using/auto-configuration.html", "docs"),
+                free("Custom auto-configuration guide", "Baeldung", "https://www.baeldung.com/spring-boot-custom-auto-configuration", "guide"),
+                free("Externalized Configuration", "Spring", "https://docs.spring.io/spring-boot/reference/features/external-config.html", "docs"),
+                paid("Spring Boot masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+boot", "search")),
+            List.of("Explain what @SpringBootApplication actually composes", "How @ConditionalOnClass/@ConditionalOnMissingBean drive auto-config", "Property override precedence across profiles/env vars/args"),
+            List.of(
+                q("sb1q1", "What three annotations does @SpringBootApplication compose, and what does each contribute?",
+                    "@SpringBootConfiguration: marks the class as a source of bean definitions (a specialization of @Configuration)",
+                    "@EnableAutoConfiguration: triggers Spring Boot's auto-configuration mechanism, which conditionally registers beans based on the classpath and existing configuration",
+                    "@ComponentScan: scans the current package (and sub-packages) for @Component-annotated classes to register as beans"),
+                q("sb1q2", "How does a single Spring Boot 'starter' dependency end up auto-configuring an entire subsystem, like spring-boot-starter-data-jpa?",
+                    "the starter is really just a curated set of transitive dependencies (Hibernate, Spring Data JPA, a JDBC driver, etc.) with compatible versions — it doesn't itself contain framework code",
+                    "adding those jars to the classpath is what auto-configuration classes react to via @ConditionalOnClass — e.g., seeing Hibernate + a DataSource on the classpath triggers JPA-related beans to auto-configure",
+                    "you can always override any auto-configured bean by defining your own bean of that type — @ConditionalOnMissingBean means your explicit bean wins"),
+                q("sb1q3", "What's the property override precedence in Spring Boot when the same property is set in application.yml, an environment variable, and a command-line argument?",
+                    "command-line arguments win over almost everything else",
+                    "environment variables and JVM system properties come next, ahead of the packaged application.properties/yml",
+                    "profile-specific files (application-{profile}.yml) override the base application.yml for properties they redefine",
+                    "understanding this order matters for debugging 'why isn't my config taking effect' issues in different environments"),
+                q("sb1q4", "How would you disable a specific auto-configuration class you don't want (e.g., the default DataSource auto-config)?",
+                    "use @SpringBootApplication(exclude = DataSourceAutoConfiguration.class) or the spring.autoconfigure.exclude property",
+                    "this is common when you want to configure that concern manually, or when a starter on the classpath brings auto-configuration you don't actually want active"))));
+
+        add(new Module("SB2", t, 1, "Spring Data JPA in Boot",
+            List.of("Repository interfaces & derived queries", "N+1 problem & fetch strategies", "@Transactional boundaries in a service layer", "Schema migration with Flyway/Liquibase"),
+            List.of(
+                free("Spring Data JPA reference", "Spring", "https://docs.spring.io/spring-data/jpa/reference/", "docs"),
+                free("Hibernate N+1 problem", "Baeldung", "https://www.baeldung.com/hibernate-N-plus-1-problem-different-fetching-strategies", "guide"),
+                free("Flyway with Spring Boot", "Baeldung", "https://www.baeldung.com/database-migrations-with-flyway", "guide"),
+                paid("Spring Data JPA masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+data+jpa", "search")),
+            List.of("Derive a query method from its name", "Diagnose and fix an N+1 query", "Explain why migrations belong in version control"),
+            List.of(
+                q("sb2q1", "How does Spring Data JPA generate a working query just from a method name like findByLastNameAndActiveTrue?",
+                    "Spring Data parses the method name against a defined grammar (By, And, Or, property names, keywords like GreaterThan/OrderBy) and builds the equivalent JPQL query at startup, without you writing any SQL/JPQL",
+                    "for anything the naming convention can't express cleanly, you fall back to @Query with JPQL or native SQL"),
+                q("sb2q2", "What is the N+1 query problem in a Spring Data JPA repository, concretely, and how do you fix it?",
+                    "calling findAll() on an entity that has a lazy @OneToMany, then accessing that collection for each of the N results triggers 1 query for the list plus N additional queries — one per entity",
+                    "fix with a JOIN FETCH in a custom @Query, an @EntityGraph on the repository method, or batch fetching (hibernate.default_batch_fetch_size) to collapse the N extra queries into far fewer"),
+                q("sb2q3", "Where should @Transactional boundaries typically live in a Spring Boot app — the controller, service, or repository layer — and why?",
+                    "the service layer — it represents a meaningful unit of business work that may span multiple repository calls that must succeed or fail together",
+                    "controllers shouldn't hold transactions open across HTTP-layer concerns (like serialization); repositories are too fine-grained and would create a separate transaction per data-access call, defeating the purpose"),
+                q("sb2q4", "Why use a migration tool like Flyway or Liquibase instead of letting Hibernate auto-generate/update the schema (ddl-auto=update)?",
+                    "ddl-auto=update is convenient for local dev but unsafe in production — it can silently make destructive or unexpected changes, and there's no audit trail or rollback",
+                    "Flyway/Liquibase store versioned, ordered migration scripts that are applied deterministically and consistently across every environment, forming a reviewable history of every schema change",
+                    "the standard practice is ddl-auto=validate (or none) in production, with real migrations owning schema evolution"))));
+
+        add(new Module("SB3", t, 2, "REST APIs, Validation & Error Handling",
+            List.of("Designing REST resources & status codes", "Bean Validation on request DTOs", "Centralized exception handling", "API documentation with OpenAPI/Swagger"),
+            List.of(
+                free("Building a RESTful Web Service", "Spring guides", "https://spring.io/guides/gs/rest-service/", "guide"),
+                free("Spring Boot exception handling", "Baeldung", "https://www.baeldung.com/exception-handling-for-rest-with-spring", "guide"),
+                free("springdoc-openapi", "springdoc.org", "https://springdoc.org/", "docs"),
+                paid("REST APIs with Spring Boot masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=rest+api+spring+boot", "search")),
+            List.of("Design clean, RESTful resource URIs and status codes", "Wire up @ControllerAdvice for consistent errors", "Explain RFC 7807 Problem Details"),
+            List.of(
+                q("sb3q1", "What makes a REST API 'RESTful' rather than just an HTTP API — name a few concrete practices.",
+                    "resource-oriented URIs (nouns, not verbs: /orders/{id}, not /getOrder)",
+                    "correct use of HTTP methods (GET for reads, POST to create, PUT/PATCH to update, DELETE to remove) and status codes (201 Created with a Location header, 404, 409, etc.)",
+                    "statelessness — each request contains everything needed to process it, no server-side session state between requests",
+                    "HATEOAS (hypermedia links) is the more purist/advanced criterion, though many production APIs skip it pragmatically"),
+                q("sb3q2", "How do you return a consistent, structured error body across every endpoint in a Spring Boot API?",
+                    "a single @RestControllerAdvice class with @ExceptionHandler methods per exception type (or exception hierarchy), each returning a consistent error DTO (status, message, timestamp, maybe a field-level validation error list)",
+                    "Spring Boot 3+ also supports RFC 7807 'Problem Details' (ProblemDetail) out of the box as a standardized error response format"),
+                q("sb3q3", "How do you validate a request DTO's fields and return a useful 400 response listing exactly what's wrong?",
+                    "annotate the DTO fields with Bean Validation (@NotBlank, @Size, @Min, @Email, etc.) and the controller parameter with @Valid",
+                    "catch MethodArgumentNotValidException in an @ExceptionHandler and map its BindingResult/FieldErrors into a response listing each invalid field and its specific message, rather than a single generic 400"),
+                q("sb3q4", "What does OpenAPI/Swagger give you in a Spring Boot project, and how is it typically generated?",
+                    "a machine-readable specification of your API's endpoints, request/response shapes, and status codes — enabling interactive docs (Swagger UI) and client-code generation",
+                    "springdoc-openapi generates it automatically from your controllers/DTOs and annotations at runtime, rather than you hand-writing a YAML/JSON spec"))));
+
+        add(new Module("SB4", t, 3, "Spring Security, JWT & OAuth2",
+            List.of("SecurityFilterChain configuration", "Stateless JWT authentication", "OAuth2 login & resource server", "Method-level security"),
+            List.of(
+                free("Spring Security reference", "Spring", "https://docs.spring.io/spring-security/reference/", "docs"),
+                free("Spring Security JWT tutorial", "Baeldung", "https://www.baeldung.com/spring-security-oauth-jwt", "guide"),
+                free("OAuth2 Resource Server", "Spring", "https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/index.html", "docs"),
+                paid("Spring Security masterclass", "Udemy", "https://www.udemy.com/courses/search/?q=spring+security+oauth2+jwt", "search")),
+            List.of("Configure a SecurityFilterChain from scratch", "Design a stateless JWT auth flow end to end", "Explain the OAuth2 authorization code flow"),
+            List.of(
+                q("sb4q1", "How do you configure Spring Security in a modern (Spring Boot 3+) app, and how did that change from older versions?",
+                    "modern Spring Security uses a SecurityFilterChain @Bean built with a lambda DSL (http.authorizeHttpRequests(...).csrf(...).oauth2ResourceServer(...) etc.), instead of extending WebSecurityConfigurerAdapter (deprecated/removed)",
+                    "this component-based approach also makes it straightforward to define multiple, independently-ordered filter chains for different URL patterns (e.g., stateless API vs a stateful admin UI)"),
+                q("sb4q2", "Design a stateless JWT authentication flow for a Spring Boot API end to end.",
+                    "client sends credentials to a login endpoint; the server verifies them and issues a signed JWT (with claims like subject, roles, expiry) instead of creating a server-side session",
+                    "the client sends that JWT in the Authorization: Bearer header on every subsequent request",
+                    "a custom filter (added to the SecurityFilterChain before the standard auth filter) validates the token's signature and expiry on each request and populates the SecurityContext — no session lookup needed, which is what makes it horizontally scalable",
+                    "token revocation before expiry is the classic weak point — mitigated with short expiries + refresh tokens, or a server-side denylist for the rare case"),
+                q("sb4q3", "In the OAuth2 authorization code flow, what problem does the extra 'code exchange' step solve versus just returning the access token directly to the browser?",
+                    "the authorization code is short-lived and passed through the browser (less sensitive if intercepted), while the actual access token exchange happens server-to-server (client backend <-> authorization server) using a client secret",
+                    "this keeps the long-lived, powerful access token out of the browser's history/referrer headers/JS-accessible storage, reducing the attack surface versus the older, now-discouraged implicit flow"),
+                q("sb4q4", "How do you secure individual service methods (not just URLs) in Spring, and why would you want to?",
+                    "@EnableMethodSecurity plus annotations like @PreAuthorize(\"hasRole('ADMIN')\") or @PostAuthorize on service methods",
+                    "URL-level security alone can't express fine-grained rules like 'a user can only edit their OWN order' — method security can evaluate the actual arguments/return value (e.g., @PreAuthorize(\"#order.ownerId == authentication.name\"))"))));
+
+        add(new Module("SB5", t, 4, "Actuator, Observability & Testing",
+            List.of("Actuator endpoints (health, metrics, info)", "Custom health indicators & metrics", "Structured logging & tracing", "@SpringBootTest & Testcontainers"),
+            List.of(
+                free("Spring Boot Actuator", "Spring", "https://docs.spring.io/spring-boot/reference/actuator/index.html", "docs"),
+                free("Micrometer metrics", "Micrometer", "https://micrometer.io/docs", "docs"),
+                free("Testcontainers for Java", "Testcontainers", "https://testcontainers.com/guides/getting-started-with-testcontainers-for-java/", "guide"),
+                paid("Spring Boot Actuator & observability", "Udemy", "https://www.udemy.com/courses/search/?q=spring+boot+actuator", "search")),
+            List.of("Explain what /actuator/health aggregates and how", "Design a custom HealthIndicator", "Why Testcontainers over H2 for a real integration test"),
+            List.of(
+                q("sb5q1", "What does the /actuator/health endpoint actually report, and how is its overall status computed?",
+                    "it aggregates the status of every registered HealthIndicator (DB connectivity, disk space, message broker connectivity, custom ones you add) into one overall status",
+                    "the overall status is the WORST of all individual indicator statuses (e.g., if the DB indicator is DOWN, the whole endpoint reports DOWN) — this makes it suitable for load balancer/orchestrator health checks",
+                    "showDetails/authorization controls how much of that breakdown is exposed publicly vs only to authenticated/internal callers"),
+                q("sb5q2", "How would you add a custom health check — say, verifying a downstream payment gateway is reachable?",
+                    "implement the HealthIndicator interface (or HealthContributor) and register it as a bean; Spring Boot Actuator auto-discovers it and folds its result into /actuator/health",
+                    "the health() method returns Health.up()/.down().withDetail(...) — keep it fast and non-blocking-forever (with a timeout), since a hung health check can itself cause cascading readiness-probe failures"),
+                q("sb5q3", "What's the difference between a metric exposed via Micrometer and a log line, and why do you generally want both?",
+                    "metrics are numeric, aggregatable time-series data (request count, latency percentiles, error rate) suited for dashboards/alerting on trends",
+                    "logs are discrete, detailed event records suited for diagnosing a SPECIFIC failure after an alert fires",
+                    "Micrometer gives Spring Boot a vendor-neutral metrics facade (like SLF4J does for logging) that can export to Prometheus, Datadog, etc. without changing application code"),
+                q("sb5q4", "Why reach for Testcontainers rather than an embedded H2 database when writing a Spring Boot integration test against a Postgres-backed service?",
+                    "H2 doesn't perfectly replicate Postgres's SQL dialect, functions, and constraint-enforcement behavior — a test passing against H2 can still fail against real Postgres in production",
+                    "Testcontainers spins up the actual Postgres engine in a throwaway Docker container for the test run, so the integration test verifies behavior against the real database technology",
+                    "the trade-off is a slower test (container startup) versus much higher confidence — typically reserved for a smaller set of true integration tests, not every test"))));
+
+        add(new Module("SB6", t, 5, "Microservices, Messaging & Cloud-Native",
+            List.of("Service discovery & API gateway", "Resilience patterns (circuit breaker, retry, bulkhead)", "Event-driven communication with Kafka", "Containerizing & deploying a Spring Boot service"),
+            List.of(
+                free("Spring Cloud reference", "Spring", "https://spring.io/projects/spring-cloud", "docs"),
+                free("Resilience4j guide", "Resilience4j", "https://resilience4j.readme.io/docs/getting-started", "docs"),
+                free("Spring for Apache Kafka", "Spring", "https://docs.spring.io/spring-kafka/reference/", "docs"),
+                paid("Microservices with Spring Boot & Spring Cloud", "Udemy", "https://www.udemy.com/courses/search/?q=microservices+spring+cloud", "search")),
+            List.of("Design a circuit breaker + fallback for a flaky dependency", "Explain the Saga pattern for a distributed 'transaction'", "Trace a request through an API gateway to a downstream service"),
+            List.of(
+                q("sb6q1", "What are the three states of a Resilience4j circuit breaker, and what triggers each transition?",
+                    "CLOSED: normal operation, requests flow through and failures are counted against a rolling window",
+                    "OPEN: once the failure rate crosses a configured threshold, the breaker trips — requests fail FAST (immediately, no call to the downstream service) for a wait duration, protecting the failing dependency from more load and freeing up the caller's resources",
+                    "HALF_OPEN: after the wait duration, a limited number of trial requests are allowed through — if they succeed, the breaker closes again; if they fail, it reopens"),
+                q("sb6q2", "What problem does the Saga pattern solve for microservices, and how does it work?",
+                    "a single business operation that spans multiple services (e.g., place an order: reserve inventory + charge payment + schedule shipping) can't use a traditional single-database ACID transaction across service boundaries",
+                    "a saga breaks it into a sequence of local transactions, each committing in its own service and publishing an event/triggering the next step",
+                    "if a later step fails, previously completed steps are undone via explicit COMPENSATING actions (e.g., release the inventory reservation) rather than a real rollback — this is eventual consistency, not atomicity"),
+                q("sb6q3", "Synchronous REST calls vs Kafka-based async messaging between two Spring Boot microservices — what's the real trade-off?",
+                    "sync REST: simpler mental model, immediate response, but tightly couples the caller's availability/latency to the callee's — if the callee is down or slow, the caller is directly affected",
+                    "Kafka: decouples producer and consumer completely (the producer doesn't even need the consumer to be running), naturally buffers bursts of load, and enables multiple independent consumers of the same event",
+                    "the cost is added complexity: eventual consistency, harder request tracing, and needing to reason about message ordering/idempotency/at-least-once delivery"),
+                q("sb6q4", "What's the role of an API gateway in a microservices architecture, and name two concerns it commonly centralizes.",
+                    "an API gateway is the single entry point clients call, which routes each request to the correct downstream microservice — clients don't need to know the internal service topology",
+                    "it commonly centralizes cross-cutting concerns like authentication/authorization, rate limiting, request logging, and response aggregation from multiple services — so individual microservices don't each reimplement them"))));
     }
 }

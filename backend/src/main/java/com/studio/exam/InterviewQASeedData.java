@@ -2529,6 +2529,1134 @@ public final class InterviewQASeedData {
                 "Not nearly as much — NumPy, pandas, and similar libraries implement their core numeric operations in C, and that C code explicitly RELEASES the GIL during long-running computations, allowing genuine parallelism across threads for those specific operations. This is why 'just use NumPy vectorized operations instead of a Python for-loop' is such a common and effective performance recommendation — it sidesteps the GIL's limitation entirely for the heavy-lifting portion of the work.",
                 "A nuanced, senior-level question — checks whether a candidate's GIL understanding is precise enough to know it's not an absolute, universal performance ceiling.")));
 
+        // ================= Core Java (standalone track) =================
+        m.put("JAVA1", List.of(
+            hi("Explain the four pillars of OOP with a concrete Java example for each.",
+                """
+                Encapsulation, inheritance, polymorphism, and abstraction.
+
+                ```java
+                abstract class Shape {                       // abstraction
+                    protected String color;                  // encapsulation (private-ish via protected + accessor)
+                    public String getColor() { return color; }
+                    abstract double area();                  // contract, no implementation here
+                }
+                class Circle extends Shape {                 // inheritance
+                    double radius;
+                    @Override double area() { return Math.PI * radius * radius; } // polymorphism
+                }
+                class Square extends Shape {
+                    double side;
+                    @Override double area() { return side * side; }
+                }
+                // Shape s = new Circle(); s.area();  // calls Circle's area() at runtime — dynamic dispatch
+                ```
+                """,
+                "The single most common Java opener — interviewers want to see real code, not textbook definitions."),
+            hi("Why is String immutable in Java, and what problems would mutability cause?",
+                "Immutability makes String safe to share across threads without synchronization, safe as a HashMap/HashSet key (its hash code can be computed once and cached), and enables the string constant pool to safely reuse literal instances. If String were mutable, two variables referencing the same pooled literal could unexpectedly see each other's changes, and using a String as a map key could silently break the map if its content changed after insertion.",
+                "Tests whether a candidate understands the DESIGN REASONING, not just the fact — a common senior follow-up."),
+            hi("What is the contract between equals() and hashCode(), and what breaks if you override one without the other?",
+                """
+                If a.equals(b) is true, a.hashCode() MUST equal b.hashCode(). The reverse isn't required.
+
+                ```java
+                class Point {
+                    int x, y;
+                    @Override public boolean equals(Object o) {
+                        if (!(o instanceof Point p)) return false;
+                        return x == p.x && y == p.y;
+                    }
+                    // BUG: no hashCode() override — uses Object's identity hash by default
+                }
+                Set<Point> seen = new HashSet<>();
+                seen.add(new Point(1, 1));
+                seen.contains(new Point(1, 1)); // false! different hashCode -> different bucket -> equals() never even called
+                ```
+                """,
+                "A very common trap question — breaking this contract causes silent, hard-to-debug bugs in hash-based collections."),
+            hi("What's the difference between an abstract class and an interface, in Java 8+?",
+                "An abstract class can hold instance state (fields) and a constructor; a class can extend only one abstract class (single inheritance). An interface historically couldn't hold state, but since Java 8 can declare default and static methods with bodies, and a class can implement multiple interfaces. Use an abstract class for a strong 'is-a' relationship with shared state; use an interface for a 'can-do' capability contract, especially across unrelated classes.",
+                "Classic OOP question — the Java 8 default-method nuance separates current knowledge from outdated."),
+            hi("Explain method overloading vs overriding, including how each is resolved.",
+                """
+                Overloading: same name, different parameter list, resolved at COMPILE time based on the declared (static) argument types.
+                Overriding: subclass redefines an inherited method with the identical signature, resolved at RUNTIME based on the actual object type.
+
+                ```java
+                class Printer {
+                    void print(String s) { }      // overload 1
+                    void print(int i) { }         // overload 2 — compiler picks based on argument type
+                }
+                class Base { void greet() { System.out.println("Base"); } }
+                class Derived extends Base {
+                    @Override void greet() { System.out.println("Derived"); }
+                }
+                Base b = new Derived();
+                b.greet(); // prints "Derived" — runtime (dynamic) dispatch, not the declared type
+                ```
+                """,
+                "Fundamental but often explained imprecisely — the interviewer is listening for 'compile time' vs 'runtime'."),
+            hi("What's the difference between == and .equals() for objects, and specifically for Strings?",
+                "== always compares references (are these the same object) for any reference type. .equals() compares logical equality as the class defines it. For Strings specifically, two literals may or may not be == depending on string-pool interning, which makes == an unreliable, common source of bugs for string comparison — always use .equals() (or .equalsIgnoreCase()) for content comparison.",
+                "Extremely common — the follow-up is almost always 'so why did new String(\"a\") == \"a\" return false?'"),
+            md("What's the difference between final, finally, and finalize()?",
+                "final: a modifier — a final variable can't be reassigned, a final method can't be overridden, a final class can't be extended. finally: a block that always runs after a try (whether or not an exception was thrown), typically used for cleanup. finalize(): a deprecated Object method the GC used to call before reclaiming an object — unreliable and removed from modern reliance; use try-with-resources/Cleaner instead.",
+                "A classic 'sounds similar, means completely different things' trivia question, still asked often."),
+            hi("What is polymorphism at the bytecode/runtime level — how does the JVM actually pick which overridden method to call?",
+                "The JVM uses a virtual method table (vtable) per class — each class has a table mapping method signatures to the actual implementation to invoke. At a call site, the JVM looks up the method in the vtable of the object's ACTUAL runtime class (not the reference's declared/static type), which is how a Base reference pointing to a Derived object correctly calls Derived's override. This is 'dynamic dispatch,' and it's a small but real runtime cost versus a direct (non-virtual) call.",
+                "A senior-level question probing whether OOP understanding goes beyond the textbook definition into the mechanism."),
+            md("What's the difference between composition and inheritance, and when should you prefer composition?",
+                "Inheritance models an 'is-a' relationship and shares implementation via subclassing, but tightly couples subclass to superclass internals and can lead to fragile hierarchies as requirements evolve. Composition models a 'has-a' relationship — a class holds a reference to another and delegates to it — giving more flexibility (can swap the composed object at runtime, avoid deep fragile hierarchies). The common guidance 'favor composition over inheritance' applies when behavior needs to vary independently or when the 'is-a' relationship isn't truly stable.",
+                "A design-judgment question common at the senior level, often as a follow-up to an OOP design exercise."),
+            hi("What are the primitive types in Java, and why does Java also have wrapper classes for each?",
+                "Java has 8 primitives: byte, short, int, long, float, double, char, boolean — stored directly (not as objects), fast and memory-efficient. Wrapper classes (Integer, Long, Double, etc.) exist because generics and collections (List<Integer>, not List<int>) require objects, and wrappers add useful static methods (Integer.parseInt) and can represent 'no value' via null, which a primitive can't.",
+                "Foundational, and leads naturally into questions about autoboxing pitfalls and Integer caching."),
+            hi("What's the classic Integer caching gotcha with ==, and why does it happen?",
+                """
+                ```java
+                Integer a = 127, b = 127;
+                System.out.println(a == b); // true — both in the cached range [-128, 127]
+
+                Integer c = 128, d = 128;
+                System.out.println(c == d); // false — outside the cache, two distinct objects
+                ```
+
+                Java caches (and reuses) Integer objects for values -128 to 127 (Integer.valueOf's internal cache) as a performance optimization, since small integers are extremely common. Comparing boxed Integers with == compares references, so results silently differ depending on the value's range — another strong reason to use .equals() for wrapper-type comparisons.
+                """,
+                "A genuinely tricky, frequently-asked gotcha that trips up even experienced developers who forget wrapper types aren't primitives."),
+            md("What does the 'diamond problem' mean in Java, and how does Java 8+ resolve it for default interface methods?",
+                "The diamond problem is the ambiguity when a class inherits the same method signature from two different parents. Java avoids it for classes (single inheritance only), but interfaces with default methods reintroduced a version of it — if a class implements two interfaces with the same default method signature, it's a compile error UNLESS the class explicitly overrides the method (optionally calling InterfaceA.super.method() to pick one explicitly).",
+                "Shows depth beyond 'Java doesn't have the diamond problem' — a common oversimplification interviewers like to probe.")));
+
+        m.put("JAVA2", List.of(
+            hi("How does HashMap work internally, and what happens on a hash collision?",
+                """
+                Keys are hashed (hashCode(), then Java re-spreads the bits) to pick a bucket index in an internal array. Since Java 8, each bucket starts as a linked list of entries and 'treeifies' into a red-black tree once it grows past a threshold (default 8) and the table is large enough, turning worst-case O(n) collision lookups into O(log n).
+
+                ```java
+                Map<String, Integer> m = new HashMap<>();
+                m.put("a", 1);  // hash("a") -> bucket index -> new Entry appended (or tree-inserted)
+                ```
+
+                Resizing (rehashing, doubling capacity) happens once size exceeds capacity * loadFactor (default 0.75), which is itself an O(n) operation — a reason to pre-size a HashMap when the eventual size is known.
+                """,
+                "THE most-asked Java collections question — interviewers expect the treeification detail from a senior candidate."),
+            hi("ArrayList vs LinkedList — compare their performance and when you'd pick each.",
+                "ArrayList: backed by a resizable array — O(1) index access, O(n) insert/remove in the middle (must shift elements), contiguous memory so cache-friendly. LinkedList: a doubly-linked list — O(1) insert/remove given a node reference (e.g., via an iterator), O(n) index access, more per-element memory overhead (two pointers per node) and worse cache locality. In practice, ArrayList wins for the vast majority of real workloads on modern hardware; LinkedList's theoretical advantage rarely beats ArrayList's cache-friendliness unless you're doing heavy mid-list insertion via an iterator (e.g., implementing a Deque, for which ArrayDeque is usually still better).",
+                "Classic comparison question — the 'ArrayList almost always wins in practice' nuance signals real experience."),
+            hi("HashSet vs TreeSet vs LinkedHashSet — how do they differ?",
+                "HashSet: no ordering guarantee, O(1) average add/contains, backed by a HashMap internally. LinkedHashSet: preserves insertion order via an internal doubly-linked list threading the entries, small extra overhead over HashSet. TreeSet: keeps elements in sorted order (natural ordering or a supplied Comparator), O(log n) operations, backed by a red-black tree (TreeMap internally) — also implements NavigableSet (floor/ceiling/higher/lower).",
+                "Common follow-up to the Set/Map internals question."),
+            hi("What causes a ConcurrentModificationException, and how do you safely remove elements while iterating?",
+                """
+                ```java
+                List<Integer> nums = new ArrayList<>(List.of(1, 2, 3, 4));
+                for (Integer n : nums) {
+                    if (n % 2 == 0) nums.remove(n);   // throws ConcurrentModificationException
+                }
+
+                // Fix 1: use the Iterator's own remove()
+                Iterator<Integer> it = nums.iterator();
+                while (it.hasNext()) {
+                    if (it.next() % 2 == 0) it.remove();   // safe
+                }
+
+                // Fix 2: removeIf
+                nums.removeIf(n -> n % 2 == 0);
+                ```
+
+                A for-each loop uses an internal Iterator that tracks a modCount snapshot; structurally modifying the collection outside that iterator's own remove() invalidates the snapshot, and the next hasNext()/next() call throws CME as a fail-fast safety check.
+                """,
+                "Extremely common — almost every Java interview includes some version of this trap and its fix."),
+            hi("Comparable vs Comparator — what's the difference, and how do you sort by multiple fields?",
+                """
+                Comparable (compareTo) is implemented BY the class itself and defines a single natural ordering. Comparator (compare) is a separate strategy object, letting you define any number of orderings — including for classes you don't own — and compose them.
+
+                ```java
+                record Employee(String name, int age, double salary) {}
+
+                List<Employee> sorted = employees.stream()
+                    .sorted(Comparator.comparing(Employee::age)
+                                       .thenComparing(Employee::name))
+                    .toList();
+                ```
+                """,
+                "Comparator.comparing().thenComparing() composition is a common live-coding ask."),
+            hi("Why is it dangerous to use a mutable object as a HashMap key?",
+                "The key's hash code determines which bucket it's stored in at insertion time. If the key is later mutated in a way that changes its hashCode()/equals() result, the map can no longer locate it — a lookup with an 'equal' key (by current state) checks the WRONG bucket and returns null/false, effectively losing the entry, even though the object is still technically in the map's internal array. Prefer immutable keys (String, boxed numbers, records, or deliberately immutable classes).",
+                "Tests understanding of hash-based storage mechanics, not just memorized API usage."),
+            hi("What's the difference between fail-fast and fail-safe iterators, with an example of each?",
+                "Fail-fast iterators (ArrayList, HashMap, HashSet) throw ConcurrentModificationException if the underlying collection is structurally modified during iteration, by checking a modCount. Fail-safe iterators (CopyOnWriteArrayList, ConcurrentHashMap) iterate over a snapshot or tolerate concurrent modification without throwing, though the iterator may not reflect the very latest changes made during iteration.",
+                "A precise vocabulary question that also probes concurrent-collection knowledge."),
+            md("What's the time complexity of common operations on ArrayDeque vs LinkedList when used as a Deque, and which does the JDK recommend?",
+                "Both support Deque operations (addFirst/addLast/pollFirst/pollLast) in O(1) amortized. The JDK documentation itself recommends ArrayDeque over LinkedList for stack/queue use cases — it's backed by a resizable circular array, has better cache locality, and avoids the per-node object overhead of a linked structure, making it faster in practice for both stack and queue patterns despite LinkedList also implementing Deque.",
+                "A specific, slightly advanced knowledge check that signals reading beyond basic tutorials."),
+            hi("How would you make an ArrayList thread-safe, and what are the trade-offs of each approach?",
+                "Options: Collections.synchronizedList(new ArrayList<>()) wraps every method in a lock — simple but coarse-grained and still requires external synchronization when iterating (or you risk CME/race conditions). CopyOnWriteArrayList copies the entire underlying array on every write — reads are lock-free and never throw CME, ideal for read-heavy/write-rare scenarios (like a list of event listeners), but writes are expensive and it's a poor fit for write-heavy workloads.",
+                "Tests whether a candidate knows more than one option and can reason about the trade-off, not just name-drop a class."),
+            hi("What's the difference between Iterator and ListIterator?",
+                "Iterator supports forward-only traversal with next()/hasNext()/remove(). ListIterator (available only on List implementations) additionally supports backward traversal (hasPrevious()/previous()), getting the current index (nextIndex()/previousIndex()), and in-place modification (set()) and insertion (add()) during iteration — capabilities a plain Iterator doesn't offer.",
+                "A smaller but real distinction interviewers use to check attention to the full Collections API surface."),
+            md("What does Collections.unmodifiableList() actually protect against, and what does it NOT protect against?",
+                """
+                ```java
+                List<String> mutable = new ArrayList<>(List.of("a", "b"));
+                List<String> view = Collections.unmodifiableList(mutable);
+                view.add("c");     // throws UnsupportedOperationException
+                mutable.add("c");  // succeeds — and is now visible through 'view' too!
+                ```
+
+                unmodifiableList returns a VIEW that blocks mutation through that specific reference, but it doesn't make a defensive copy — changes to the original backing list are still visible through the wrapper. For a truly immutable snapshot, use List.copyOf(mutable) instead.
+                """,
+                "A precise, commonly-missed distinction between an immutable view and a genuinely immutable collection."),
+            hi("What's the difference between Array and ArrayList in Java?",
+                "Array: fixed size once created, can hold primitives directly, slightly faster/lower overhead, type is checked at compile time for generics-free code. ArrayList: dynamically resizable (grows automatically), can only hold objects (autoboxes primitives), part of the Collections Framework so it comes with a rich API (add/remove/contains/streams) — the resizing is amortized O(1) per add by doubling capacity when full.",
+                "A fundamentals question, but the amortized-O(1) resizing detail is what separates a strong answer.")));
+
+        m.put("JAVA3", List.of(
+            hi("Checked vs unchecked exceptions — what's the difference, and how do you decide which to use for a new exception?",
+                "Checked exceptions (extend Exception, not RuntimeException) must be declared (throws) or caught — enforced by the compiler; meant for conditions a caller can reasonably be expected to recover from (e.g., IOException — a file might genuinely not exist). Unchecked exceptions (extend RuntimeException) aren't compiler-enforced; used for programming errors or conditions that usually indicate a bug (NullPointerException, IllegalArgumentException). Modern practice increasingly favors unchecked exceptions for most application-level errors, since forcing every caller up a deep call chain to declare/catch clutters code without adding real safety.",
+                "A very common question with a real, debated 'it depends' answer — interviewers want reasoning, not dogma."),
+            hi("What does try-with-resources do, and what interface must a resource implement to use it?",
+                """
+                ```java
+                try (BufferedReader br = new BufferedReader(new FileReader("f.txt"))) {
+                    return br.readLine();
+                } // br.close() is called automatically here, even if an exception was thrown
+                ```
+
+                The resource must implement AutoCloseable (or the older Closeable). The compiler generates an implicit finally block calling close() on each resource, in reverse declaration order, eliminating the classic bug of forgetting to close a resource — or closing it in the wrong place relative to an exception.
+                """,
+                "Extremely common — the follow-up is often 'what happens if both the try block AND close() throw?' (the close()'s exception is 'suppressed' and attached to the original)."),
+            hi("What's the exception hierarchy in Java — Throwable, Error, and Exception — and why does it matter which you catch?",
+                "Throwable is the root. Error represents serious JVM-level problems (OutOfMemoryError, StackOverflowError) that applications generally shouldn't try to catch/recover from. Exception (and its RuntimeException subtree) represents application-level conditions you CAN reasonably catch and handle. Catching Throwable or Error broadly (e.g., catch (Throwable t)) is a code smell — it can swallow serious JVM failures your app has no business trying to recover from.",
+                "Tests whether a candidate understands WHY catch(Exception e) is the conventional boundary, not just that it exists."),
+            hi("When should you create a custom exception class instead of reusing a built-in one?",
+                "When the exception represents a distinct, meaningful domain/business condition that callers need to catch and handle specifically (e.g., InsufficientFundsException, OrderNotFoundException) — often carrying extra context fields relevant to that failure. Avoid custom exceptions when a standard one (IllegalArgumentException for a bad argument, IllegalStateException for a bad object state) already communicates the failure clearly — inventing a new type for every error case adds noise without real benefit.",
+                "A design-judgment question, common in both interviews and code review."),
+            md("What's the difference between throw and throws?",
+                "throw is a statement used INSIDE a method body to actually raise a specific exception instance (throw new IllegalArgumentException(\"bad input\")). throws is a method-signature declaration listing checked exceptions that method MIGHT propagate to its caller, so the compiler can enforce that callers handle them.",
+                "A basic but frequently-asked vocabulary distinction, often a warm-up question."),
+            hi("What happens if you have both a finally block and a return statement in the try block?",
+                """
+                ```java
+                static int test() {
+                    try {
+                        return 1;
+                    } finally {
+                        System.out.println("finally runs"); // always executes, even after 'return 1' is queued
+                    }
+                }
+                // prints "finally runs", then returns 1
+
+                static int trap() {
+                    try {
+                        return 1;
+                    } finally {
+                        return 2;   // BUG: this silently OVERRIDES the try's return value — avoid returning from finally
+                    }
+                }
+                // returns 2, not 1 — a classic footgun
+                ```
+                """,
+                "A genuinely tricky gotcha question that tests real understanding of control flow, not memorized facts."),
+            hi("What's the difference between java.io streams and java.nio, conceptually?",
+                "java.io is stream-based and blocking — reads/writes happen sequentially and the calling thread blocks while waiting on I/O. java.nio (and the NIO.2 java.nio.file API added in Java 7) adds buffer/channel-based I/O and a much richer file API (Path, Files, with methods like Files.readAllLines, Files.walk), plus selector-based non-blocking I/O for building scalable network servers that handle many connections without one thread per connection.",
+                "Tests whether modern-file-API knowledge (java.nio.file.Files/Path) has replaced reliance on the legacy java.io.File class."),
+            hi("How do you read an entire file into a String in modern Java, and what changed from the old approach?",
+                """
+                ```java
+                // Modern (Java 11+):
+                String content = Files.readString(Path.of("data.txt"));
+
+                // Older, more verbose (pre-NIO.2):
+                StringBuilder sb = new StringBuilder();
+                try (BufferedReader br = new BufferedReader(new FileReader("data.txt"))) {
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line).append("\\n");
+                }
+                ```
+
+                Files.readString (and Files.readAllLines, Files.write) replaced most manual stream-wrangling for common file tasks — one line instead of manual buffering/looping/closing.
+                """,
+                "A practical, code-level question checking whether a candidate's Java knowledge is current, not stuck in Java 6-era idioms."),
+            md("What's a try-with-resources 'suppressed exception,' and when does it occur?",
+                "If the try block throws an exception AND the resource's close() (called implicitly by try-with-resources) also throws, the ORIGINAL exception from the try block is the one propagated — the close() exception is attached to it as a 'suppressed exception' (retrievable via getSuppressed()) rather than replacing it or being silently lost, unlike the manual finally-with-return footgun.",
+                "A more advanced follow-up that shows try-with-resources is smarter than a naive finally block."),
+            hi("What's the difference between Error and Exception in terms of what a well-behaved application should do with each?",
+                "Exception (and subclasses) represent conditions an application is expected to anticipate and handle — catch specific exception types and recover or respond meaningfully. Error represents conditions outside the application's control or ability to recover from (OutOfMemoryError, StackOverflowError, LinkageError) — these signal the JVM itself is in trouble, and catching/'handling' them is rarely correct; the right response is usually to let the process fail and be restarted/monitored.",
+                "Reinforces the practical implication of the Throwable hierarchy, common as a follow-up."),
+            md("What's the purpose of a multi-catch block, and when is it useful?",
+                """
+                ```java
+                try {
+                    riskyIo();
+                } catch (IOException | SQLException e) {
+                    log.error("operation failed", e);
+                    throw new RuntimeException(e);
+                }
+                ```
+
+                A multi-catch (added in Java 7) lets you handle multiple, unrelated exception types identically in one block instead of duplicating the same catch body for each — reduces boilerplate when the recovery/logging logic is genuinely the same regardless of which exception type occurred.
+                """,
+                "A smaller, practical syntax question that shows familiarity with modern Java idioms.")));
+
+        m.put("JAVA4", List.of(
+            hi("What does the volatile keyword guarantee, and what does it NOT guarantee?",
+                """
+                ```java
+                private volatile boolean running = true;
+
+                void stop() { running = false; }               // thread A
+                void loop() { while (running) { doWork(); } }   // thread B — sees the update promptly
+
+                private volatile int counter = 0;
+                void increment() { counter++; }   // STILL NOT ATOMIC even though volatile — read-modify-write race
+                ```
+
+                volatile guarantees VISIBILITY — a write is immediately visible to other threads, and it establishes a happens-before relationship preventing certain instruction reorderings. It does NOT guarantee atomicity for compound operations like i++ (read, add, write are three separate steps) — for that you need synchronized, a Lock, or an Atomic class.
+                """,
+                "The single most common trap in Java concurrency interviews — assuming volatile makes an operation atomic."),
+            hi("Why prefer an ExecutorService over creating raw new Thread() instances?",
+                "Creating an OS thread per task is expensive (memory for the stack, kernel context-switch overhead) and gives no control over concurrency — an unbounded flood of tasks creates an unbounded flood of threads. An ExecutorService reuses a bounded pool of worker threads, queues excess work, and provides lifecycle control (shutdown/awaitTermination) plus back-pressure. Choosing the right pool type (fixed for steady CPU-bound load, cached for bursty short tasks, ForkJoinPool/work-stealing for divide-and-conquer work) matters for actual throughput.",
+                "Basic but essential — a candidate who reaches for new Thread() in every answer signals limited production experience."),
+            hi("What's a race condition, and name two different ways to fix one on a shared counter.",
+                """
+                ```java
+                // Race: two threads incrementing the same int simultaneously can lose updates
+                int count = 0;
+                void increment() { count++; }   // NOT atomic: read, add 1, write — three steps
+
+                // Fix 1: synchronized
+                synchronized void incrementSync() { count++; }
+
+                // Fix 2: AtomicInteger (lock-free CAS loop)
+                AtomicInteger atomicCount = new AtomicInteger();
+                void incrementAtomic() { atomicCount.incrementAndGet(); }
+                ```
+
+                A race condition happens when multiple threads read-modify-write shared state without coordination, so the outcome depends on unlucky interleaving. synchronized blocks concurrent access with a lock; AtomicInteger performs the update via a lock-free compare-and-swap loop, which is typically faster under moderate contention since it avoids OS-level thread blocking.
+                """,
+                "One of the most common live-coding concurrency questions — expect to actually write both fixes."),
+            hi("What's the difference between synchronized, a ReentrantLock, and a ReadWriteLock?",
+                "synchronized: simplest, JVM-managed monitor lock, automatically released even on exception — but no tryLock/timeout, no fairness option, and can't be held across method boundaries cleanly. ReentrantLock: explicit lock()/unlock() (MUST unlock in a finally block), supports tryLock() with a timeout and configurable fairness — more flexible but more error-prone if you forget to unlock. ReadWriteLock: separates read locks (many readers can hold it simultaneously) from a write lock (exclusive) — a big throughput win for read-heavy shared data structures where synchronized would unnecessarily serialize reads.",
+                "Tests knowledge of the full locking toolkit, not just the most basic option."),
+            hi("What is the Java Memory Model, and why does it matter for correctness beyond just 'use synchronized everywhere'?",
+                "The JMM defines the rules for when a write by one thread is guaranteed to be visible to a read by another thread — without those guarantees (a happens-before relationship), the JIT compiler and CPU are free to reorder instructions and cache values in ways that are correct for a single thread but produce surprising results across threads. synchronized, volatile, and the java.util.concurrent classes all establish happens-before edges; code that shares mutable state across threads WITHOUT any of these can be broken by legal optimizations even if it 'usually works' in testing.",
+                "A conceptual, senior-level question that separates candidates who've internalized WHY concurrency primitives are needed."),
+            hi("What's the difference between CompletableFuture.thenApply and thenCompose?",
+                """
+                ```java
+                CompletableFuture<User> userFuture = fetchUserAsync(id);
+
+                // thenApply: synchronous transform (T -> U)
+                CompletableFuture<String> name = userFuture.thenApply(User::getName);
+
+                // thenCompose: chains to ANOTHER async call (T -> CompletableFuture<U>), flattens the result
+                CompletableFuture<Order> order = userFuture.thenCompose(u -> fetchLatestOrderAsync(u.getId()));
+
+                // Using thenApply here by mistake gives CompletableFuture<CompletableFuture<Order>> — wrong!
+                ```
+
+                thenApply is for a plain synchronous transform; thenCompose is for chaining to another asynchronous operation, avoiding a nested/'nested future' result.
+                """,
+                "A precise, code-level question that's become common as CompletableFuture usage has grown."),
+            hi("What's a deadlock, and what four conditions must all be true for one to occur?",
+                "A deadlock is a cycle of threads each waiting for a resource held by another, so none can proceed. The four Coffman conditions: mutual exclusion (resources can't be shared), hold-and-wait (a thread holds one resource while waiting for another), no preemption (a resource can't be forcibly taken away), and circular wait (a cycle of threads each waiting on the next). Breaking any ONE of these prevents deadlock — the most common practical fix is eliminating circular wait by always acquiring locks in a consistent, global order.",
+                "A theory question with a very practical payoff — the 'consistent lock ordering' answer is what interviewers want to hear."),
+            hi("What's the difference between Runnable and Callable?",
+                "Runnable's run() method returns nothing (void) and can't throw a checked exception. Callable<V>'s call() method returns a value of type V and CAN throw a checked exception — submitting a Callable to an ExecutorService gives you back a Future<V> you can call .get() on to retrieve the result (blocking) or check completion.",
+                "A basic but common distinction, often followed by a question about Future vs CompletableFuture."),
+            md("What is CountDownLatch used for, and how is it different from a CyclicBarrier?",
+                "CountDownLatch: a one-time gate — one or more threads wait (await()) until a counter (initialized to N) reaches zero, decremented by countDown() calls from other threads; it CANNOT be reset/reused. CyclicBarrier: makes a fixed number of threads all wait for EACH OTHER at a common barrier point, and once all arrive, they're all released together — and unlike CountDownLatch, it automatically resets and can be reused for multiple rounds.",
+                "A specific java.util.concurrent utility question that shows familiarity beyond the basics of Thread/synchronized."),
+            hi("What's the difference between a fixed thread pool and a cached thread pool from Executors, and why is Executors.newFixedThreadPool sometimes still discouraged?",
+                "Executors.newFixedThreadPool(n): a bounded pool of n threads with an UNBOUNDED task queue — under sustained overload, the queue can grow without limit, risking OutOfMemoryError rather than rejecting/backpressuring. Executors.newCachedThreadPool(): creates threads on demand and reuses idle ones, but has no upper bound on thread count — a burst of tasks can create an unbounded number of threads. Modern guidance favors building a ThreadPoolExecutor directly with an explicit bounded queue AND a RejectedExecutionHandler, rather than the convenience factory methods, for production-grade back-pressure.",
+                "A more advanced, production-experience question — a strong signal candidate has actually operated services under load."),
+            hi("What does ThreadLocal do, and what's a real risk of using it in a thread-pooled environment like a web server?",
+                "ThreadLocal gives each thread its own independent copy of a variable, useful for per-thread context (e.g., a request ID or a non-thread-safe SimpleDateFormat instance) without synchronization. The risk in a thread pool: threads are REUSED across requests, so if you don't explicitly call remove() when done, stale data from a previous request can leak into a later one handled by the same pooled thread — a subtle, hard-to-reproduce bug and also a memory leak if the ThreadLocal holds a large object.",
+                "A production-relevant gotcha that trips up developers who only understand ThreadLocal's textbook definition.")));
+
+        m.put("JAVA5", List.of(
+            hi("What are the main JVM runtime memory areas, and what lives in each?",
+                "Heap: all objects/arrays live here, shared across all threads, divided into young generation (eden + two survivor spaces) and old generation. Stack: one per thread, holds method call frames (local variables, partial results, return addresses) — deep/unbounded recursion exhausts this and throws StackOverflowError. Metaspace (native memory, replaced PermGen since Java 8): holds class metadata (loaded class definitions). Program counter register and native method stacks are the smaller remaining per-thread areas. An OutOfMemoryError's specific message (heap space vs metaspace vs unable to create native thread) tells you which area was exhausted.",
+                "One of the most-asked JVM questions — interviewers expect you to be able to sketch this from memory."),
+            hi("At a high level, how does a generational garbage collector like G1 decide what to collect?",
+                "It relies on the 'weak generational hypothesis' — most objects die young. The young generation is collected frequently and cheaply (a minor GC), copying survivors between survivor spaces and eventually promoting long-lived objects to the old generation. The old generation is collected less often (a costlier major/mixed GC) since surviving objects there are more likely to genuinely stay alive. G1 specifically divides the heap into many fixed-size regions and prioritizes collecting the regions with the most reclaimable garbage first — hence 'Garbage First.'",
+                "Tests real understanding of GC design, not just naming collector algorithms."),
+            hi("What's the difference between ClassNotFoundException and NoClassDefFoundError?",
+                "ClassNotFoundException: a CHECKED exception thrown when code explicitly tries to load a class by name at runtime (e.g., Class.forName(\"com.foo.Bar\")) and it isn't found on the classpath. NoClassDefFoundError: an ERROR thrown when a class WAS present and successfully compiled against, but is missing from the classpath at runtime when the JVM tries to link/initialize it — commonly a packaging mismatch (e.g., a dependency jar missing at deploy time that was present at build time).",
+                "A precise distinction that's frequently asked and frequently answered vaguely — the packaging-mismatch context is what a strong answer includes."),
+            hi("Can Java have a memory leak despite having garbage collection? Explain with an example.",
+                """
+                ```java
+                class EventBus {
+                    private static final List<Listener> listeners = new ArrayList<>(); // static -> lives forever
+                    static void register(Listener l) { listeners.add(l); }
+                    // if callers never unregister, every registered listener (and whatever it references)
+                    // stays reachable from a GC root forever, even if logically "done"
+                }
+                ```
+
+                Yes — Java can't leak by forgetting to free memory, but it CAN leak by keeping unintended references alive so the GC can never consider those objects unreachable. Common causes: a growing static collection nobody clears, unregistered listeners/callbacks, ThreadLocal values never removed in a pooled-thread environment, or an unclosed resource holding native memory. The fix is finding and breaking the unwanted reference chain, often diagnosed via a heap dump (jmap/Eclipse MAT/VisualVM).
+                """,
+                "A common 'gotcha' question meant to check whether a candidate has a naive or accurate mental model of GC."),
+            hi("What's the difference between Minor GC, Major GC, and a Full GC?",
+                "Minor GC: collects only the young generation — fast and frequent, since most objects there die quickly. Major GC: collects the old generation. Full GC: collects the ENTIRE heap (young + old, and often metaspace) — the most expensive and typically causes the longest application pause; frequent Full GCs are usually a sign of a tuning problem or genuine memory pressure worth investigating.",
+                "Precise vocabulary that's often used loosely — interviewers listen for whether you distinguish these correctly."),
+            hi("What's the difference between the three main class loaders in the JVM's default delegation model?",
+                "Bootstrap class loader: loads core JDK classes (java.lang.*, etc.) from the JDK's own modules, written in native code. Platform (extension) class loader: loads classes from JDK-provided platform modules beyond the core. Application (system) class loader: loads classes from the application's own classpath. They follow a parent-delegation model — a class loader asks its parent to try loading a class FIRST before attempting itself, which is why you can't accidentally shadow java.lang.String with your own class of the same name.",
+                "A deeper JVM-internals question, common in senior/platform-team interviews."),
+            md("What's the difference between a stack overflow and a heap OutOfMemoryError, in terms of cause?",
+                "StackOverflowError: a single thread's call stack exceeds its (typically fixed, per-thread) size limit — almost always caused by runaway or missing-base-case recursion. Heap OutOfMemoryError (java.lang.OutOfMemoryError: Java heap space): the heap can't allocate a new object because it's full and the GC couldn't reclaim enough space — caused by genuinely needing more memory than allocated, OR a memory leak keeping objects unnecessarily reachable.",
+                "A practical debugging-oriented question, useful for a candidate to connect symptom to root cause."),
+            hi("What does -Xms and -Xmx control, and what's a common production pitfall around them?",
+                "-Xms sets the INITIAL heap size, -Xmx sets the MAXIMUM heap size the JVM is allowed to grow to. A common pitfall: leaving them far apart (small -Xms, large -Xmx) causes the heap to grow gradually under load, and each resize is itself a pause; production guidance is often to set -Xms and -Xmx to the SAME value so the heap is allocated up front and doesn't need to grow at all, trading a larger initial memory footprint for more predictable latency.",
+                "A practical JVM-tuning question that shows operational, not just academic, JVM knowledge."),
+            hi("What's escape analysis, and how can it let the JVM avoid a heap allocation entirely?",
+                "Escape analysis is a JIT compiler optimization that determines whether an object's reference ever 'escapes' the method/thread that created it (is it returned, stored in a field, passed elsewhere) or stays entirely local. If the JIT proves an object never escapes, it can perform scalar replacement (breaking the object into its individual fields as local variables/registers) or stack allocation instead of a heap allocation — reducing GC pressure entirely for that object, transparently, without any code change.",
+                "A more advanced JIT-internals question that comes up in senior/performance-focused interviews."),
+            md("What's the practical difference between the Parallel, G1, and ZGC garbage collectors, at a level relevant for choosing one?",
+                "Parallel GC: optimizes for maximum THROUGHPUT, using multiple threads for collection but with longer, stop-the-world pauses — good for batch jobs where pause time doesn't matter. G1 (the default since Java 9): a balanced, region-based collector aiming for low, predictable pause times while maintaining good throughput — the sensible default for most server applications. ZGC: designed for VERY LOW latency (sub-millisecond pauses) even on huge heaps, at some cost to throughput/CPU overhead — chosen for latency-critical services with large heaps where G1's pauses are still too long.",
+                "A judgment/trade-off question rather than pure recall — tests whether GC choice is understood as a real engineering decision.")));
+
+        m.put("JAVA6", List.of(
+            hi("What's the difference between an intermediate and a terminal Stream operation, and why does laziness matter?",
+                """
+                ```java
+                List<String> result = names.stream()
+                    .filter(n -> n.startsWith("A"))   // intermediate — lazy, just builds the pipeline
+                    .map(String::toUpperCase)         // intermediate — still lazy
+                    .limit(3)                         // intermediate — lazy
+                    .toList();                         // TERMINAL — actually runs the pipeline now
+
+                names.stream().filter(n -> n.startsWith("A")).findFirst(); // short-circuits — may not visit every element!
+                ```
+
+                Intermediate operations don't execute anything by themselves — they just describe the pipeline. Only a terminal operation triggers evaluation, processing elements (often one at a time, through the whole pipeline) rather than materializing an intermediate list after each step. This laziness lets short-circuiting operations like findFirst/limit/anyMatch avoid processing the entire source.
+                """,
+                "One of the most common modern-Java questions — expect to also write a non-trivial pipeline live."),
+            hi("Why is Optional generally discouraged as a field type or method parameter?",
+                "Optional was specifically designed as a RETURN type to signal 'this method might not produce a result,' forcing the caller to explicitly handle absence instead of risking a silent NullPointerException. As a field, it adds overhead (Optional itself isn't Serializable, and wrapping a field just moves the null-check problem rather than removing it — you can still assign the field itself null). As a parameter, it forces every caller to wrap a value in Optional.of()/ofNullable() just to call the method, which is more awkward than a plain nullable parameter or a method overload.",
+                "A nuanced 'know the idiom, not just the API' question — common at mid/senior level."),
+            hi("What problem do Java records solve, and what do you get automatically by declaring one?",
+                """
+                ```java
+                record Point(int x, int y) {}
+                // automatically generates:
+                //  - a canonical constructor: Point(int x, int y)
+                //  - private final fields x, y
+                //  - accessors: x(), y()  (note: not getX()/getY())
+                //  - equals()/hashCode() based on all components
+                //  - a readable toString(): "Point[x=1, y=2]"
+
+                record Range(int lo, int hi) {
+                    Range {                              // compact canonical constructor — validate here
+                        if (lo > hi) throw new IllegalArgumentException("lo > hi");
+                    }
+                }
+                ```
+
+                Records eliminate the huge boilerplate of a manually-written immutable data class. They're implicitly final and can't extend another class (though they CAN implement interfaces), reinforcing their purpose as simple, transparent data carriers.
+                """,
+                "Very common now that records are widely adopted — expect to write one live and explain the compact constructor."),
+            hi("What are sealed classes/interfaces, and what benefit do they enable with switch pattern matching?",
+                """
+                ```java
+                sealed interface Shape permits Circle, Square, Triangle {}
+                record Circle(double r) implements Shape {}
+                record Square(double side) implements Shape {}
+                record Triangle(double base, double height) implements Shape {}
+
+                double area(Shape s) {
+                    return switch (s) {
+                        case Circle c -> Math.PI * c.r() * c.r();
+                        case Square sq -> sq.side() * sq.side();
+                        case Triangle t -> 0.5 * t.base() * t.height();
+                        // no 'default' needed — compiler KNOWS these are the only 3 permitted subtypes
+                    };
+                }
+                ```
+
+                sealed restricts exactly which classes/interfaces are allowed to extend/implement a type, declared via a permits clause. Combined with pattern matching for switch, the compiler can verify EXHAUSTIVENESS — if you add a new permitted subtype and forget to handle it in a switch, you get a compile error instead of a silent runtime gap, unlike a plain unsealed hierarchy with a defensive default case.
+                """,
+                "A modern-Java feature increasingly asked about, especially the exhaustiveness-checking benefit."),
+            hi("What are virtual threads (Java 21), and what workload benefits most from them?",
+                "Virtual threads are lightweight threads managed by the JVM rather than mapped 1:1 to an OS thread — you can create millions cheaply (a few hundred bytes vs a platform thread's ~1MB stack). They benefit I/O-BOUND workloads most: when a virtual thread blocks on I/O (a DB call, an HTTP call), it's transparently 'unmounted' from its carrier OS thread, freeing that OS thread to run other virtual threads instead of sitting idle — letting a server handle huge numbers of concurrent blocking-style requests without the complexity of reactive/async code. They do NOT speed up CPU-bound work, where the real limit is still the number of physical cores.",
+                "A current, frequently-asked feature question given Java 21 LTS adoption — expect a 'so should I rewrite my reactive code' follow-up."),
+            hi("What's the difference between map() and flatMap() in a Stream pipeline?",
+                """
+                ```java
+                List<List<Integer>> nested = List.of(List.of(1, 2), List.of(3, 4));
+
+                // map: Stream<List<Integer>> -> Stream<List<Integer>>  (one output per input, still nested)
+                nested.stream().map(list -> list).toList();
+
+                // flatMap: flattens each inner Stream into ONE combined stream
+                List<Integer> flat = nested.stream()
+                    .flatMap(List::stream)
+                    .toList(); // [1, 2, 3, 4]
+                ```
+
+                map() transforms each element 1-to-1. flatMap() transforms each element into its OWN stream, then flattens all of those sub-streams into a single resulting stream — essential for working with nested collections/Optionals.
+                """,
+                "A common live-coding stream question, especially with a nested-list or Optional-chaining example."),
+            hi("What's the difference between pattern matching for instanceof (Java 16+) and the old style?",
+                """
+                ```java
+                // Old style:
+                if (obj instanceof String) {
+                    String s = (String) obj;   // manual, redundant cast
+                    System.out.println(s.length());
+                }
+
+                // Pattern matching for instanceof (Java 16+):
+                if (obj instanceof String s) {   // 's' is bound automatically, already cast
+                    System.out.println(s.length());
+                }
+                ```
+
+                Pattern matching eliminates the redundant explicit cast after an instanceof check — the compiler introduces the pattern variable already narrowed to the checked type, reducing boilerplate and a class of cast-mismatch bugs.
+                """,
+                "A smaller but very common modern-syntax question — quick to demonstrate live."),
+            md("What are text blocks, and what problem do they solve?",
+                """
+                ```java
+                String json = \"\"\"
+                    {
+                      "name": "Ada",
+                      "role": "engineer"
+                    }
+                    \"\"\";
+                ```
+
+                Text blocks (Java 15+) let you write multi-line string literals (like embedded JSON, SQL, or HTML) without escaping every quote and newline, and the compiler strips a computed common leading whitespace ('incidental indentation') so the source can stay nicely indented without polluting the actual string value.
+                """,
+                "A quality-of-life feature question, commonly asked alongside records as 'what's new that you actually use.'"),
+            hi("What's the difference between the old Collectors.toList() and Java 16's Stream.toList()?",
+                "Collectors.toList() (via stream.collect(Collectors.toList())) makes no guarantee about mutability of the returned list (in practice usually an ArrayList, but that's not contractually guaranteed). Stream.toList() (added Java 16, a direct terminal method) returns an UNMODIFIABLE list — attempting to mutate it throws UnsupportedOperationException — and is more concise to write. Prefer .toList() unless you specifically need a mutable result, in which case use .collect(Collectors.toCollection(ArrayList::new)).",
+                "A precise, up-to-date API question distinguishing the modern idiom from the older, more verbose one."),
+            md("What is the switch expression (Java 14+), and how is it different from a traditional switch statement?",
+                """
+                ```java
+                // Old: switch statement — fall-through by default, needs 'break'
+                int numLetters;
+                switch (day) {
+                    case MONDAY: case FRIDAY: case SUNDAY: numLetters = 6; break;
+                    case TUESDAY: numLetters = 7; break;
+                    default: numLetters = 0;
+                }
+
+                // New: switch EXPRESSION — arrow syntax, no fall-through, returns a value
+                int numLetters2 = switch (day) {
+                    case MONDAY, FRIDAY, SUNDAY -> 6;
+                    case TUESDAY -> 7;
+                    default -> 0;
+                };
+                ```
+
+                The switch expression can be used as a value-producing expression directly (assigned, returned), uses -> instead of : (no accidental fall-through), and supports comma-separated case labels — a meaningful reduction in boilerplate and a common source of the old style's 'forgot a break' bugs.
+                """,
+                "A commonly-asked syntax-modernization question, easy to demonstrate with a quick before/after.")));
+
+        // ================= Spring Framework (standalone track) =================
+        m.put("SPR1", List.of(
+            hi("What's the difference between Inversion of Control and Dependency Injection?",
+                "IoC is the broader design principle: control over object creation/wiring is inverted from application code to a container/framework. DI is ONE technique for achieving IoC — the container supplies (injects) a component's dependencies rather than the component creating or looking them up itself. Other IoC mechanisms exist (e.g., the service locator pattern), but Spring is built entirely around DI as its chosen technique.",
+                "The foundational Spring question — expected as a first-round warm-up for any Spring role."),
+            hi("Why does Spring recommend constructor injection as the default, over field or setter injection?",
+                """
+                ```java
+                @Service
+                public class OrderService {
+                    private final PaymentClient paymentClient;   // final — only settable via constructor
+
+                    public OrderService(PaymentClient paymentClient) {   // constructor injection
+                        this.paymentClient = paymentClient;
+                    }
+                }
+                // Testing needs NO Spring context at all:
+                // OrderService svc = new OrderService(mockPaymentClient);
+                ```
+
+                Constructor injection makes required dependencies explicit and lets fields be final (truly immutable after construction). It fails fast at startup if a dependency is missing, instead of surfacing a NullPointerException deep in some code path later. And it makes unit testing trivial — just call the constructor with mocks, no reflection or Spring context required. Field injection (@Autowired on a field) hides dependencies, allows constructing a half-wired object, and complicates testing.
+                """,
+                "One of THE most common Spring questions — a candidate defaulting to field injection is a real signal to interviewers."),
+            hi("List Spring's standard bean scopes and give a real scenario for each.",
+                "singleton (default): one shared instance per container — right for stateless services, repositories, most beans. prototype: a brand-new instance every time the bean is requested — for stateful, non-thread-safe helper objects. request: one instance per HTTP request — e.g., request-scoped data holders in a web app. session: one instance per HTTP session — e.g., a per-user shopping cart bean. application: one instance per ServletContext (similar to singleton but scoped to the web app, not just the Spring container).",
+                "Common as a rapid-fire follow-up after the DI basics question."),
+            hi("What's the difference between @Component, @Service, @Repository, and @Controller if they all register a bean the same way?",
+                "Functionally, all four are stereotypes of @Component and get picked up identically by component scanning. The more specific annotations add semantic clarity about a class's role AND, in @Repository's case, real extra behavior — it enables Spring's exception translation, wrapping platform-specific exceptions (like a raw JDBC SQLException) into Spring's consistent DataAccessException hierarchy via a registered BeanPostProcessor.",
+                "Tests whether a candidate knows @Repository isn't purely cosmetic."),
+            hi("Explain the Spring bean lifecycle from instantiation to destruction.",
+                "1) Spring instantiates the bean (constructor call). 2) Dependencies are injected (constructor/setter/field). 3) Aware interfaces are called if implemented (BeanNameAware, ApplicationContextAware, etc.) so the bean can access container info. 4) BeanPostProcessors run their postProcessBeforeInitialization. 5) @PostConstruct method (or InitializingBean.afterPropertiesSet()) runs — custom init logic. 6) BeanPostProcessors run postProcessAfterInitialization (this is where AOP proxies get created, wrapping the bean). 7) The bean is fully ready and used by the application. 8) On container shutdown, @PreDestroy (or DisposableBean.destroy()) runs for cleanup — but only for singleton-scoped beans; prototype beans are NOT tracked for destruction by the container.",
+                "A detailed lifecycle question — the fact that prototype beans skip destruction callbacks is a strong senior-level detail to include."),
+            hi("What's the difference between @Autowired and @Qualifier, and when do you need @Qualifier?",
+                """
+                ```java
+                public interface NotificationSender {}
+                @Component class EmailSender implements NotificationSender {}
+                @Component class SmsSender implements NotificationSender {}
+
+                @Service
+                public class AlertService {
+                    private final NotificationSender sender;
+
+                    public AlertService(@Qualifier("emailSender") NotificationSender sender) { // disambiguates
+                        this.sender = sender;
+                    }
+                }
+                ```
+
+                @Autowired triggers Spring's autowiring by type. When MULTIPLE beans implement the same interface/type, Spring can't pick one automatically and throws a NoUniqueBeanDefinitionException — @Qualifier (matched against a bean's name, or a custom qualifier annotation) tells Spring exactly which candidate to inject.
+                """,
+                "A common practical follow-up once a candidate mentions autowiring — tests whether they've hit and solved the ambiguous-bean problem."),
+            hi("What's the difference between Java-based configuration (@Configuration/@Bean) and component scanning (@Component + @Autowired)?",
+                "Component scanning: Spring scans packages for classes annotated with stereotype annotations and registers them automatically — convenient for classes you own and control. @Configuration/@Bean: you explicitly write a method that constructs and returns the bean — necessary for third-party classes you can't annotate, or when bean creation needs custom logic/parameters. Most real Spring apps use component scanning for their own classes and @Bean methods for third-party library objects (e.g., a RestTemplate or an ObjectMapper).",
+                "Tests practical judgment about when each configuration style is appropriate."),
+            md("What does @Primary do, and how does it differ from @Qualifier for resolving ambiguous bean injection?",
+                "@Primary marks ONE candidate bean as the default choice whenever multiple beans of the same type exist and no @Qualifier is specified at the injection point — it's a blanket, type-wide default. @Qualifier is specified at the INJECTION POINT itself, explicitly picking a specific bean for that one usage, and takes precedence over @Primary when both could apply.",
+                "A specific disambiguation-mechanism question that's a common follow-up to the @Qualifier question."),
+            hi("What's a circular dependency in Spring, and how does Spring handle it (or fail to)?",
+                "A circular dependency is when Bean A depends on Bean B, and Bean B depends on Bean A (directly or through a longer cycle). For SETTER/field injection of singleton beans, Spring can resolve simple circular dependencies using an early-reference cache (the 'third-level cache' in its bean-creation process) — injecting a not-yet-fully-initialized reference. For CONSTRUCTOR injection, Spring CANNOT resolve a circular dependency this way and throws a BeanCurrentlyInCreationException at startup — which is actually a good thing, since it forces you to notice and fix the underlying design smell (usually by introducing an interface, restructuring responsibilities, or using @Lazy on one side).",
+                "A more advanced question that also reveals why constructor injection being 'stricter' about this is considered a feature, not a limitation."),
+            md("What's the difference between BeanFactory and ApplicationContext?",
+                "BeanFactory is the root, most basic IoC container interface — lazy bean instantiation, minimal features. ApplicationContext extends BeanFactory and adds enterprise features used by virtually every real Spring app: eager singleton instantiation at startup (so config errors surface immediately, not lazily), event publishing (ApplicationEvent), internationalization support, and easier integration with AOP. In practice, almost nobody uses raw BeanFactory directly — ApplicationContext (or its Spring Boot equivalent) is what you actually work with.",
+                "A classic 'what's the base interface vs what you actually use' distinction question.")));
+
+        m.put("SPR2", List.of(
+            hi("What problem does AOP solve, and what's a concrete example of a cross-cutting concern?",
+                "Cross-cutting concerns are behaviors needed across many unrelated classes — logging, security checks, transaction management, caching, auditing — that would otherwise be duplicated in every method that needs them. AOP lets you define that behavior ONCE as an aspect and apply it declaratively wherever a pointcut expression matches, keeping business logic classes focused purely on their actual responsibility. The canonical example: @Transactional itself is implemented as AOP advice that wraps a method call in a transaction begin/commit/rollback — you never write that plumbing by hand.",
+                "Foundational AOP motivation question — expects a real example, not just the definition."),
+            hi("How does Spring implement AOP under the hood — JDK dynamic proxies vs CGLIB?",
+                "Spring AOP is proxy-based: at startup, it wraps your bean in a proxy object that intercepts method calls before delegating to the real object. JDK dynamic proxies are used when the target class implements at least one interface — the proxy implements the same interface(s) and is created purely at runtime via java.lang.reflect.Proxy. CGLIB proxies (bytecode subclassing) are used when there's no interface — the proxy subclasses the target class itself at runtime. This is exactly why AOP silently doesn't work on final classes or final methods — CGLIB can't subclass/override them.",
+                "Tests real mechanism understanding, not just 'Spring uses proxies' — the final-class caveat is the key senior detail."),
+            hi("Why doesn't calling a @Transactional method from another method in the SAME class actually start a transaction?",
+                """
+                ```java
+                @Service
+                public class OrderService {
+                    public void placeOrder(Order o) {
+                        saveOrder(o);           // self-invocation — BYPASSES the proxy entirely!
+                    }
+
+                    @Transactional
+                    public void saveOrder(Order o) { /* ... */ }   // transaction is silently NOT applied here
+                }
+                ```
+
+                Spring AOP proxies intercept calls made TO the proxy FROM OUTSIDE the bean. A call from `this.saveOrder(o)` inside the same object goes directly to the real method, completely bypassing the proxy wrapper — so none of the transactional advice runs. Fixes: move saveOrder into a separate, collaborating bean called through ITS OWN proxy, or inject a self-reference (AopContext.currentProxy(), requiring exposeProxy=true) and call through that — the former is the cleaner, more common fix.
+                """,
+                "One of the single most common Spring 'gotcha' interview questions — often presented as 'why isn't my transaction working?'"),
+            hi("What's the difference between @Before, @After, @AfterReturning, @AfterThrowing, and @Around advice?",
+                """
+                ```java
+                @Aspect
+                @Component
+                public class LoggingAspect {
+                    @Around("execution(* com.app.service.*.*(..))")
+                    public Object logTiming(ProceedingJoinPoint pjp) throws Throwable {
+                        long start = System.currentTimeMillis();
+                        Object result = pjp.proceed();          // MUST call this to actually run the method
+                        System.out.println(pjp.getSignature() + " took " + (System.currentTimeMillis() - start) + "ms");
+                        return result;
+                    }
+                }
+                ```
+
+                @Before runs before the target method. @AfterReturning runs after a successful return (can access the return value). @AfterThrowing runs only if an exception propagates out. @After runs unconditionally, like a finally block. @Around is the most powerful — it wraps the entire invocation, receives a ProceedingJoinPoint, and can choose whether/when to call proceed(), inspect or modify arguments/the return value, or short-circuit the call entirely (e.g., serve from a cache without calling the real method).
+                """,
+                "A very common practical AOP question — expect to be asked to write a timing/logging aspect live."),
+            hi("What's a pointcut expression, and write one that matches all public methods in a service package.",
+                """
+                ```java
+                @Pointcut("execution(public * com.app.service..*.*(..))")
+                public void allServiceMethods() {}
+                ```
+
+                A pointcut expression defines WHICH join points (method executions, typically) an aspect's advice applies to — matched by pattern against modifiers, return type, package/class name, method name, and parameters. execution(public * com.app.service..*.*(..)) reads as: any public method (public *), in com.app.service or any sub-package (..), any class (*), any method name (*), with any parameters (..).
+                """,
+                "Tests whether a candidate can actually write, not just recognize, a pointcut expression."),
+            hi("Why is @Transactional's rollback behavior different for checked vs unchecked exceptions by default?",
+                "By default, Spring's declarative transaction management rolls back ONLY on unchecked exceptions (RuntimeException and Error), NOT on checked exceptions — this mirrors the EJB convention Spring inherited historically, on the assumption that a checked exception represents an anticipated, 'business as usual' condition the caller is expected to handle, not necessarily a failure requiring rollback. This surprises many developers — the fix is to explicitly configure @Transactional(rollbackFor = SomeCheckedException.class) when a checked exception SHOULD trigger a rollback.",
+                "A commonly-missed, genuinely useful gotcha — strong candidates flag this default without being prompted."),
+            md("Can you apply Spring AOP advice to a method called on a bean that isn't managed by Spring (e.g., created with new)?",
+                "No — Spring AOP only works on beans that Spring itself creates and manages (so it can wrap them in a proxy at creation time). An object created directly with new bypasses the Spring container entirely, so no proxy is ever created and no advice applies, regardless of matching pointcuts. This is a fundamental limitation of Spring's proxy-based AOP versus full AspectJ compile-time/load-time weaving, which CAN instrument arbitrary objects.",
+                "Clarifies the proxy-based limitation versus full AspectJ, a distinction advanced candidates are expected to know."),
+            hi("What's the difference between Spring AOP and full AspectJ?",
+                "Spring AOP is proxy-based, runtime-only, and can only intercept PUBLIC method calls made on a Spring-managed bean through its proxy — it can't weave into private methods, constructors, or field access, and self-invocation bypasses it entirely. Full AspectJ uses compile-time or load-time bytecode WEAVING, directly modifying the actual bytecode of the target class — it can intercept virtually anything (private methods, constructors, field access, self-invocation) but requires an extra build step (or a Java agent) and is more complex to set up. Spring AOP covers the vast majority of real-world needs (logging, transactions, security) with far less setup complexity.",
+                "A depth question distinguishing what most developers use (Spring AOP) from the more powerful underlying technology it's inspired by.")));
+
+        m.put("SPR3", List.of(
+            hi("Walk through what happens to an HTTP request from the moment it hits DispatcherServlet.",
+                "1) DispatcherServlet (the 'front controller') receives every incoming request. 2) It asks a HandlerMapping which controller method should handle this specific URL/method combination. 3) A HandlerAdapter invokes that controller method, resolving its arguments along the way (path variables, request params, a deserialized @RequestBody, injected beans). 4) The controller method runs and returns a value. 5) If it's annotated @ResponseBody (or the class is @RestController), an HttpMessageConverter serializes the return value directly to the response body (e.g., to JSON via Jackson). If instead a view name is returned, a ViewResolver locates and renders the corresponding view/template. 6) Any registered HandlerInterceptors or Filters run at appropriate points around this whole flow.",
+                "The canonical Spring MVC request-lifecycle question — interviewers expect this walked through in order."),
+            hi("How do you validate an incoming request body, and what happens automatically if validation fails?",
+                """
+                ```java
+                public record CreateUserRequest(
+                    @NotBlank String name,
+                    @Email String email,
+                    @Min(18) int age) {}
+
+                @PostMapping("/users")
+                public ResponseEntity<User> create(@Valid @RequestBody CreateUserRequest req) {
+                    // if req fails validation, this method body never even runs
+                    return ResponseEntity.ok(userService.create(req));
+                }
+                ```
+
+                Annotate the parameter with @Valid (or @Validated for group validation) and the DTO's fields with Bean Validation annotations (@NotNull, @Size, @Email, @Min, etc.). If validation fails, Spring throws MethodArgumentNotValidException BEFORE the controller method body even executes, which Spring Boot's default error handling turns into a 400 Bad Request automatically — or which you can catch in a custom @ExceptionHandler for a more detailed field-by-field error response.
+                """,
+                "Extremely common practical validation question — expect a live-coding follow-up."),
+            hi("@ControllerAdvice with @ExceptionHandler vs a try/catch in every controller method — why is the former preferred?",
+                "@ControllerAdvice centralizes exception-to-HTTP-response mapping in ONE place, applied globally (or to a targeted subset via basePackages/assignableTypes) across controllers, rather than duplicating the same error-formatting try/catch logic in every controller method. It keeps controller methods focused on the happy path, and guarantees a CONSISTENT error response shape across the entire API, which client/API consumers can reliably parse and handle.",
+                "A design-quality question showing whether a candidate reaches for centralization over repetition."),
+            hi("What's the difference between @RequestParam, @PathVariable, and @RequestBody?",
+                """
+                ```java
+                // GET /search?q=spring&page=2
+                @GetMapping("/search")
+                public List<Result> search(@RequestParam String q, @RequestParam(defaultValue = "0") int page) { ... }
+
+                // GET /users/42
+                @GetMapping("/users/{id}")
+                public User getUser(@PathVariable Long id) { ... }
+
+                // POST /users  with a JSON body
+                @PostMapping("/users")
+                public User createUser(@RequestBody CreateUserRequest body) { ... }
+                ```
+
+                @RequestParam binds a query string parameter or form field. @PathVariable binds a segment of the URI path itself. @RequestBody deserializes the ENTIRE request body (typically JSON) into a Java object via an HttpMessageConverter (Jackson by default).
+                """,
+                "A fundamentals question, but the code fluency matters — expect to write matching endpoint signatures live."),
+            hi("What's the difference between @Controller and @RestController?",
+                "@Controller is the base Spring MVC stereotype — by default, a returned String is interpreted as a VIEW NAME to be resolved and rendered (e.g., a Thymeleaf template), not sent as the raw response body. @RestController is a convenience meta-annotation combining @Controller and @ResponseBody, so every method's return value is automatically serialized directly into the HTTP response body (typically JSON) — the standard choice for building JSON REST APIs rather than server-rendered HTML pages.",
+                "A basic but essential distinction, common as a warm-up before deeper REST-design questions."),
+            hi("How do HandlerInterceptors differ from Servlet Filters, and when would you use one over the other?",
+                "Servlet Filters operate at the raw Servlet container level, BEFORE the request even reaches DispatcherServlet — appropriate for very generic, framework-agnostic concerns (e.g., raw request logging, CORS headers, gzip compression) that don't need Spring MVC context. HandlerInterceptors operate INSIDE the Spring MVC pipeline, with access to which specific handler method was matched (preHandle/postHandle/afterCompletion) — appropriate for MVC-aware concerns like checking a custom annotation on the target controller method, or measuring handler-specific timing.",
+                "A depth question about the web request pipeline, testing whether the candidate has actually built cross-cutting web concerns before."),
+            md("What is content negotiation in Spring MVC, and how does the framework decide whether to return JSON or XML for the same endpoint?",
+                "Content negotiation is choosing the response representation format based on what the client asked for — primarily via the Accept HTTP header (application/json vs application/xml), and sometimes a URL suffix or parameter. Spring MVC's ContentNegotiationManager inspects these signals and picks a registered HttpMessageConverter capable of producing that format — as long as the corresponding converter (e.g., Jackson for JSON, JAXB for XML) is on the classpath and configured.",
+                "A somewhat deeper API-design question about how the same controller can serve multiple response formats.")));
+
+        m.put("SPR4", List.of(
+            hi("Declarative vs programmatic transaction management in Spring — what's the difference, and which is generally recommended?",
+                "Declarative: annotate a method with @Transactional and let an AOP proxy start/commit/rollback the transaction around the whole method call — no transaction-handling code appears in your business logic at all. Programmatic: manually use TransactionTemplate or PlatformTransactionManager to control transaction boundaries explicitly in code, useful when you need fine-grained control WITHIN a single method (e.g., committing part of the work, then continuing outside a transaction). Spring recommends declarative for the vast majority of cases — less error-prone, keeps transaction concerns out of business logic — reserving programmatic for genuinely fine-grained, in-method control.",
+                "The default entry point into Spring transaction questions."),
+            hi("Explain REQUIRED, REQUIRES_NEW, and NESTED propagation, focusing on rollback behavior differences.",
+                """
+                ```java
+                @Transactional(propagation = Propagation.REQUIRES_NEW)
+                public void logAuditEvent(String msg) {
+                    auditRepo.save(new AuditLog(msg));   // commits independently of the caller's transaction
+                }
+
+                @Transactional
+                public void placeOrder(Order o) {
+                    orderRepo.save(o);
+                    auditService.logAuditEvent("order placed"); // REQUIRES_NEW — commits even if placeOrder later fails
+                    throw new RuntimeException("payment declined"); // rolls back the order save, NOT the audit log
+                }
+                ```
+
+                REQUIRED (default): joins the caller's existing transaction if one exists, else starts a new one — a rollback ANYWHERE in that shared transaction rolls back everything within it. REQUIRES_NEW: always suspends any existing transaction and starts a fully independent one — a later rollback in the OUTER transaction does not undo what the REQUIRES_NEW transaction already committed (as shown above — the audit log survives even though the order is rolled back). NESTED: uses a savepoint within the SAME physical transaction — a rollback in the nested part can be contained to that savepoint without rolling back the whole outer transaction, but it's still tied to the outer transaction's eventual commit.
+                """,
+                "The most detailed, senior-level transaction question — expect to trace through exactly what commits and what rolls back."),
+            hi("What is Spring's DataAccessException hierarchy, and why does it matter that it's unchecked?",
+                "Spring translates low-level, technology-SPECIFIC exceptions (a raw SQLException with a vendor error code, a Hibernate-specific exception) into a consistent, technology-AGNOSTIC DataAccessException hierarchy. Being unchecked (extends RuntimeException) means callers aren't forced to catch/declare it at every layer up the call stack, and the abstraction lets you swap the underlying persistence technology (JDBC to JPA, one database vendor to another) without rewriting every catch clause that depends on it. This translation is enabled by @Repository's PersistenceExceptionTranslationPostProcessor behavior.",
+                "Tests understanding of WHY @Repository is more than a naming convention, tying back to the AOP/stereotype question."),
+            hi("When would you reach for JdbcTemplate instead of an ORM like Hibernate/Spring Data JPA?",
+                "When you need tight control over the exact SQL executed — complex reporting queries, bulk operations, or performance-critical paths where ORM-generated SQL is measurably suboptimal. JdbcTemplate removes JDBC's usual boilerplate (manually managing Connection/PreparedStatement/ResultSet and closing each of them) while still letting you write raw SQL directly. For typical CRUD-heavy domain-object persistence, an ORM/Spring Data JPA is more productive; JdbcTemplate is the pragmatic escape hatch for the cases where the ORM gets in the way.",
+                "A judgment question about matching the right data-access tool to the actual need, not defaulting to one technology everywhere."),
+            md("What does RowMapper do in JdbcTemplate, and how would you use it to map a query result to a domain object?",
+                """
+                ```java
+                public class UserRowMapper implements RowMapper<User> {
+                    @Override
+                    public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        return new User(rs.getLong("id"), rs.getString("name"), rs.getString("email"));
+                    }
+                }
+
+                List<User> users = jdbcTemplate.query(
+                    "SELECT id, name, email FROM users WHERE active = ?", new UserRowMapper(), true);
+                ```
+
+                RowMapper converts ONE row of a JDBC ResultSet into a domain object; JdbcTemplate calls it once per row and collects the results into a List, handling the ResultSet iteration, resource cleanup, and exception translation for you.
+                """,
+                "A practical JdbcTemplate usage question, common when a role touches legacy or performance-sensitive data access code.")));
+
+        m.put("SPR5", List.of(
+            hi("Why does Spring's TestContext framework cache the ApplicationContext between test classes, and what can accidentally defeat that caching?",
+                "Starting a full Spring context is expensive (component scanning, bean instantiation, AOP proxy creation); caching it — keyed by its exact effective configuration — lets many test classes SHARE the same context instead of rebuilding it per class, dramatically speeding up a large test suite. Anything that changes the effective configuration key breaks the cache and forces a rebuild for that test class: different @ActiveProfiles, a different set of @MockBean/@SpyBean overrides, or different @ContextConfiguration classes between test classes. Minimizing the NUMBER of distinct context configurations across a test suite is a real, practical technique for keeping CI fast.",
+                "A practical, experience-based question — few candidates without real test-suite pain know this detail."),
+            hi("What does MockMvc give you that a full @SpringBootTest with an embedded server doesn't, for testing a controller?",
+                """
+                ```java
+                @WebMvcTest(OrderController.class)
+                class OrderControllerTest {
+                    @Autowired MockMvc mockMvc;
+                    @MockBean OrderService orderService;
+
+                    @Test
+                    void returns404WhenOrderMissing() throws Exception {
+                        when(orderService.find(99L)).thenReturn(Optional.empty());
+                        mockMvc.perform(get("/orders/99"))
+                               .andExpect(status().isNotFound());
+                    }
+                }
+                ```
+
+                MockMvc simulates HTTP requests/responses against DispatcherServlet WITHOUT starting a real network server or binding a port — faster, while still exercising the real MVC pipeline (argument resolution, validation, exception handling, response serialization). A full embedded-server test (@SpringBootTest(webEnvironment = RANDOM_PORT) plus a real HTTP client) is slower but verifies genuine network-level behavior end to end — appropriate for a smaller number of true integration tests, not for every controller test case.
+                """,
+                "A very practical testing-strategy question — the code should demonstrate real fluency with MockMvc/@WebMvcTest."),
+            hi("What's the difference between a test slice like @WebMvcTest and the full @SpringBootTest?",
+                "@WebMvcTest loads only the web layer — controllers, filters, MVC infrastructure — and auto-configures MockMvc, leaving service/repository beans unloaded (you supply mocks, typically via @MockBean, for anything the controller depends on). @SpringBootTest loads the ENTIRE application context — thorough, closest to production wiring, but much slower to start. The rule of thumb: use the narrowest test slice that actually exercises what you're testing (@WebMvcTest, @DataJpaTest, @JsonTest, etc.), and reserve full @SpringBootTest for genuine end-to-end integration tests.",
+                "Common follow-up that checks whether a candidate defaults to the heaviest test setup out of habit."),
+            hi("@MockBean vs a manually created Mockito mock (Mockito.mock(...)) inside a Spring test — what's the difference?",
+                "@MockBean tells Spring's test context to REPLACE the real bean of that type in the ApplicationContext with a Mockito mock, so any OTHER bean that gets autowired that dependency (including the controller under test) transparently receives the mock — it participates in the Spring context. A manually created Mockito.mock(SomeType.class) is just a plain object you construct and wire yourself (e.g., pass directly into a constructor) — it never touches the Spring context at all, which is exactly why it's the right (and much faster) choice for a pure unit test that doesn't need Spring running at all.",
+                "Tests whether a candidate over-uses Spring context machinery for what should be a plain, fast unit test."),
+            md("Why might introducing a new @MockBean in one test class slow down an entire test suite, even though the mock itself is 'fast'?",
+                "@MockBean changes the effective ApplicationContext configuration for that test class (it's part of the cache key), so if that particular combination of mocks/config hasn't been seen before, Spring must build a BRAND NEW context for it rather than reusing an already-cached one — and if many test classes each introduce slightly different, unique @MockBean combinations, the suite ends up rebuilding the context repeatedly instead of sharing one, which is often the real (and easy-to-miss) cause of a test suite becoming slow over time.",
+                "An advanced, real-world performance-debugging question distinguishing a strong, experienced answer from a purely textbook one.")));
+
+        // ================= Spring Boot (standalone track) =================
+        m.put("SB1", List.of(
+            hi("What three annotations does @SpringBootApplication compose, and what does each contribute?",
+                """
+                ```java
+                @SpringBootApplication   // == @SpringBootConfiguration + @EnableAutoConfiguration + @ComponentScan
+                public class MyApp {
+                    public static void main(String[] args) {
+                        SpringApplication.run(MyApp.class, args);
+                    }
+                }
+                ```
+
+                @SpringBootConfiguration marks the class as a source of bean definitions (a specialization of @Configuration). @EnableAutoConfiguration triggers Spring Boot's auto-configuration mechanism — conditionally registering beans based on what's on the classpath and what's already configured. @ComponentScan scans the current package and sub-packages for @Component-annotated classes to register — which is why Spring Boot convention places the main class in the ROOT package of your application.
+                """,
+                "The most-asked Spring Boot fundamentals question — every candidate should be able to decompose this annotation from memory."),
+            hi("How does a single starter dependency like spring-boot-starter-data-jpa end up auto-configuring an entire subsystem?",
+                "A starter is really just a curated set of transitive dependencies (Hibernate, Spring Data JPA, a JDBC driver, etc.) with mutually compatible versions — it contains no framework logic of its own. Adding those jars to the classpath is what auto-configuration classes REACT to via conditional annotations like @ConditionalOnClass — seeing Hibernate + a DataSource on the classpath is what triggers JPA-related beans (EntityManagerFactory, a transaction manager, etc.) to auto-configure. You can always override any auto-configured bean by defining your own bean of that type — @ConditionalOnMissingBean means your explicit bean wins over the auto-configured default.",
+                "Tests real understanding of the auto-configuration mechanism, not just 'it just works' hand-waving."),
+            hi("What's the property override precedence in Spring Boot — command-line args, env vars, and application.yml?",
+                "From highest to lowest precedence (roughly): command-line arguments win over almost everything; JVM system properties and environment variables come next, ahead of packaged configuration files; profile-specific files (application-{profile}.yml) override the base application.yml for any property they redefine; the base application.yml/properties comes last as the default. Understanding this order is essential for debugging 'why isn't my config taking effect' issues across local/CI/staging/production environments where the same property might be set in several places.",
+                "A practical, frequently-needed debugging question about Spring Boot's externalized configuration."),
+            hi("How would you disable a specific auto-configuration class you don't want active?",
+                """
+                ```java
+                @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
+                public class MyApp { ... }
+
+                // or in application.properties:
+                // spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+                ```
+
+                Common when you want to configure that concern entirely manually, or when a starter on the classpath (perhaps a transitive dependency you don't directly control) brings auto-configuration you don't actually want active for your use case.
+                """,
+                "A practical configuration-control question that shows familiarity beyond 'let auto-config do everything.'"),
+            hi("What's the difference between application.properties and application.yml, and can you use both?",
+                "Both configure the same underlying properties — .properties uses flat key=value pairs, .yml uses nested, indentation-based structure, which is more readable for deeply nested configuration (and supports lists more naturally). You technically CAN have both in the same project, but Spring Boot picks properties from whichever file(s) are present, and mixing formats in one project is generally avoided for consistency/readability — most teams standardize on one.",
+                "A basic but common configuration-format question."),
+            hi("How do you write a custom auto-configuration class, and what makes it 'auto' rather than just a regular @Configuration?",
+                """
+                ```java
+                @AutoConfiguration
+                @ConditionalOnClass(SomeThirdPartyClient.class)
+                @ConditionalOnMissingBean(SomeThirdPartyClient.class)
+                @EnableConfigurationProperties(MyClientProperties.class)
+                public class MyClientAutoConfiguration {
+                    @Bean
+                    public SomeThirdPartyClient client(MyClientProperties props) {
+                        return new SomeThirdPartyClient(props.getApiKey());
+                    }
+                }
+                // registered in META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+                ```
+
+                What makes it 'auto' is: (1) it's conditionally applied via @ConditionalOnClass/@ConditionalOnMissingBean/@ConditionalOnProperty, so it only activates when relevant, and (2) it's registered in the AutoConfiguration.imports file so Spring Boot discovers and considers it automatically at startup — a regular @Configuration class must be explicitly imported or component-scanned to be picked up.
+                """,
+                "A more advanced question for candidates who might build a shared internal Spring Boot starter."),
+            md("What's the purpose of @ConfigurationProperties, and how is it different from @Value for reading config?",
+                """
+                ```java
+                @ConfigurationProperties(prefix = "app.mail")
+                public record MailProperties(String host, int port, boolean tlsEnabled) {}
+
+                // application.yml:
+                // app.mail.host: smtp.example.com
+                // app.mail.port: 587
+                // app.mail.tls-enabled: true
+                ```
+
+                @Value("${app.mail.host}") reads ONE property at a time, scattered across whatever class needs it, with no built-in structure or validation. @ConfigurationProperties binds an entire nested block of related properties to a single typed object in one place (supports validation via @Validated, relaxed binding of kebab-case/camelCase/etc.), which is far more maintainable for anything beyond a couple of standalone values.
+                """,
+                "A practical configuration-binding question showing familiarity with the more scalable approach.")));
+
+        m.put("SB2", List.of(
+            hi("How does Spring Data JPA generate a working query just from a method name like findByLastNameAndActiveTrue?",
+                """
+                ```java
+                public interface UserRepository extends JpaRepository<User, Long> {
+                    List<User> findByLastNameAndActiveTrue(String lastName);
+                    List<User> findByAgeGreaterThanOrderByLastNameAsc(int age);
+                }
+                ```
+
+                Spring Data parses the method name against a defined grammar (By, And, Or, property names matched to entity fields, keywords like GreaterThan/Containing/OrderBy) and builds the equivalent JPQL query automatically at startup — no SQL or JPQL written by hand. For anything the naming convention can't express cleanly (complex joins, aggregations), you fall back to @Query with JPQL or native SQL.
+                """,
+                "One of the most fundamental Spring Data JPA questions — expect to be asked to derive a query method live."),
+            hi("What is the N+1 query problem in a Spring Data JPA repository, concretely, and how do you fix it?",
+                """
+                ```java
+                // BAD: N+1 — 1 query for orders, then 1 MORE query per order to lazily fetch its items
+                List<Order> orders = orderRepository.findAll();
+                orders.forEach(o -> o.getItems().size()); // triggers a lazy load, once per order
+
+                // FIX 1: JOIN FETCH
+                @Query("SELECT o FROM Order o JOIN FETCH o.items")
+                List<Order> findAllWithItems();
+
+                // FIX 2: @EntityGraph
+                @EntityGraph(attributePaths = "items")
+                List<Order> findAll();
+                ```
+
+                Calling findAll() on an entity with a lazy @OneToMany, then accessing that collection for each of N results, triggers 1 query for the list plus N additional queries — one per entity. Fix with a JOIN FETCH in a custom @Query, an @EntityGraph on the repository method, or batch fetching (hibernate.default_batch_fetch_size) to collapse the N extra queries into far fewer.
+                """,
+                "Extremely common — usually asked with 'how would you even DETECT this in the first place' as a follow-up (answer: enable SQL logging/a tool like p6spy, or count queries in a test)."),
+            hi("Where should @Transactional boundaries typically live — controller, service, or repository — and why?",
+                "The service layer — it represents a meaningful unit of business work that may span multiple repository calls that must all succeed or all fail together. Controllers shouldn't hold a transaction open across HTTP-layer concerns like response serialization. Repositories are too fine-grained — putting @Transactional there would create a SEPARATE transaction per individual data-access call, defeating the purpose of grouping related writes atomically.",
+                "A design-placement question that also tests understanding of what a transaction boundary is actually FOR."),
+            hi("Why use Flyway or Liquibase instead of Hibernate's ddl-auto=update in production?",
+                "ddl-auto=update is convenient for local development but unsafe in production — it can make silent, unreviewed, sometimes destructive schema changes with no audit trail and no rollback path. Flyway/Liquibase store versioned, ordered migration scripts applied deterministically and identically across every environment, forming a reviewable, version-controlled history of every schema change — the same migration that ran in staging is guaranteed to run identically in production. Standard practice: ddl-auto=validate (or none) in production, with real migrations owning all schema evolution.",
+                "A production-readiness question separating candidates with real deployment experience from purely local/tutorial-level knowledge."),
+            hi("Lazy vs eager fetching — what's the trade-off, and what's the default for @OneToMany vs @ManyToOne?",
+                "Lazy loads the association only when it's actually accessed — saves memory/query cost upfront, but risks a LazyInitializationException if accessed outside the active persistence session. Eager always loads it immediately alongside the owning entity — simpler mental model, but can over-fetch and silently hurt performance, especially on collections. @OneToMany and @ManyToMany default to LAZY; @ManyToOne and @OneToOne default to EAGER — a detail worth knowing because the EAGER default for @ManyToOne is a common, easy-to-overlook source of unintended extra queries.",
+                "A precise, commonly-tested detail — many candidates get the default fetch types backwards."),
+            hi("What causes a LazyInitializationException, and how do you avoid it in a Spring Boot service?",
+                "It's thrown when code accesses a lazily-loaded association AFTER the persistence session/transaction that fetched the owning entity has already closed — the Hibernate session needed to lazily fetch the data is gone. Avoid it by fetching eagerly where genuinely needed (a targeted JOIN FETCH), keeping all access to lazy associations strictly within the transactional service-layer boundary (never accessing them from a controller or after returning the entity), or better, mapping to a DTO projection inside the transactional method so nothing lazy ever needs to be touched later.",
+                "A very common runtime-exception debugging question, often framed as 'a teammate hit this bug — what's happening and how do you fix it?'"),
+            md("What's the difference between save() and saveAndFlush() on a JpaRepository, and when does the distinction matter?",
+                "save() persists the entity but relies on Hibernate's normal flush timing (typically at transaction commit, or whenever the persistence context decides to synchronize) — the INSERT/UPDATE may not hit the database immediately. saveAndFlush() forces an immediate flush to the database right then. This matters when you need the write to be visible to a SUBSEQUENT query within the same transaction that wouldn't otherwise see uncommitted, unflushed changes (e.g., a native SQL query run right after, which bypasses the persistence context's in-memory view).",
+                "A more subtle, practical Hibernate-flush-timing question that comes up debugging 'why doesn't my next query see this row.'"),
+            hi("How do you paginate and sort results with Spring Data JPA?",
+                """
+                ```java
+                public interface UserRepository extends JpaRepository<User, Long> {
+                    Page<User> findByActiveTrue(Pageable pageable);
+                }
+
+                Pageable pageable = PageRequest.of(0, 20, Sort.by("lastName").ascending());
+                Page<User> page = userRepository.findByActiveTrue(pageable);
+                // page.getContent(), page.getTotalElements(), page.getTotalPages(), page.hasNext()
+                ```
+
+                Adding a Pageable parameter to a derived or custom query method, and returning a Page<T> (or the lighter Slice<T>, which skips the extra COUNT query), gives pagination and sorting for free — Spring Data JPA automatically applies LIMIT/OFFSET and ORDER BY, and Page additionally runs a COUNT query to compute total pages/elements.
+                """,
+                "A common practical/live-coding question, especially for any listing endpoint.")));
+
+        m.put("SB3", List.of(
+            hi("What makes a REST API 'RESTful' rather than just an HTTP API — name a few concrete practices?",
+                "Resource-oriented URIs using nouns, not verbs (/orders/{id}, never /getOrder). Correct use of HTTP methods and status codes: GET for reads (safe, idempotent), POST to create (201 Created with a Location header pointing to the new resource), PUT/PATCH to update, DELETE to remove, with 404/409/422 used meaningfully rather than everything returning 200 or 500. Statelessness — each request carries everything needed to process it, no server-side session state between requests, which is what lets a REST API scale horizontally without sticky sessions. HATEOAS (hypermedia links guiding the client to related actions) is the more purist/advanced criterion, though many pragmatic production APIs skip it.",
+                "A design-principles question — interviewers listen for status-code fluency and the statelessness point specifically."),
+            hi("How do you return a consistent, structured error body across every endpoint in a Spring Boot API?",
+                """
+                ```java
+                @RestControllerAdvice
+                public class ApiExceptionHandler {
+                    @ExceptionHandler(OrderNotFoundException.class)
+                    public ResponseEntity<ErrorResponse> handleNotFound(OrderNotFoundException ex) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse("ORDER_NOT_FOUND", ex.getMessage(), Instant.now()));
+                    }
+
+                    @ExceptionHandler(MethodArgumentNotValidException.class)
+                    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+                        String detail = ex.getBindingResult().getFieldErrors().stream()
+                            .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                            .collect(Collectors.joining(", "));
+                        return ResponseEntity.badRequest().body(new ErrorResponse("VALIDATION_FAILED", detail, Instant.now()));
+                    }
+                }
+                ```
+
+                A single @RestControllerAdvice class with @ExceptionHandler methods per exception type (or exception hierarchy), each mapping to a consistent error DTO. Spring Boot 3+ also supports RFC 7807 Problem Details (the ProblemDetail class) out of the box as a standardized error response format.
+                """,
+                "One of the most common practical Spring Boot REST questions — expect to write the handler class live."),
+            hi("How do you validate a request DTO and return a response that lists exactly which fields are wrong?",
+                "Annotate the DTO fields with Bean Validation annotations (@NotBlank, @Size, @Min, @Email) and the controller parameter with @Valid. Catch MethodArgumentNotValidException in an @ExceptionHandler and map its BindingResult/getFieldErrors() into a response body listing each invalid field name alongside its specific message — far more useful to an API consumer than a single generic '400 Bad Request' with no detail about WHICH field failed and why.",
+                "A practical follow-up to the general exception-handling question, focused specifically on validation UX."),
+            hi("What does OpenAPI/Swagger give you in a Spring Boot project, and how is it typically generated?",
+                "A machine-readable specification of your API's endpoints, request/response shapes, parameters, and status codes — enabling interactive documentation (Swagger UI) that other teams/consumers can explore and try requests against, plus client-code generation from the spec. springdoc-openapi (the modern successor to springfox) generates it automatically from your existing controllers, DTOs, and annotations at runtime by default — you don't hand-write a YAML/JSON spec from scratch, though you CAN enrich it with extra annotations (@Operation, @Schema) for better descriptions.",
+                "A common tooling question, especially relevant to API-first or multi-team organizations."),
+            hi("How do you version a REST API in Spring Boot, and what are the trade-offs of the common approaches?",
+                "URI versioning (/api/v1/orders): simple, highly visible, easy to test manually and route — but can lead to controller/code duplication across versions. Header/content-negotiation versioning (Accept: application/vnd.myapp.v2+json): cleaner URIs, but less discoverable and harder to test/debug casually. Query-parameter versioning (?version=2): simple but easy to omit accidentally, less RESTful semantically. In Spring Boot, URI versioning is usually the pragmatic default for public APIs since it's the most explicit and cache-friendly; the choice ultimately depends on how many consumers you have and how often breaking changes actually occur.",
+                "A judgment/trade-off question rather than pure API-mechanics recall."),
+            hi("What's the difference between ResponseEntity and just returning a plain object/DTO from a @RestController method?",
+                """
+                ```java
+                @GetMapping("/orders/{id}")
+                public ResponseEntity<Order> getOrder(@PathVariable Long id) {
+                    return orderService.find(id)
+                        .map(ResponseEntity::ok)                       // 200 with the order body
+                        .orElseGet(() -> ResponseEntity.notFound().build()); // 404 with no body
+                }
+                ```
+
+                Returning a plain DTO always produces a 200 OK (assuming no exception) with that object serialized as the body — you have no control over the status code or headers per response. ResponseEntity<T> wraps the body AND gives explicit control over the HTTP status code, headers (e.g., Location, custom headers), and even conditionally returning an empty body (404) — essential whenever the response needs to vary based on runtime conditions.
+                """,
+                "A practical distinction that comes up constantly in real controller code, especially for conditional responses."),
+            md("What's the difference between 401 Unauthorized and 403 Forbidden, and do Spring Boot apps commonly get this backwards?",
+                "401 Unauthorized means the request lacks valid authentication credentials at all (or they were rejected) — the client should authenticate (or re-authenticate) and try again. 403 Forbidden means the client IS authenticated, but the authenticated identity doesn't have permission for this specific resource/action — retrying with different credentials won't help unless those credentials belong to someone with the right permissions. Yes, this is commonly mixed up in practice — Spring Security's default AccessDeniedException maps to 403 and AuthenticationException maps to 401, but custom exception handling sometimes conflates the two, which confuses API consumers about whether to re-login or simply give up.",
+                "A precise status-code semantics question that also reveals whether a candidate has actually debugged real auth issues.")));
+
+        m.put("SB4", List.of(
+            hi("How do you configure Spring Security in a modern (Spring Boot 3+) app, and how did that change from older versions?",
+                """
+                ```java
+                @Configuration
+                @EnableWebSecurity
+                public class SecurityConfig {
+                    @Bean
+                    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                        http.csrf(csrf -> csrf.disable())
+                            .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/api/public/**").permitAll()
+                                .anyRequest().authenticated())
+                            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                        return http.build();
+                    }
+                }
+                ```
+
+                Modern Spring Security uses a SecurityFilterChain @Bean built with a lambda-based DSL, instead of extending the now-removed WebSecurityConfigurerAdapter. This component-based approach also makes it straightforward to define MULTIPLE, independently ordered filter chains for different URL patterns (e.g., a stateless JWT-secured API chain and a separate stateful session-based admin UI chain) in the same application.
+                """,
+                "Essential and very commonly asked given how recently this API changed — a candidate citing WebSecurityConfigurerAdapter signals outdated knowledge."),
+            hi("Design a stateless JWT authentication flow for a Spring Boot API, end to end.",
+                "1) Client POSTs credentials to a login endpoint. 2) The server verifies them (against a UserDetailsService/password encoder) and issues a signed JWT containing claims (subject, roles, expiry) instead of creating a server-side session. 3) The client stores the token and sends it in the Authorization: Bearer <token> header on every subsequent request. 4) A custom filter, added to the SecurityFilterChain before the standard authentication filter, validates the token's signature and expiry on each incoming request and populates the SecurityContext accordingly — no session lookup or shared session store needed, which is exactly what makes this approach horizontally scalable across multiple app instances. 5) Token revocation before natural expiry is the classic weak point of this design, typically mitigated with short-lived access tokens plus longer-lived refresh tokens, or (rarely) a server-side denylist for the exceptional case.",
+                "The single most common Spring Boot Security system-design-style question — expect to be asked to whiteboard this."),
+            hi("In the OAuth2 authorization code flow, what does the extra 'code exchange' step protect against?",
+                "The authorization code itself is short-lived and passed through the browser (less sensitive if intercepted, since it alone can't be used to access resources). The actual access token exchange happens server-to-server (the client's backend directly to the authorization server) using a confidential client secret, keeping the powerful, longer-lived access token OUT of the browser's history, referrer headers, and any JavaScript-accessible storage — reducing the attack surface significantly compared to the older, now-discouraged implicit flow, which returned the access token directly in the browser redirect.",
+                "Tests genuine OAuth2 protocol understanding, not just 'Spring has an annotation for it.'"),
+            hi("How do you secure individual service methods (not just URLs) in Spring Boot, and why would you need to?",
+                """
+                ```java
+                @PreAuthorize("hasRole('ADMIN')")
+                public void deleteUser(Long userId) { ... }
+
+                @PreAuthorize("#order.ownerId == authentication.name")
+                public void cancelOrder(Order order) { ... }
+                ```
+
+                @EnableMethodSecurity plus annotations like @PreAuthorize (evaluated BEFORE the method runs, can reference method arguments) or @PostAuthorize (evaluated after, can reference the return value). URL-level security alone can't express fine-grained rules like 'a user may only cancel their OWN order' — method security can evaluate the actual runtime arguments/return value via SpEL expressions, which URL pattern matching has no visibility into.
+                """,
+                "A practical authorization-design question, especially relevant once an app has resource-ownership rules beyond simple roles."),
+            hi("What's the difference between authentication and authorization, and where does each fit in a Spring Security filter chain?",
+                "Authentication answers 'who are you' — verifying an identity, typically the earlier steps in the filter chain (e.g., validating credentials or a JWT, populating the SecurityContext with an Authentication object). Authorization answers 'what are you allowed to do' — checking whether the now-known identity has permission for the requested resource/action, evaluated later (authorizeHttpRequests rules, or method-level @PreAuthorize checks). A request can be successfully authenticated yet still be denied by authorization — that's precisely the 401 vs 403 distinction.",
+                "A foundational vocabulary question that's still frequently asked, since candidates often use the two terms loosely/interchangeably."),
+            hi("What is CSRF, and why is it typically disabled for a stateless JWT-secured REST API but NOT for a session-based web app?",
+                "CSRF (Cross-Site Request Forgery) is an attack where a malicious site tricks a logged-in user's browser into making an unwanted, state-changing request to another site the user is authenticated with — it exploits the browser AUTOMATICALLY attaching session cookies to requests, regardless of which site initiated them. It's a real risk specifically for COOKIE-based session authentication. A stateless JWT API where the token is sent explicitly in an Authorization header (not an automatically-attached cookie) isn't vulnerable the same way — a malicious site's forged request wouldn't automatically carry the victim's JWT — which is why CSRF protection is commonly disabled for such APIs, but must stay enabled for any endpoint still relying on cookie-based sessions.",
+                "A nuanced security-reasoning question — a wrong or overly simplistic answer ('just disable CSRF, it's annoying') is a real red flag."),
+            md("What does a PasswordEncoder do, and why must you never store plaintext or use a fast general-purpose hash (like plain SHA-256) for passwords?",
+                "A PasswordEncoder (Spring Security's BCryptPasswordEncoder being the common default) hashes a password with a SLOW, deliberately computationally expensive algorithm and a built-in random salt, so that even if the password database leaks, brute-forcing the original passwords is prohibitively expensive. Plaintext storage is an obvious total compromise on any leak. A fast general-purpose hash like plain SHA-256 is DESIGNED for speed (useful for checksums), which is exactly the wrong property for password storage — it makes brute-force/rainbow-table attacks fast and cheap; BCrypt/Argon2/scrypt are deliberately slow and tunable to stay expensive as hardware improves.",
+                "A security-fundamentals question that also reveals whether a candidate understands WHY the specific algorithm choice matters.")));
+
+        m.put("SB5", List.of(
+            hi("What does /actuator/health report, and how is its overall status computed?",
+                "It aggregates the status of every registered HealthIndicator — database connectivity, disk space, message broker connectivity, and any custom ones you add — into one overall status. The overall status is the WORST of all individual indicator statuses (e.g., if the database indicator reports DOWN, the whole endpoint reports DOWN), which is exactly what makes it suitable as a load balancer or Kubernetes readiness/liveness probe target. management.endpoint.health.show-details controls how much of that per-indicator breakdown is exposed publicly versus only to authenticated/internal callers.",
+                "One of the most common Actuator questions — the 'worst status wins' aggregation detail is the key precise answer."),
+            hi("How would you add a custom health check — say, verifying a downstream payment gateway is reachable?",
+                """
+                ```java
+                @Component
+                public class PaymentGatewayHealthIndicator implements HealthIndicator {
+                    private final PaymentGatewayClient client;
+                    public PaymentGatewayHealthIndicator(PaymentGatewayClient client) { this.client = client; }
+
+                    @Override
+                    public Health health() {
+                        try {
+                            client.ping();  // should have its OWN short timeout
+                            return Health.up().build();
+                        } catch (Exception e) {
+                            return Health.down(e).withDetail("gateway", "unreachable").build();
+                        }
+                    }
+                }
+                ```
+
+                Implement HealthIndicator, register it as a bean, and Spring Boot Actuator auto-discovers and folds its result into /actuator/health automatically. Keep it fast and non-blocking-forever (with an explicit timeout) — a hung health check can itself cause cascading readiness-probe failures across an orchestrated deployment.
+                """,
+                "A practical, hands-on Actuator question — the 'must have its own timeout' caveat is what separates a strong answer."),
+            hi("What's the difference between a metric exposed via Micrometer and a log line, and why do you usually want both?",
+                "Metrics are numeric, aggregatable time-series data (request counts, latency percentiles, error rates) suited for dashboards and alerting on TRENDS over time. Logs are discrete, detailed event records suited for diagnosing a SPECIFIC failure after an alert already fired. Micrometer gives Spring Boot a vendor-neutral metrics facade (analogous to what SLF4J does for logging) that can export the same instrumentation to Prometheus, Datadog, CloudWatch, etc. without changing application code — you instrument once, export anywhere.",
+                "A common observability-fundamentals question, especially at companies with real production monitoring maturity."),
+            hi("Why reach for Testcontainers rather than an embedded H2 database for a Spring Boot integration test against a Postgres-backed service?",
+                "H2 doesn't perfectly replicate Postgres's SQL dialect, functions, and constraint-enforcement behavior — a test passing against H2 can still fail against real Postgres in production (a classic, painful surprise). Testcontainers spins up the ACTUAL Postgres engine in a throwaway Docker container for the test run, so the integration test verifies behavior against the real database technology end to end. The trade-off is a slower test (container startup time) for much higher confidence — typically reserved for a smaller, targeted set of true integration tests rather than every single test in the suite.",
+                "Very commonly asked — a strong answer names the SPECIFIC dialect-mismatch risk, not just 'H2 is different.'"),
+            hi("What's the difference between @SpringBootTest webEnvironment MOCK vs RANDOM_PORT vs DEFINED_PORT?",
+                "MOCK (the default): loads a WebApplicationContext with a MOCK servlet environment — no real network port is bound, tests typically drive it via MockMvc, faster than a real server. RANDOM_PORT: starts an actual embedded server (Tomcat/Netty) on a randomly chosen available port — needed for genuine end-to-end tests using a real HTTP client (like TestRestTemplate or WebTestClient) or tests that specifically need to verify real HTTP semantics. DEFINED_PORT: starts a real server on the CONFIGURED port (e.g., from application.properties) — less common in test suites since a fixed port risks collisions in parallel test runs.",
+                "A precise, practical configuration-choice question for anyone writing @SpringBootTest-based integration tests."),
+            md("Why might exposing all Actuator endpoints (management.endpoints.web.exposure.include=*) be a security risk in production?",
+                "Several Actuator endpoints expose sensitive operational detail or even control — /env can leak configuration values (potentially including secrets if not masked), /heapdump can leak a full memory snapshot (which may contain passwords/tokens held in memory), /shutdown (if enabled) lets a caller stop the application entirely. Best practice: explicitly whitelist only the endpoints actually needed (typically health, info, metrics, prometheus), secure the actuator endpoints behind authentication/a separate internal-only port, and never expose the full endpoint set publicly by default.",
+                "A production-security question that separates candidates who've only seen Actuator in a tutorial from those who've hardened a real deployment."),
+            hi("What's the difference between @DataJpaTest and @SpringBootTest for testing a repository?",
+                "@DataJpaTest loads only the JPA-related slice of the context (repositories, an in-memory or configured test database, entity scanning) — by default it also rolls back each test's transaction automatically and swaps in an embedded database unless you explicitly configure it otherwise, making repository tests fast and isolated. @SpringBootTest loads everything, which is unnecessary overhead for testing 'does this query method return the right rows' and slows the test down for no added value.",
+                "A test-slice-selection question, reinforcing the general 'use the narrowest slice that fits' principle from a data-access angle.")));
+
+        m.put("SB6", List.of(
+            hi("What are the three states of a Resilience4j circuit breaker, and what triggers each transition?",
+                """
+                ```java
+                @CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
+                public PaymentResult charge(PaymentRequest req) {
+                    return paymentClient.charge(req);
+                }
+                private PaymentResult paymentFallback(PaymentRequest req, Throwable t) {
+                    return PaymentResult.deferred(req.orderId());
+                }
+                ```
+
+                CLOSED: normal operation — requests flow through, failures are counted against a rolling window. OPEN: once the failure rate crosses a configured threshold, the breaker trips — requests fail FAST immediately (no call to the struggling downstream service at all), protecting it from more load and freeing the caller's own resources instead of piling up blocked/timing-out calls. HALF_OPEN: after a configured wait duration, a limited number of TRIAL requests are allowed through — if they succeed, the breaker closes again; if they fail, it reopens.
+                """,
+                "The most common resilience-pattern question — expect to also explain WHY failing fast protects the downstream service, not just the caller."),
+            hi("What problem does the Saga pattern solve for microservices, and how does it work?",
+                "A single business operation spanning multiple services (e.g., 'place an order' = reserve inventory + charge payment + schedule shipping) can't use a traditional single-database ACID transaction across service boundaries — there's no shared database to lock/commit atomically. A saga breaks the operation into a sequence of LOCAL transactions, each committing independently within its own service and publishing an event that triggers the next step. If a later step fails, previously completed steps are undone via explicit COMPENSATING actions (e.g., release the inventory reservation, refund the payment) rather than a true database rollback — this achieves eventual consistency, not atomicity, and the application code must explicitly define what 'undo' means for each step.",
+                "A senior-level distributed-systems question, common once a role touches genuine microservices architecture."),
+            hi("Synchronous REST calls vs Kafka-based async messaging between two Spring Boot microservices — what's the real trade-off?",
+                "Synchronous REST: simpler mental model, an immediate response, but tightly couples the caller's availability and latency to the callee's — if the downstream service is slow or down, the caller is directly and immediately affected (mitigated with timeouts/circuit breakers, but the coupling is inherent). Kafka: completely decouples producer and consumer — the producer doesn't even need the consumer to be running at publish time — naturally buffers bursts of load, and enables multiple independent consumers of the same event stream. The cost is real added complexity: eventual consistency instead of immediate consistency, harder end-to-end request tracing, and needing to explicitly reason about message ordering, idempotency, and at-least-once delivery semantics.",
+                "A judgment/trade-off question — a strong answer names BOTH the benefit and the real complexity cost, not just 'Kafka is more scalable.'"),
+            hi("What's the role of an API gateway in a microservices architecture, and what does it commonly centralize?",
+                "An API gateway is the single entry point clients call, which routes each request to the correct downstream microservice based on the path/host — clients don't need to know the internal service topology or how it's decomposed. It commonly centralizes cross-cutting concerns: authentication/authorization (verify a token ONCE at the edge rather than in every service), rate limiting, request/response logging, and sometimes response aggregation from multiple backend calls into one client-facing response — so individual microservices don't each have to reimplement these concerns.",
+                "A standard microservices-architecture question, often paired with 'how do you avoid the gateway becoming a single point of failure' (answer: run it as a horizontally-scaled, stateless service itself)."),
+            hi("How do you make a call to another microservice resilient to that service being slow or unavailable?",
+                "Set an explicit, tight timeout so a slow dependency can't hang the calling thread indefinitely. Add retries WITH backoff for genuinely transient failures (never retry blindly on every failure type — retrying a non-idempotent operation, or retrying against a truly down service, just adds more load). Add a circuit breaker (Resilience4j) to stop calling a persistently failing service entirely and fail fast, ideally with a sensible fallback response (a cached value, a degraded default, or a 'try again later' response) rather than propagating the failure raw to the end user. Optionally add a bulkhead (a separate, limited thread pool or semaphore per downstream dependency) so one slow dependency can't exhaust threads needed to serve calls to OTHER, healthy dependencies.",
+                "A comprehensive resilience-design question — a strong answer layers multiple patterns together, not just one."),
+            hi("What's the difference between Resilience4j's SemaphoreBulkhead and ThreadPoolBulkhead?",
+                "SemaphoreBulkhead limits the number of CONCURRENT calls allowed to a given operation using a semaphore — the calling thread itself executes the call, so it's lightweight but doesn't isolate the call's execution from the caller's own thread pool. ThreadPoolBulkhead executes calls in a DEDICATED, separate thread pool — the calling thread isn't blocked/consumed by the downstream call, providing stronger isolation (a slow downstream call occupies threads from ITS OWN dedicated pool, not threads needed to serve other requests) at the cost of extra context-switching/thread-pool management overhead.",
+                "A more advanced Resilience4j-specific question for candidates with hands-on production resilience-tuning experience."),
+            md("How would you containerize a Spring Boot app with a multi-stage Dockerfile, and why multi-stage?",
+                """
+                ```dockerfile
+                FROM eclipse-temurin:21-jdk AS build
+                WORKDIR /app
+                COPY . .
+                RUN ./mvnw -q package -DskipTests
+
+                FROM eclipse-temurin:21-jre
+                WORKDIR /app
+                COPY --from=build /app/target/*.jar app.jar
+                ENTRYPOINT ["java", "-jar", "app.jar"]
+                ```
+
+                The first stage has the FULL JDK plus build tooling and source code needed to compile and package the app. The second, final stage starts from a much smaller JRE-only base image and copies in ONLY the built jar — the final image ships without the build tools, source code, or intermediate build artifacts, keeping it small and reducing the attack surface (fewer tools available to an attacker who compromises the running container).
+                """,
+                "A practical DevOps-adjacent question, common once a Spring Boot role expects some deployment/container ownership.")));
+
         return m;
     }
 

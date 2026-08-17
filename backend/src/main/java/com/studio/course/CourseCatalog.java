@@ -29,6 +29,12 @@ public class CourseCatalog {
         buildDsaPlaybook();
         buildSystemDesign();
         buildSystemDesignPlaybook();
+        buildJava();
+        buildJavaPlaybook();
+        buildSpring();
+        buildSpringPlaybook();
+        buildSpringBoot();
+        buildSpringBootPlaybook();
     }
 
     public boolean hasCourse(String moduleId) {
@@ -4542,5 +4548,1275 @@ public class CourseCatalog {
                 "Can you connect concepts across topics (e.g., an LLM gateway is really just an API Gateway) to show transferable understanding?"
             ));
         playbookByTopic.put("sysdesign", pb);
+    }
+
+    // ================================================================ Core Java track (standalone)
+    private void buildJava() {
+        buildJava1();
+        buildJava2();
+        buildJava3();
+        buildJava4();
+        buildJava5();
+        buildJava6();
+    }
+
+    private void buildJava1() {
+        CourseLesson l1 = lesson("java1-l1", "JAVA1", 0,
+            "OOP Pillars, the Object Contract, and the String Pool",
+            "The four pillars with real code, why equals()/hashCode() must travel together, and why String is immutable on purpose",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "Four words, one mental model",
+                    "Encapsulation, inheritance, polymorphism, and abstraction aren't four separate ideas to memorize " +
+                    "in isolation — they're one coherent strategy for managing complexity: hide the details that " +
+                    "shouldn't leak out (encapsulation), reuse and specialize behavior instead of duplicating it " +
+                    "(inheritance), let the SAME call site do different things depending on the actual runtime type " +
+                    "(polymorphism), and expose a contract without committing to how it's fulfilled (abstraction)."),
+                CourseSegment.code("s2", "All four pillars in about 15 lines", null, "java",
+                    "abstract class Shape {                          // abstraction\n" +
+                    "    protected String color;                     // encapsulation\n" +
+                    "    public String getColor() { return color; }\n" +
+                    "    abstract double area();                     // no implementation here\n" +
+                    "}\n" +
+                    "class Circle extends Shape {                    // inheritance\n" +
+                    "    double radius;\n" +
+                    "    @Override double area() { return Math.PI * radius * radius; }  // polymorphism\n" +
+                    "}\n" +
+                    "// Shape s = new Circle();\n" +
+                    "// s.area();   -> resolved at RUNTIME to Circle's implementation, not Shape's"),
+                CourseSegment.concept("s3", "The equals()/hashCode() contract is not optional",
+                    "If a.equals(b) is true, a.hashCode() MUST also be equal — that's the whole contract, and Java " +
+                    "doesn't enforce it for you. Override equals() without overriding hashCode() and you get a class " +
+                    "that silently breaks HashSet/HashMap: you insert an object, then look it up with an equal " +
+                    "instance, and get nothing back, because the lookup computed a DIFFERENT hash code (the default, " +
+                    "identity-based one) and never even checked the right bucket."),
+                CourseSegment.diagram("s4", "Why every literal 'a' can share one object", null,
+                    Diagram.cycle("String pool reuse",
+                        new DiagramNode("String s1 = \"a\"", "not found in pool -> create & cache"),
+                        new DiagramNode("String s2 = \"a\"", "found in pool -> reuse same object"),
+                        new DiagramNode("s1 == s2", "true — literally the same object"),
+                        new DiagramNode("new String(\"a\")", "bypasses the pool -> always a new object"))),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Every Java interview opens somewhere near here. The equals()/hashCode() contract question is a " +
+                    "favorite because it has a concrete, demonstrable failure mode — expect to be handed a class " +
+                    "missing hashCode() and asked what breaks, not just to recite the rule from memory.")
+            ),
+            KnowledgeCheck.of(
+                "A class overrides equals() but not hashCode(). What breaks?",
+                2,
+                "The class violates the equals/hashCode contract — a HashSet/HashMap lookup with a logically-equal " +
+                "object can land in the wrong bucket (computed from the default identity hash) and fail to find an entry that's actually present.",
+                "Nothing breaks — hashCode() is optional in modern Java",
+                "The code fails to compile",
+                "Lookups in a HashSet/HashMap can silently fail to find an entry that IS present, because the hash codes don't match",
+                "equals() stops working entirely for that class"),
+            KnowledgeCheck.of(
+                "Why does new String(\"a\") == \"a\" evaluate to false, even though .equals() would be true?",
+                1,
+                "\"a\" as a literal is looked up in (or added to) the string pool and reused, but new String(\"a\") " +
+                "explicitly bypasses the pool and always allocates a fresh object — so == (reference comparison) sees two different objects.",
+                "new String(\"a\") explicitly creates a new object outside the string pool, so == compares two different references",
+                "== always returns false for any String comparison",
+                "This is a bug in the JVM that was fixed in later versions",
+                "String literals are never actually pooled")
+        );
+        addLessons("JAVA1", l1);
+    }
+
+    private void buildJava2() {
+        CourseLesson l1 = lesson("java2-l1", "JAVA2", 0,
+            "Collections Internals: HashMap, Sets, and the CME Trap",
+            "How HashMap really resolves collisions, when TreeSet beats HashSet, and the iterator bug almost everyone writes once",
+            6,
+            List.of(
+                CourseSegment.diagram("s1", "HashMap.get(key), step by step", null,
+                    Diagram.flow("HashMap.get(key)",
+                        new DiagramNode("key.hashCode()", "compute + re-spread the bits"),
+                        new DiagramNode("bucket index", "hash % table size"),
+                        new DiagramNode("walk the bucket", "linked list, or a red-black tree once large"),
+                        new DiagramNode("key.equals()", "confirm the exact match"))),
+                CourseSegment.concept("s2", "Collisions are expected, not a bug",
+                    "Two different keys landing in the same bucket is normal — Java 8+ chains entries in a small " +
+                    "linked list per bucket, and once a bucket grows past a treeify threshold (8, in a large enough " +
+                    "table), it converts to a red-black tree so worst-case lookup is O(log n) instead of degrading " +
+                    "to O(n). A hashCode() that always returns the same value doesn't break correctness — it just " +
+                    "quietly turns your HashMap into a much slower structure."),
+                CourseSegment.code("s3", "The ConcurrentModificationException everyone writes once", null, "java",
+                    "List<Integer> nums = new ArrayList<>(List.of(1, 2, 3, 4));\n" +
+                    "for (Integer n : nums) {\n" +
+                    "    if (n % 2 == 0) nums.remove(n);   // throws ConcurrentModificationException\n" +
+                    "}\n\n" +
+                    "// Fix: use the Iterator's own remove()\n" +
+                    "Iterator<Integer> it = nums.iterator();\n" +
+                    "while (it.hasNext()) {\n" +
+                    "    if (it.next() % 2 == 0) it.remove();   // safe\n" +
+                    "}\n" +
+                    "// Or simply: nums.removeIf(n -> n % 2 == 0);"),
+                CourseSegment.diagram("s4", "HashSet vs LinkedHashSet vs TreeSet", null,
+                    Diagram.compare("Picking the right Set",
+                        CompareColumn.of("HashSet / TreeSet",
+                            "HashSet: no order, O(1) average add/contains",
+                            "TreeSet: sorted order, O(log n), red-black tree"),
+                        CompareColumn.of("LinkedHashSet",
+                            "Preserves insertion order",
+                            "Small overhead over HashSet",
+                            "Use when iteration order should match insertion"))),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Explaining HashMap collision resolution — with the treeification detail — is the single most " +
+                    "reliable way to signal senior-level Java depth. The ConcurrentModificationException fix is a " +
+                    "near-guaranteed live-coding ask, precisely because it's a bug almost every developer writes at least once.")
+            ),
+            KnowledgeCheck.of(
+                "You loop over an ArrayList with a for-each and call list.remove() directly inside the loop. What happens?",
+                1,
+                "Structurally modifying the list outside the iterator's own remove() invalidates the for-each " +
+                "loop's internal modCount check, throwing ConcurrentModificationException on the next iteration.",
+                "It throws ConcurrentModificationException — use the Iterator's remove() or removeIf() instead",
+                "It works correctly and removes the matching elements",
+                "It silently skips every other element",
+                "It only fails if the list has more than 1000 elements"),
+            KnowledgeCheck.of(
+                "You need elements to always iterate in sorted order. Which Set implementation do you reach for?",
+                2,
+                "TreeSet maintains elements in sorted order (natural ordering or a supplied Comparator) at the cost " +
+                "of O(log n) operations instead of HashSet's O(1) average.",
+                "HashSet",
+                "TreeSet",
+                "LinkedHashSet",
+                "Any Set — they're all sorted by default")
+        );
+        addLessons("JAVA2", l1);
+    }
+
+    private void buildJava3() {
+        CourseLesson l1 = lesson("java3-l1", "JAVA3", 0,
+            "Exceptions Done Right: Checked, try-with-resources, and the finally Trap",
+            "When to use a checked exception, why try-with-resources beats manual close(), and a return-inside-finally gotcha",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Checked vs unchecked: a design decision, not just syntax",
+                    "Checked exceptions force every caller up the chain to declare or catch them — appropriate for " +
+                    "conditions a caller can genuinely be expected to recover from, like a file that might not " +
+                    "exist. Unchecked exceptions skip that compiler enforcement — appropriate for programming errors " +
+                    "or conditions that usually indicate a bug. Modern practice increasingly leans unchecked for most " +
+                    "application-level errors, since forcing deep call chains to declare exceptions they can't " +
+                    "meaningfully handle just adds noise."),
+                CourseSegment.code("s2", "try-with-resources removes an entire class of bugs", null, "java",
+                    "try (BufferedReader br = new BufferedReader(new FileReader(\"f.txt\"))) {\n" +
+                    "    return br.readLine();\n" +
+                    "} // br.close() runs automatically here — even if an exception was thrown\n\n" +
+                    "// The resource must implement AutoCloseable — that's the only requirement"),
+                CourseSegment.story("s3", "The bug hiding inside finally",
+                    "A method returns 1 from inside a try block — but a finally block ALSO has a return statement, " +
+                    "returning 2. The method silently returns 2, not 1. The try block's return value was computed " +
+                    "and queued, but the finally block's return statement completely overrides it before the method " +
+                    "actually exits — a subtle, surprising piece of control flow that's a classic 'never return from " +
+                    "finally' lesson learned the hard way."),
+                CourseSegment.concept("s4", "When a custom exception earns its place",
+                    "A custom exception is worth creating when it represents a distinct, meaningful business " +
+                    "condition callers need to catch and handle specifically — InsufficientFundsException, not " +
+                    "GenericBusinessException. If a built-in type (IllegalArgumentException, IllegalStateException) " +
+                    "already communicates the failure clearly, inventing a new type adds ceremony without real benefit."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "try-with-resources questions almost always include the follow-up: 'what happens if BOTH the " +
+                    "try block and close() throw?' — the try block's exception wins and propagates, with the " +
+                    "close() exception attached as a suppressed exception, not silently lost and not replacing it.")
+            ),
+            KnowledgeCheck.of(
+                "A try block returns 1; its finally block also has a return statement returning 2. What does the method actually return?",
+                1,
+                "A return statement inside finally silently overrides the try block's return value — the method returns 2, not 1. This is why returning from finally is considered a serious anti-pattern.",
+                "2 — the finally block's return overrides the try block's return",
+                "1 — the try block's return always wins",
+                "The code fails to compile",
+                "It throws an exception at runtime"),
+            KnowledgeCheck.of(
+                "What's required for a class to be usable in a try-with-resources statement?",
+                2,
+                "The resource class must implement AutoCloseable (or the narrower Closeable) — the compiler generates the implicit close() call in a synthesized finally block.",
+                "It must extend Exception",
+                "It must be declared final",
+                "It must implement AutoCloseable",
+                "It must override toString()")
+        );
+        addLessons("JAVA3", l1);
+    }
+
+    private void buildJava4() {
+        CourseLesson l1 = lesson("java4-l1", "JAVA4", 0,
+            "Concurrency Deep Dive: volatile, Races, and Deadlock",
+            "What volatile actually guarantees, why count++ isn't atomic, and the boring trick that prevents deadlocks",
+            6,
+            List.of(
+                CourseSegment.story("s1", "The bug that only shows up under load",
+                    "A shared counter works perfectly in every manual test, then under real concurrent production " +
+                    "load, the final count comes out consistently too low. Nothing crashed. count++ is secretly " +
+                    "three steps — read, add one, write back — and two threads can interleave those steps so one " +
+                    "thread's increment gets silently overwritten by the other's stale read."),
+                CourseSegment.code("s2", "volatile fixes visibility, NOT atomicity", null, "java",
+                    "private volatile boolean running = true;\n" +
+                    "void stop() { running = false; }               // thread A\n" +
+                    "void loop() { while (running) { doWork(); } }  // thread B sees the update promptly — OK\n\n" +
+                    "private volatile int counter = 0;\n" +
+                    "void increment() { counter++; }   // STILL a race — volatile does NOT make this atomic\n\n" +
+                    "// Real fix: synchronized, or AtomicInteger's lock-free CAS loop\n" +
+                    "AtomicInteger safeCounter = new AtomicInteger();\n" +
+                    "void incrementSafe() { safeCounter.incrementAndGet(); }"),
+                CourseSegment.concept("s3", "Why ExecutorService beats new Thread() in a loop",
+                    "Spawning an OS thread per task has real overhead and zero built-in limit — a burst of work can " +
+                    "exhaust system resources with no back-pressure at all. ExecutorService reuses a bounded pool of " +
+                    "worker threads and queues excess work, giving you an actual lifecycle (submit, shutdown, " +
+                    "awaitTermination) instead of manually tracking raw Thread objects."),
+                CourseSegment.diagram("s4", "The four conditions a deadlock needs — break any one", null,
+                    Diagram.cycle("Deadlock's four Coffman conditions",
+                        new DiagramNode("Mutual exclusion", "a resource can't be shared"),
+                        new DiagramNode("Hold and wait", "holds one, waits for another"),
+                        new DiagramNode("No preemption", "can't be forcibly taken away"),
+                        new DiagramNode("Circular wait", "A waits for B waits for A"))),
+                CourseSegment.concept("s5", "The boring fix that actually works",
+                    "Breaking any ONE of the four deadlock conditions prevents it — and the practical, standard fix " +
+                    "is eliminating circular wait: always acquire locks in the same, globally consistent order " +
+                    "across every thread in the codebase. It's not clever, but it's reliable, unlike hoping timing " +
+                    "never lines up badly."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "Expect to be handed a snippet with a shared counter and asked to spot the race, then asked to " +
+                    "fix it TWO different ways (synchronized and an Atomic class) to show you know more than one tool.")
+            ),
+            KnowledgeCheck.of(
+                "A volatile int is incremented from multiple threads with counter++. Is this thread-safe?",
+                1,
+                "No — volatile guarantees visibility of the latest value, not atomicity of a compound read-modify-write operation like ++. Two threads can still race on the read-then-write.",
+                "No — volatile doesn't make compound operations like ++ atomic; use synchronized or AtomicInteger instead",
+                "Yes — volatile makes all operations on that variable atomic",
+                "Yes, but only if there are fewer than 4 threads",
+                "It depends on the JVM vendor"),
+            KnowledgeCheck.of(
+                "What's the standard, reliable way to prevent a deadlock between threads that both need the same two locks?",
+                2,
+                "Eliminating the circular-wait condition — by always acquiring the two locks in the same, consistent order in every thread — prevents the A-waits-for-B-waits-for-A cycle a deadlock requires.",
+                "Use more threads so contention is lower",
+                "Avoid using synchronized entirely",
+                "Always acquire locks in the same, globally consistent order across all threads",
+                "Increase the JVM's stack size")
+        );
+        addLessons("JAVA4", l1);
+    }
+
+    private void buildJava5() {
+        CourseLesson l1 = lesson("java5-l1", "JAVA5", 0,
+            "Inside the JVM: Memory Layout and Garbage Collection",
+            "Where objects actually live, why generational GC works, and how Java can still 'leak' memory",
+            6,
+            List.of(
+                CourseSegment.diagram("s1", "The JVM's runtime memory areas", null,
+                    Diagram.stack("What the JVM manages",
+                        new DiagramNode("Heap", "objects & arrays — young gen + old gen"),
+                        new DiagramNode("Stack (per thread)", "method frames, local variables"),
+                        new DiagramNode("Metaspace", "class metadata — native memory"),
+                        new DiagramNode("PC register / native stacks", "smaller, per-thread bookkeeping"))),
+                CourseSegment.concept("s2", "The weak generational hypothesis",
+                    "Most objects die young — that single observation drives generational GC's whole design. The " +
+                    "young generation (eden + survivor spaces) is collected frequently and cheaply since most " +
+                    "objects there ARE garbage almost immediately. Survivors get promoted to the old generation, " +
+                    "which is collected far less often since objects that made it there tend to genuinely stay alive."),
+                CourseSegment.concept("s3", "G1: 'Garbage First' is a literal description",
+                    "G1 divides the heap into many fixed-size regions instead of two contiguous generations, and " +
+                    "prioritizes collecting whichever regions have the MOST reclaimable garbage first — hence the " +
+                    "name. This is what lets it target a low, predictable pause time instead of the longer " +
+                    "stop-the-world pauses of a simpler collector like Parallel GC."),
+                CourseSegment.story("s4", "Java can still leak memory, with garbage collection running the whole time",
+                    "A static List keeps growing because something registers listeners into it and nothing ever " +
+                    "unregisters them. The GC is doing its job perfectly — those listener objects are genuinely " +
+                    "still REACHABLE from a GC root (the static field), so they can never be considered garbage, no " +
+                    "matter how aggressively the collector runs. The fix isn't a GC tuning flag — it's finding and " +
+                    "breaking the unwanted reference chain, usually via a heap dump."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "'Can Java leak memory despite having a garbage collector?' is a favorite trick question — the " +
+                    "strong answer explains reachability, not just 'no, Java handles that automatically.'")
+            ),
+            KnowledgeCheck.of(
+                "A static List keeps growing forever because registered listener objects are never removed. Why doesn't the GC clean them up?",
+                2,
+                "The listener objects are still reachable from a GC root (the static field holding the list), so the GC correctly considers them alive — this is a real memory leak despite garbage collection running normally.",
+                "The GC only runs during idle time and this app is too busy",
+                "Static fields are excluded from garbage collection entirely",
+                "The objects are still reachable from a GC root (the static list), so the GC correctly treats them as alive, not garbage",
+                "This can only happen with pre-Java-8 garbage collectors"),
+            KnowledgeCheck.of(
+                "Why does generational garbage collection collect the young generation much more often than the old generation?",
+                1,
+                "Most objects die young (the weak generational hypothesis) — so frequent, cheap young-gen collections reclaim the bulk of garbage, while old-gen objects have already proven likely to stay alive and are collected less often.",
+                "Most objects die young, so young-gen collections are frequent and cheap while old-gen objects are more likely to still be alive",
+                "The old generation is physically smaller so it fills up less often",
+                "Old-generation objects are immune to garbage collection",
+                "It's an arbitrary JVM implementation detail with no real reasoning behind it")
+        );
+        addLessons("JAVA5", l1);
+    }
+
+    private void buildJava6() {
+        CourseLesson l1 = lesson("java6-l1", "JAVA6", 0,
+            "Modern Java: Lazy Streams, Records, and Virtual Threads",
+            "Why Streams don't run until you ask, what a record generates for you, and what virtual threads actually change",
+            6,
+            List.of(
+                CourseSegment.code("s1", "Intermediate operations are lazy — nothing runs until a terminal op", null, "java",
+                    "List<String> result = names.stream()\n" +
+                    "    .filter(n -> n.startsWith(\"A\"))   // lazy — just describes the pipeline\n" +
+                    "    .map(String::toUpperCase)         // still lazy\n" +
+                    "    .limit(3)                         // still lazy\n" +
+                    "    .toList();                         // TERMINAL — NOW it actually runs\n\n" +
+                    "names.stream().filter(n -> n.startsWith(\"A\")).findFirst();  // may short-circuit early!"),
+                CourseSegment.concept("s2", "Why laziness is a real, measurable benefit",
+                    "Because a Stream pipeline doesn't execute until a terminal operation is called, short-circuiting " +
+                    "operations like findFirst(), limit(), or anyMatch() can stop processing the source entirely " +
+                    "once they have their answer — without laziness, every intermediate step would have to fully " +
+                    "materialize a list before the next step could even start."),
+                CourseSegment.code("s3", "What a record generates, automatically", null, "java",
+                    "record Range(int lo, int hi) {\n" +
+                    "    Range {                              // compact canonical constructor — validate here\n" +
+                    "        if (lo > hi) throw new IllegalArgumentException(\"lo > hi\");\n" +
+                    "    }\n" +
+                    "}\n" +
+                    "// generated for free: canonical constructor, private final fields,\n" +
+                    "// lo() / hi() accessors, equals()/hashCode() by component, a readable toString()"),
+                CourseSegment.concept("s4", "Records eliminate boilerplate, not just save keystrokes",
+                    "Before records, an immutable data class meant hand-writing a constructor, private final fields, " +
+                    "getters, and correct equals()/hashCode()/toString() — every one a place to introduce a subtle " +
+                    "bug (forgetting a field in equals(), say). A record generates all of it correctly from the " +
+                    "component list, and is implicitly final, reinforcing that it's meant to be a simple, transparent data carrier."),
+                CourseSegment.diagram("s5", "Virtual threads: what actually changes for I/O-bound work", null,
+                    Diagram.compare("Platform thread vs virtual thread, blocked on I/O",
+                        CompareColumn.of("Platform thread",
+                            "1:1 with an OS thread",
+                            "~1MB stack — expensive to create many",
+                            "Blocking I/O ties up the OS thread"),
+                        CompareColumn.of("Virtual thread",
+                            "Many share a small pool of OS 'carrier' threads",
+                            "A few hundred bytes — millions are feasible",
+                            "Blocks on I/O -> unmounted, freeing the carrier thread"))),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "'What are virtual threads and what do they actually speed up?' is now a standard question given " +
+                    "Java 21 LTS adoption — the correct, precise answer is I/O-bound concurrency, NOT CPU-bound work, " +
+                    "which is still limited by the number of physical cores.")
+            ),
+            KnowledgeCheck.of(
+                "A Stream pipeline has .filter().map().limit(3) followed by .toList(). When does filter() actually start running?",
+                2,
+                "Intermediate operations like filter/map/limit are lazy — nothing executes until the terminal operation (toList()) is called, at which point the whole pipeline runs, potentially short-circuiting once limit(3) is satisfied.",
+                "Immediately when .filter() is called",
+                "Never — filter() only affects the pipeline's type signature",
+                "Only when the terminal operation (here, toList()) is called",
+                "As soon as the Stream is created from names.stream()"),
+            KnowledgeCheck.of(
+                "What kind of workload benefits most from Java 21 virtual threads?",
+                1,
+                "I/O-bound workloads — a blocked virtual thread is unmounted from its carrier OS thread, freeing that thread for other work. CPU-bound work isn't sped up, since the real limit there is the number of physical cores.",
+                "I/O-bound workloads, like handling many concurrent blocking network/database calls",
+                "CPU-bound numerical computation",
+                "Single-threaded batch scripts",
+                "GUI rendering code")
+        );
+        addLessons("JAVA6", l1);
+    }
+
+    private void buildJavaPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("java",
+            "The Core Java Interview, Round by Round",
+            "Pure-Java interviews — no framework assumed — still anchor an enormous share of backend and " +
+            "platform hiring. This is how the language-depth loop typically runs, from a big-tech DSA-first " +
+            "screen to a fintech's correctness-obsessed technical round.",
+            List.of(
+                new CompanyTrack("Big Tech (Amazon / Google / Microsoft-style)",
+                    "Language-agnostic algorithmic rigor first, with Java-specific depth woven into the follow-up discussion.",
+                    List.of(
+                        new InterviewRound("Online assessment", "60-90 min",
+                            "Timed, auto-graded data structures & algorithms problems — Java is a fully standard choice.",
+                            List.of("Two or three LeetCode-style problems", "Occasionally an OOP design take-home instead"),
+                            "Fluent Collections/Streams usage reads as real polish, not just correctness."),
+                        new InterviewRound("Technical phone screen", "45-60 min",
+                            "One live coding problem plus core-language questions woven into the discussion.",
+                            List.of("Explain HashMap collision resolution", "== vs .equals() — walk through both cases",
+                                     "What does volatile actually guarantee?"),
+                            "Narrate your reasoning — being asked to explain WHY, not just WHAT, is the norm here."),
+                        new InterviewRound("Onsite deep dive", "45-60 min",
+                            "JVM internals and concurrency, often via a live code review or debugging exercise.",
+                            List.of("Spot the race condition in this snippet", "Explain minor vs major GC"),
+                            "Precision matters more than breadth in this round — a wrong detail is remembered."),
+                        new InterviewRound("Behavioral / bar-raiser", "45-60 min",
+                            "Ownership and how you've handled ambiguity or a production issue.",
+                            List.of("Tell me about a bug that only showed up under real load"),
+                            "Prepare 3-4 STAR stories in advance, ideally including one concurrency-related incident."))),
+                new CompanyTrack("Fintech / Regulated Enterprise",
+                    "Correctness and defending design decisions under scrutiny — memory and concurrency mistakes are expensive here.",
+                    List.of(
+                        new InterviewRound("Technical screen", "45-60 min",
+                            "Core language fundamentals with an emphasis on precision.",
+                            List.of("Checked vs unchecked exceptions — how do you decide which to use?",
+                                     "Why is String immutable, and what would break if it weren't?"),
+                            "A precise, mechanically correct answer beats a broad but vague one here."),
+                        new InterviewRound("Live debugging exercise", "45-60 min",
+                            "Given a snippet with a subtle concurrency or memory bug, find and fix it live.",
+                            List.of("This counter's final value is wrong under load — why, and how do you fix it?"),
+                            "Talk through your hypothesis before touching code — the process is being evaluated too."),
+                        new InterviewRound("System/JVM depth", "45 min",
+                            "JVM tuning and memory-management judgment for a production-critical service.",
+                            List.of("How would you diagnose a suspected memory leak in a running service?"),
+                            "Mention heap dumps and reachability analysis specifically, not just 'restart the service.'"))),
+                new CompanyTrack("Product Startup",
+                    "Fewer rounds, more emphasis on shipping working, well-tested code quickly.",
+                    List.of(
+                        new InterviewRound("Live coding", "60 min",
+                            "A practical problem closer to real feature work than a pure algorithm puzzle.",
+                            List.of("Implement a small utility using Collections/Streams cleanly"),
+                            "Working, readable code beats a clever one-liner nobody can maintain."),
+                        new InterviewRound("Technical + culture conversation", "45 min",
+                            "A blended discussion of technical judgment and team fit.",
+                            List.of("Walk me through the trickiest Java bug you've debugged"),
+                            "Have one real, specific story ready — generic answers read as inexperience.")))
+            ),
+            List.of(
+                "Treating volatile as if it makes compound operations atomic",
+                "Not knowing the equals()/hashCode() contract, or why breaking it silently corrupts hash-based collections",
+                "Defaulting to new Thread() in a loop instead of knowing ExecutorService exists and why it's preferred",
+                "Claiming Java 'can't leak memory' because it has a garbage collector",
+                "Vague answers about GC ('it just cleans up unused stuff') instead of describing generational collection",
+                "Not knowing modern Java (records, sealed classes, virtual threads) — sounding stuck in Java 6-era idioms"
+            ),
+            List.of(
+                "Can you explain HashMap's collision resolution, including treeification, without notes?",
+                "Can you spot a race condition in a code snippet and fix it two different ways?",
+                "Can you sketch the JVM's memory areas and explain minor vs major GC?",
+                "Can you explain why == and .equals() can disagree for the same two Strings?",
+                "Do you know what a record generates for you, and why that matters?",
+                "Can you explain what virtual threads change, and for which specific workloads?"
+            ));
+        playbookByTopic.put("java", pb);
+    }
+
+    // ================================================================ Spring Framework track (standalone)
+    private void buildSpring() {
+        buildSpr1();
+        buildSpr2();
+        buildSpr3();
+        buildSpr4();
+        buildSpr5();
+    }
+
+    private void buildSpr1() {
+        CourseLesson l1 = lesson("spr1-l1", "SPR1", 0,
+            "The IoC Container: Why Spring Builds Your Objects For You",
+            "Constructor injection as the default, the full bean lifecycle, and disambiguating with @Qualifier",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "Inversion of Control, in one sentence",
+                    "Instead of a class creating or looking up its own dependencies, the CONTAINER hands them to it " +
+                    "— control over object creation and wiring is inverted from application code to the framework. " +
+                    "Dependency Injection is simply the specific technique Spring uses to achieve that inversion."),
+                CourseSegment.code("s2", "Constructor injection: explicit, immutable, testable", null, "java",
+                    "@Service\n" +
+                    "public class OrderService {\n" +
+                    "    private final PaymentClient paymentClient;   // final — settable only via constructor\n\n" +
+                    "    public OrderService(PaymentClient paymentClient) {\n" +
+                    "        this.paymentClient = paymentClient;\n" +
+                    "    }\n" +
+                    "}\n" +
+                    "// Unit test needs ZERO Spring context:\n" +
+                    "// OrderService svc = new OrderService(mockPaymentClient);"),
+                CourseSegment.concept("s3", "Why this beats field injection on every axis",
+                    "Constructor injection makes required dependencies explicit in the type's own signature, lets " +
+                    "fields be truly final, and fails fast at STARTUP if a dependency is missing — instead of a " +
+                    "NullPointerException surfacing at runtime, possibly in production, deep in some rarely-hit code " +
+                    "path. Field injection hides the dependency list, allows a half-constructed object to exist, and " +
+                    "requires reflection (or a full Spring context) even just to unit test the class."),
+                CourseSegment.diagram("s4", "The bean lifecycle, start to finish", null,
+                    Diagram.flow("Spring bean lifecycle",
+                        new DiagramNode("Instantiate", "constructor called"),
+                        new DiagramNode("Inject dependencies", "constructor/setter/field"),
+                        new DiagramNode("Aware callbacks", "BeanNameAware, etc."),
+                        new DiagramNode("@PostConstruct", "custom init logic runs"),
+                        new DiagramNode("Ready", "used by the application"),
+                        new DiagramNode("@PreDestroy", "cleanup on shutdown"))),
+                CourseSegment.code("s5", "@Qualifier: breaking a tie between two beans of the same type", null, "java",
+                    "public interface NotificationSender {}\n" +
+                    "@Component class EmailSender implements NotificationSender {}\n" +
+                    "@Component class SmsSender implements NotificationSender {}\n\n" +
+                    "@Service\n" +
+                    "public class AlertService {\n" +
+                    "    public AlertService(@Qualifier(\"emailSender\") NotificationSender sender) {\n" +
+                    "        // without @Qualifier, Spring can't pick one -> NoUniqueBeanDefinitionException\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "'Why does Spring recommend constructor injection?' is close to a guaranteed opener for any " +
+                    "Spring role — the strong answer names all three benefits (explicit, immutable, testable), not just one.")
+            ),
+            KnowledgeCheck.of(
+                "Two beans implement the same interface, and a third bean autowires that interface by type. What happens without @Qualifier?",
+                2,
+                "Spring can't determine which of the two candidate beans to inject and throws a NoUniqueBeanDefinitionException at startup — @Qualifier (or @Primary) is needed to disambiguate.",
+                "Spring picks the first bean registered, silently",
+                "Spring injects both beans into a List automatically",
+                "Spring throws a NoUniqueBeanDefinitionException at startup",
+                "The application starts but the field stays null"),
+            KnowledgeCheck.of(
+                "Why does constructor injection let a dependency field be declared final?",
+                1,
+                "Since the constructor is the only place the dependency can be assigned, and it must be provided at construction time, the field can be immutable (final) for the object's entire lifetime.",
+                "Because the constructor is the only place that field can ever be assigned, satisfying Java's final-field initialization rule",
+                "final has no real connection to constructor injection",
+                "Setter injection also allows final fields",
+                "Spring automatically removes the final modifier at runtime")
+        );
+        addLessons("SPR1", l1);
+    }
+
+    private void buildSpr2() {
+        CourseLesson l1 = lesson("spr2-l1", "SPR2", 0,
+            "AOP: How @Transactional Actually Works Under the Hood",
+            "Proxy-based AOP, the self-invocation trap, and writing a real @Around aspect",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "One aspect, applied everywhere it matches",
+                    "Logging, security checks, transaction management, caching — these cross-cutting concerns would " +
+                    "otherwise be duplicated in every method that needs them. AOP lets you define the behavior ONCE " +
+                    "as an aspect and apply it declaratively wherever a pointcut expression matches, keeping business " +
+                    "logic classes focused purely on their actual responsibility. @Transactional itself is just AOP " +
+                    "advice wrapping a method call in a transaction begin/commit/rollback."),
+                CourseSegment.diagram("s2", "How Spring picks a proxy strategy", null,
+                    Diagram.compare("JDK dynamic proxy vs CGLIB",
+                        CompareColumn.of("JDK dynamic proxy",
+                            "Used when the target implements an interface",
+                            "Proxy implements the same interface(s)",
+                            "Pure runtime reflection, no subclassing"),
+                        CompareColumn.of("CGLIB proxy",
+                            "Used when there's no interface",
+                            "Subclasses the target class at runtime",
+                            "Can't proxy final classes or final methods"))),
+                CourseSegment.story("s3", "Why the transaction 'silently' doesn't apply",
+                    "A @Transactional method is called from ANOTHER method in the same class — self-invocation. It " +
+                    "compiles, it runs, and no transaction is ever actually started. Spring AOP proxies only " +
+                    "intercept calls made TO the proxy from OUTSIDE the bean; this.saveOrder(o) inside the same " +
+                    "object calls the real method directly, completely bypassing the proxy. This is one of the most " +
+                    "common real production bugs Spring developers hit."),
+                CourseSegment.code("s4", "Writing a real @Around aspect", null, "java",
+                    "@Aspect\n" +
+                    "@Component\n" +
+                    "public class LoggingAspect {\n" +
+                    "    @Around(\"execution(* com.app.service.*.*(..))\")\n" +
+                    "    public Object logTiming(ProceedingJoinPoint pjp) throws Throwable {\n" +
+                    "        long start = System.currentTimeMillis();\n" +
+                    "        Object result = pjp.proceed();          // MUST call this to run the real method\n" +
+                    "        long took = System.currentTimeMillis() - start;\n" +
+                    "        System.out.println(pjp.getSignature() + \" took \" + took + \"ms\");\n" +
+                    "        return result;\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "'Why isn't my @Transactional method actually rolling back?' is close to THE canonical Spring " +
+                    "debugging question — self-invocation is the answer in a surprising number of real cases, not " +
+                    "just an interview trick.")
+            ),
+            KnowledgeCheck.of(
+                "A @Transactional method is called from another method in the SAME class (this.method()). Does the transaction apply?",
+                1,
+                "No — Spring AOP proxies only intercept calls made from outside the bean. A same-class self-invocation bypasses the proxy entirely, so no transactional advice runs.",
+                "No — self-invocation bypasses the AOP proxy, so no transaction is started",
+                "Yes — Spring always intercepts every call to a @Transactional method",
+                "Yes, but only if the class implements an interface",
+                "It depends on whether the method is public or private"),
+            KnowledgeCheck.of(
+                "A target class implements no interfaces. Which proxy mechanism does Spring AOP use, and what's the key limitation?",
+                2,
+                "CGLIB, which subclasses the target class at runtime — meaning it can't proxy a final class or a final method, since those can't be subclassed/overridden.",
+                "JDK dynamic proxy — no limitations apply",
+                "CGLIB, which can proxy any class including final ones",
+                "CGLIB, which subclasses the target — so it can't proxy final classes or final methods",
+                "Spring AOP requires an interface and will fail to start")
+        );
+        addLessons("SPR2", l1);
+    }
+
+    private void buildSpr3() {
+        CourseLesson l1 = lesson("spr3-l1", "SPR3", 0,
+            "The Life of a Request, From DispatcherServlet to Response",
+            "Tracing a request through Spring MVC, validating input, and centralizing error handling",
+            5,
+            List.of(
+                CourseSegment.diagram("s1", "One request, five stops", null,
+                    Diagram.flow("A request through Spring MVC",
+                        new DiagramNode("DispatcherServlet", "front controller receives it"),
+                        new DiagramNode("HandlerMapping", "which controller method?"),
+                        new DiagramNode("HandlerAdapter", "resolves args, invokes it"),
+                        new DiagramNode("HttpMessageConverter", "serializes the return value"),
+                        new DiagramNode("Response", "sent back to the client"))),
+                CourseSegment.code("s2", "Validating a request body declaratively", null, "java",
+                    "public record CreateUserRequest(\n" +
+                    "    @NotBlank String name,\n" +
+                    "    @Email String email,\n" +
+                    "    @Min(18) int age) {}\n\n" +
+                    "@PostMapping(\"/users\")\n" +
+                    "public ResponseEntity<User> create(@Valid @RequestBody CreateUserRequest req) {\n" +
+                    "    // if validation fails, this body never even runs —\n" +
+                    "    // Spring throws MethodArgumentNotValidException first\n" +
+                    "    return ResponseEntity.ok(userService.create(req));\n" +
+                    "}"),
+                CourseSegment.concept("s3", "One place for every error response",
+                    "A @RestControllerAdvice class with @ExceptionHandler methods centralizes exception-to-response " +
+                    "mapping in ONE place, instead of duplicating the same try/catch error-formatting logic across " +
+                    "every controller. It keeps controller methods focused on the happy path, and — just as " +
+                    "importantly — guarantees a CONSISTENT error response shape across the whole API."),
+                CourseSegment.code("s4", "A centralized exception handler", null, "java",
+                    "@RestControllerAdvice\n" +
+                    "public class ApiExceptionHandler {\n" +
+                    "    @ExceptionHandler(MethodArgumentNotValidException.class)\n" +
+                    "    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {\n" +
+                    "        String detail = ex.getBindingResult().getFieldErrors().stream()\n" +
+                    "            .map(e -> e.getField() + \": \" + e.getDefaultMessage())\n" +
+                    "            .collect(Collectors.joining(\", \"));\n" +
+                    "        return ResponseEntity.badRequest().body(new ErrorResponse(\"VALIDATION_FAILED\", detail));\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Being able to trace a request through DispatcherServlet, in order, without notes, is a " +
+                    "surprisingly reliable signal — it separates candidates who've configured Spring MVC from ones who've only used it.")
+            ),
+            KnowledgeCheck.of(
+                "A @PostMapping method takes a @Valid @RequestBody DTO. Validation fails on one field. What happens?",
+                2,
+                "Spring throws MethodArgumentNotValidException BEFORE the controller method body runs at all — the failure is caught upstream of your handler logic, typically resulting in a 400 response.",
+                "The method runs normally with the invalid field set to null",
+                "The application fails to start",
+                "MethodArgumentNotValidException is thrown before the method body executes",
+                "Validation is silently skipped for @RequestBody parameters"),
+            KnowledgeCheck.of(
+                "Why is a single @RestControllerAdvice class generally preferred over try/catch blocks in every controller?",
+                1,
+                "It centralizes exception-to-response mapping in one place, keeping controllers focused on the happy path and guaranteeing a consistent error response shape across the whole API.",
+                "It centralizes error handling in one place and guarantees a consistent error response shape across the API",
+                "It's required by Spring — try/catch in a controller causes a startup error",
+                "It automatically retries failed requests",
+                "It removes the need for HTTP status codes entirely")
+        );
+        addLessons("SPR3", l1);
+    }
+
+    private void buildSpr4() {
+        CourseLesson l1 = lesson("spr4-l1", "SPR4", 0,
+            "Transactions: Propagation, Rollback, and When Raw JDBC Still Wins",
+            "REQUIRED vs REQUIRES_NEW traced through a real rollback scenario, and picking JdbcTemplate vs an ORM",
+            6,
+            List.of(
+                CourseSegment.concept("s1", "Declarative transactions: no plumbing in your business logic",
+                    "@Transactional plus an AOP proxy starts, commits, or rolls back a transaction around a whole " +
+                    "method call — your business logic never manually opens or closes anything. Spring recommends " +
+                    "this declarative style for the vast majority of cases; programmatic transaction management " +
+                    "(TransactionTemplate) is reserved for genuinely fine-grained, in-method control."),
+                CourseSegment.code("s2", "REQUIRES_NEW: the audit log that survives a rollback", null, "java",
+                    "@Transactional(propagation = Propagation.REQUIRES_NEW)\n" +
+                    "public void logAuditEvent(String msg) {\n" +
+                    "    auditRepo.save(new AuditLog(msg));   // commits independently\n" +
+                    "}\n\n" +
+                    "@Transactional\n" +
+                    "public void placeOrder(Order o) {\n" +
+                    "    orderRepo.save(o);\n" +
+                    "    auditService.logAuditEvent(\"order placed\");  // REQUIRES_NEW\n" +
+                    "    throw new RuntimeException(\"payment declined\");\n" +
+                    "    // order save rolls back — but the audit log ALREADY committed and survives\n" +
+                    "}"),
+                CourseSegment.diagram("s3", "REQUIRED vs REQUIRES_NEW", null,
+                    Diagram.compare("Propagation and rollback scope",
+                        CompareColumn.of("REQUIRED (default)",
+                            "Joins the caller's existing transaction",
+                            "One shared transaction",
+                            "A rollback anywhere rolls back everything"),
+                        CompareColumn.of("REQUIRES_NEW",
+                            "Suspends the caller's transaction",
+                            "Starts a fully independent one",
+                            "Outer rollback does NOT undo it"))),
+                CourseSegment.concept("s4", "The checked-exception rollback surprise",
+                    "By default, @Transactional rolls back only on UNCHECKED exceptions — not checked ones. This " +
+                    "trips up a lot of developers who assume any thrown exception triggers a rollback. The fix, when " +
+                    "a checked exception should also roll back, is explicit: @Transactional(rollbackFor = SomeCheckedException.class)."),
+                CourseSegment.concept("s5", "When JdbcTemplate is the right choice over an ORM",
+                    "For complex reporting queries, bulk operations, or performance-critical paths where ORM-generated " +
+                    "SQL is measurably suboptimal, JdbcTemplate removes JDBC's usual boilerplate while still letting " +
+                    "you write exactly the SQL you want. For typical CRUD-heavy domain persistence, an ORM is more " +
+                    "productive — JdbcTemplate is the pragmatic escape hatch, not the default."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "REQUIRES_NEW questions almost always come with a concrete scenario like the audit-log example " +
+                    "above — being able to trace exactly what commits and what rolls back is the real test, not reciting the definition.")
+            ),
+            KnowledgeCheck.of(
+                "Inside a REQUIRED transaction, a method calls another method annotated REQUIRES_NEW, which commits successfully. The outer method then throws an exception. What happens to the REQUIRES_NEW work?",
+                2,
+                "REQUIRES_NEW suspends the caller's transaction and starts a fully independent one — since it already committed independently, the outer transaction's later rollback does NOT undo it.",
+                "It's rolled back along with everything else in the outer transaction",
+                "It stays committed — REQUIRES_NEW already ran and committed in its own independent transaction",
+                "The application throws a runtime configuration error",
+                "It depends on the database isolation level"),
+            KnowledgeCheck.of(
+                "By default, does @Transactional roll back on a checked exception thrown from the method?",
+                1,
+                "No — by default, Spring's declarative transaction management only rolls back on unchecked exceptions (RuntimeException/Error). rollbackFor must be set explicitly for checked exceptions.",
+                "No — only unchecked exceptions trigger a rollback by default; use rollbackFor for checked ones",
+                "Yes — any thrown exception, checked or unchecked, always triggers a rollback",
+                "It rolls back only if the exception message contains 'error'",
+                "Checked exceptions can't be thrown from a @Transactional method at all")
+        );
+        addLessons("SPR4", l1);
+    }
+
+    private void buildSpr5() {
+        CourseLesson l1 = lesson("spr5-l1", "SPR5", 0,
+            "Testing Spring the Right Way: MockMvc, Slices, and Context Caching",
+            "Why the narrowest test slice wins, MockMvc vs a real server, and the context-caching trap that silently slows CI",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Context caching: the hidden lever on test-suite speed",
+                    "Starting a full Spring context is expensive — Spring's TestContext framework caches it, keyed " +
+                    "by its exact effective configuration, so many test classes can SHARE one context instead of " +
+                    "rebuilding it per class. Anything that changes that configuration key (different @ActiveProfiles, " +
+                    "a different set of @MockBean overrides) breaks the cache and forces a rebuild for that class."),
+                CourseSegment.code("s2", "A fast, isolated controller test with @WebMvcTest", null, "java",
+                    "@WebMvcTest(OrderController.class)\n" +
+                    "class OrderControllerTest {\n" +
+                    "    @Autowired MockMvc mockMvc;\n" +
+                    "    @MockBean OrderService orderService;\n\n" +
+                    "    @Test\n" +
+                    "    void returns404WhenOrderMissing() throws Exception {\n" +
+                    "        when(orderService.find(99L)).thenReturn(Optional.empty());\n" +
+                    "        mockMvc.perform(get(\"/orders/99\"))\n" +
+                    "               .andExpect(status().isNotFound());\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.diagram("s3", "MockMvc vs a real embedded server", null,
+                    Diagram.compare("Two ways to test a controller",
+                        CompareColumn.of("MockMvc",
+                            "No real network port bound",
+                            "Still exercises the real MVC pipeline",
+                            "Fast — use for most controller tests"),
+                        CompareColumn.of("Real server (RANDOM_PORT)",
+                            "Actual embedded server + real HTTP client",
+                            "Verifies genuine network-level behavior",
+                            "Slower — reserve for true end-to-end tests"))),
+                CourseSegment.concept("s4", "@MockBean vs a plain Mockito mock",
+                    "@MockBean replaces the real bean of that type INSIDE the Spring context, so anything else " +
+                    "autowired in the context transparently receives the mock. A plain Mockito.mock(...) never " +
+                    "touches Spring at all — you construct and wire it yourself — which is exactly why it's the " +
+                    "right, much faster choice for a pure unit test that doesn't need Spring running."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "'Why is our test suite slow?' is a real, common senior-level question, and 'too many distinct " +
+                    "context configurations defeating the cache' is frequently the actual answer — a strong candidate names it unprompted.")
+            ),
+            KnowledgeCheck.of(
+                "Why would adding a unique @MockBean to just one test class slow down the ENTIRE test suite?",
+                2,
+                "@MockBean changes the effective context configuration for that class, which is part of Spring's context cache key — a new, unseen combination forces a fresh context build instead of reusing a cached one, and if many classes each do this uniquely, the suite loses most of its caching benefit.",
+                "@MockBean always disables caching globally, for every test in the project",
+                "It doesn't — @MockBean has no effect on other test classes",
+                "It changes the effective context configuration, forcing a new (uncached) context to be built for that class",
+                "@MockBean triggers a full application restart between every test method"),
+            KnowledgeCheck.of(
+                "For testing one controller's request-handling logic, why prefer @WebMvcTest over full @SpringBootTest?",
+                1,
+                "@WebMvcTest loads only the web layer and is much faster to start, while still exercising the real MVC request pipeline — appropriate for testing one layer in isolation rather than the entire application.",
+                "@WebMvcTest loads only the web layer, making it much faster while still testing real MVC behavior",
+                "@SpringBootTest doesn't support MockMvc at all",
+                "@WebMvcTest is required by Spring Boot for any controller test",
+                "There's no real difference — they're interchangeable")
+        );
+        addLessons("SPR5", l1);
+    }
+
+    private void buildSpringPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("spring",
+            "The Spring Framework Interview, Round by Round",
+            "Spring Framework depth — IoC, AOP, MVC, transactions — underpins nearly every Java backend role, " +
+            "even ones that talk mostly about Spring Boot. This is how the framework-mechanics loop typically " +
+            "runs once interviewers dig past the Boot conveniences into how Spring actually works.",
+            List.of(
+                new CompanyTrack("Big Tech / Large Platform Teams",
+                    "Expects you to explain the MECHANISM behind Spring's conveniences, not just use the annotations.",
+                    List.of(
+                        new InterviewRound("Technical phone screen", "45-60 min",
+                            "Core Spring mechanics woven into a broader backend discussion.",
+                            List.of("Explain the Spring bean lifecycle", "How does Spring AOP actually intercept a method call?"),
+                            "Be ready to explain proxies specifically — 'Spring does it automatically' isn't a full answer here."),
+                        new InterviewRound("Onsite deep dive", "45-60 min",
+                            "A live debugging or design exercise touching DI, AOP, or transaction boundaries.",
+                            List.of("Why isn't this @Transactional method rolling back?", "Design the bean wiring for this small system"),
+                            "Trace through the actual mechanism (proxy, self-invocation, propagation) rather than guessing at symptoms."))),
+                new CompanyTrack("Enterprise / Legacy Spring Shops",
+                    "Often still running Spring MVC and Spring Data outside of Boot's auto-configuration, so raw framework fluency matters more directly.",
+                    List.of(
+                        new InterviewRound("Technical screen", "45-60 min",
+                            "Spring configuration and transaction management, sometimes without Boot's defaults.",
+                            List.of("Explain @Transactional propagation with a concrete example",
+                                     "Java config vs XML vs component scanning — when would you use each?"),
+                            "Comfort configuring Spring WITHOUT Boot's auto-configuration is a specific, valued signal here."),
+                        new InterviewRound("Hands-on pairing", "60-90 min",
+                            "Extending or debugging an existing Spring MVC application.",
+                            List.of("Add validation and a centralized error handler to this existing controller"),
+                            "Match the existing codebase's conventions rather than introducing your own preferred style."))),
+                new CompanyTrack("Product Startup (Spring backend role)",
+                    "Fewer, faster rounds, focused on practical framework fluency over deep internals trivia.",
+                    List.of(
+                        new InterviewRound("Live coding", "60 min",
+                            "Building a small feature using Spring's core DI/MVC/transaction patterns.",
+                            List.of("Wire up a small service with proper constructor injection and a REST endpoint"),
+                            "Clean, idiomatic Spring code (constructor injection, a proper DTO, real validation) reads as strong signal fast.")))
+            ),
+            List.of(
+                "Treating Spring annotations as 'magic' instead of being able to explain the underlying mechanism",
+                "Not knowing why self-invocation breaks @Transactional and Spring AOP generally",
+                "Defaulting to field injection and having no real justification when asked why",
+                "Assuming @Transactional rolls back on ANY exception, missing the checked-vs-unchecked default",
+                "Reaching for full @SpringBootTest for every test instead of knowing test slices exist",
+                "Confusing BeanFactory and ApplicationContext, or not knowing why ApplicationContext is what's actually used"
+            ),
+            List.of(
+                "Can you explain the bean lifecycle and why constructor injection is preferred, without notes?",
+                "Can you explain, precisely, why calling a @Transactional method from within the same class doesn't start a transaction?",
+                "Can you trace REQUIRED vs REQUIRES_NEW through a concrete rollback scenario?",
+                "Can you write a real @Around aspect that measures method execution time?",
+                "Do you know the difference between JDK dynamic proxies and CGLIB, and why it matters for final classes?",
+                "Can you write a fast, isolated @WebMvcTest for a controller, using @MockBean correctly?"
+            ));
+        playbookByTopic.put("spring", pb);
+    }
+
+    // ================================================================ Spring Boot track (standalone)
+    private void buildSpringBoot() {
+        buildSb1();
+        buildSb2();
+        buildSb3();
+        buildSb4();
+        buildSb5();
+        buildSb6();
+    }
+
+    private void buildSb1() {
+        CourseLesson l1 = lesson("sb1-l1", "SB1", 0,
+            "Auto-Configuration: What a Starter Dependency Actually Does",
+            "Decomposing @SpringBootApplication, how @ConditionalOnClass drives wiring, and property override precedence",
+            5,
+            List.of(
+                CourseSegment.code("s1", "One annotation, three responsibilities", null, "java",
+                    "@SpringBootApplication\n" +
+                    "// == @SpringBootConfiguration + @EnableAutoConfiguration + @ComponentScan\n" +
+                    "public class MyApp {\n" +
+                    "    public static void main(String[] args) {\n" +
+                    "        SpringApplication.run(MyApp.class, args);\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.concept("s2", "A starter is just curated jars, not magic",
+                    "spring-boot-starter-data-jpa contains no framework logic of its own — it's a curated set of " +
+                    "transitive dependencies (Hibernate, Spring Data JPA, a JDBC driver) with compatible versions. " +
+                    "Adding those jars to the classpath is what auto-configuration classes REACT to, via " +
+                    "@ConditionalOnClass — seeing Hibernate plus a DataSource on the classpath is what actually " +
+                    "triggers JPA-related beans to configure themselves."),
+                CourseSegment.diagram("s3", "How auto-configuration decides to activate", null,
+                    Diagram.flow("A conditional auto-configuration class",
+                        new DiagramNode("Classpath scan", "is Hibernate present?"),
+                        new DiagramNode("@ConditionalOnClass", "gate passes if so"),
+                        new DiagramNode("@ConditionalOnMissingBean", "only if you haven't defined your own"),
+                        new DiagramNode("Bean registered", "EntityManagerFactory, etc."))),
+                CourseSegment.concept("s4", "You always have the last word",
+                    "@ConditionalOnMissingBean means your explicitly-defined bean of a given type ALWAYS wins over " +
+                    "the auto-configured default — auto-configuration is a sensible starting point, never a lock-in. " +
+                    "You can also disable a specific auto-configuration entirely via " +
+                    "@SpringBootApplication(exclude = ...) when you want full manual control."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Decomposing @SpringBootApplication into its three constituent annotations, unprompted, is a " +
+                    "near-universal opener — and 'how does auto-configuration actually decide what to wire' is the standard, expected follow-up.")
+            ),
+            KnowledgeCheck.of(
+                "You define your own DataSource @Bean in a Spring Boot app that also has spring-boot-starter-data-jpa on the classpath. Which DataSource does the app actually use?",
+                1,
+                "@ConditionalOnMissingBean means auto-configuration only creates its default DataSource if you haven't already defined one — your explicit bean always takes precedence.",
+                "Your explicitly-defined DataSource bean — @ConditionalOnMissingBean lets it override the auto-configured default",
+                "Spring Boot throws a startup error for defining a conflicting bean",
+                "The auto-configured DataSource always wins regardless of your own bean",
+                "Both DataSources are merged into one"),
+            KnowledgeCheck.of(
+                "What does @EnableAutoConfiguration, one of the three annotations composed by @SpringBootApplication, actually do?",
+                2,
+                "It triggers Spring Boot's auto-configuration mechanism, which conditionally registers beans based on the classpath contents and existing bean definitions.",
+                "It scans the current package for @Component classes",
+                "It marks the class as the source of bean definitions",
+                "It triggers Spring Boot's auto-configuration mechanism, conditionally registering beans based on the classpath",
+                "It starts the embedded Tomcat server")
+        );
+        addLessons("SB1", l1);
+    }
+
+    private void buildSb2() {
+        CourseLesson l1 = lesson("sb2-l1", "SB2", 0,
+            "Spring Data JPA: Derived Queries and the N+1 Trap",
+            "Query methods generated from a name, diagnosing the N+1 problem, and why ddl-auto=update is a production hazard",
+            6,
+            List.of(
+                CourseSegment.code("s1", "A working query, written as a method signature", null, "java",
+                    "public interface UserRepository extends JpaRepository<User, Long> {\n" +
+                    "    List<User> findByLastNameAndActiveTrue(String lastName);\n" +
+                    "    List<User> findByAgeGreaterThanOrderByLastNameAsc(int age);\n" +
+                    "}\n" +
+                    "// Spring Data parses the method name against a grammar (By, And, GreaterThan, OrderBy...)\n" +
+                    "// and builds the equivalent JPQL at startup — no SQL written by hand"),
+                CourseSegment.story("s2", "The query count that quietly grows with your data",
+                    "findAll() on Order returns 50 orders in one query — fast in every test with a handful of rows. " +
+                    "In production with real data, the page takes seconds, because accessing each order's lazily-loaded " +
+                    "items collection fires ONE ADDITIONAL query per order — 1 query became 51. Nothing crashed, " +
+                    "nothing logged an error; the N+1 problem just gets linearly worse as the dataset grows."),
+                CourseSegment.code("s3", "Two ways to collapse N+1 into one query", null, "java",
+                    "// Fix 1: JOIN FETCH\n" +
+                    "@Query(\"SELECT o FROM Order o JOIN FETCH o.items\")\n" +
+                    "List<Order> findAllWithItems();\n\n" +
+                    "// Fix 2: @EntityGraph\n" +
+                    "@EntityGraph(attributePaths = \"items\")\n" +
+                    "List<Order> findAll();"),
+                CourseSegment.diagram("s4", "Default fetch types — the one that surprises people", null,
+                    Diagram.compare("@ManyToOne vs @OneToMany defaults",
+                        CompareColumn.of("@ManyToOne / @OneToOne",
+                            "Default: EAGER",
+                            "Loaded immediately with the owner",
+                            "Easy to accidentally over-fetch"),
+                        CompareColumn.of("@OneToMany / @ManyToMany",
+                            "Default: LAZY",
+                            "Loaded only when accessed",
+                            "Source of LazyInitializationException if accessed too late"))),
+                CourseSegment.concept("s5", "Why ddl-auto=update belongs only on your laptop",
+                    "It's convenient for local development, but in production it can make silent, unreviewed, " +
+                    "sometimes destructive schema changes with no audit trail and no rollback path. Flyway/Liquibase " +
+                    "store versioned migration scripts applied deterministically and identically across every " +
+                    "environment — the standard production setting is ddl-auto=validate, with real migrations owning schema evolution."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "N+1 is one of the most reliably-asked Spring Boot questions, almost always with the follow-up " +
+                    "'how would you even DETECT this in the first place' — enabling SQL logging or counting queries in a test is the expected answer.")
+            ),
+            KnowledgeCheck.of(
+                "findAll() returns 50 Order entities with a lazy @OneToMany items collection. Code then loops over the orders calling .getItems().size() on each. How many total queries run?",
+                2,
+                "1 query for the initial findAll(), plus 1 additional query PER order to lazily fetch its items — 51 total for 50 orders. This is the classic N+1 problem.",
+                "Exactly 1 query total",
+                "51 queries total — 1 for the list, plus 1 more per order to lazily fetch its items",
+                "50 queries total, one per order, with no initial query",
+                "It depends only on the database vendor, not the fetch strategy"),
+            KnowledgeCheck.of(
+                "What's the default fetch type for a @ManyToOne association, and why does that surprise people used to @OneToMany's default?",
+                1,
+                "@ManyToOne defaults to EAGER (loaded immediately), while @OneToMany defaults to LAZY — the opposite defaults for what feels like a symmetric relationship is a commonly-missed detail.",
+                "@ManyToOne defaults to EAGER, unlike @OneToMany which defaults to LAZY",
+                "Both default to LAZY",
+                "Both default to EAGER",
+                "The default depends on the database vendor")
+        );
+        addLessons("SB2", l1);
+    }
+
+    private void buildSb3() {
+        CourseLesson l1 = lesson("sb3-l1", "SB3", 0,
+            "Building a REST API That Actually Feels RESTful",
+            "Resource-oriented design, consistent error responses, and returning the right status code every time",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "Nouns in the URI, verbs in the HTTP method",
+                    "/orders/{id} with GET/POST/PUT/DELETE, not /getOrder or /createNewOrder — the resource is the " +
+                    "noun, the HTTP method is the verb. Statelessness matters just as much: each request carries " +
+                    "everything needed to process it, with no server-side session state between requests, which is " +
+                    "exactly what lets a REST API scale horizontally without sticky sessions."),
+                CourseSegment.code("s2", "A consistent error shape, in one place", null, "java",
+                    "@RestControllerAdvice\n" +
+                    "public class ApiExceptionHandler {\n" +
+                    "    @ExceptionHandler(OrderNotFoundException.class)\n" +
+                    "    public ResponseEntity<ErrorResponse> handleNotFound(OrderNotFoundException ex) {\n" +
+                    "        return ResponseEntity.status(HttpStatus.NOT_FOUND)\n" +
+                    "            .body(new ErrorResponse(\"ORDER_NOT_FOUND\", ex.getMessage(), Instant.now()));\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.diagram("s3", "Picking the right status code", null,
+                    Diagram.stack("Common REST status codes",
+                        new DiagramNode("201 Created", "successful POST — include a Location header"),
+                        new DiagramNode("400 Bad Request", "validation failure"),
+                        new DiagramNode("401 vs 403", "not authenticated vs not authorized"),
+                        new DiagramNode("404 Not Found", "resource doesn't exist"),
+                        new DiagramNode("409 Conflict", "a state conflict, e.g. duplicate resource"))),
+                CourseSegment.concept("s4", "401 and 403 are not interchangeable",
+                    "401 Unauthorized means the request lacks valid credentials at all — the client should " +
+                    "authenticate and retry. 403 Forbidden means the client IS authenticated, but that identity " +
+                    "doesn't have permission for this specific action — retrying with the SAME credentials will " +
+                    "never succeed. Mixing these up is a common, genuinely confusing bug for API consumers."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "Expect to be asked to design an error-handling strategy for a small API live — naming " +
+                    "@RestControllerAdvice specifically, plus getting 401 vs 403 right, is what separates a strong answer from a vague one.")
+            ),
+            KnowledgeCheck.of(
+                "A client sends a request with no authentication token at all to a protected endpoint. What status code should the API return?",
+                1,
+                "401 Unauthorized — the request lacks valid credentials entirely. 403 would be wrong here since that implies the client IS authenticated but lacks permission.",
+                "401 Unauthorized",
+                "403 Forbidden",
+                "400 Bad Request",
+                "500 Internal Server Error"),
+            KnowledgeCheck.of(
+                "Why centralize error handling in a single @RestControllerAdvice instead of try/catch in each controller method?",
+                2,
+                "It keeps controller methods focused on the happy path and guarantees every endpoint returns a consistent error response shape, instead of each controller inventing its own error format.",
+                "@RestControllerAdvice is required by Spring Boot to start the application",
+                "It automatically retries failed requests",
+                "It centralizes exception-to-response mapping, keeping error shapes consistent across the whole API",
+                "It removes the need to choose HTTP status codes")
+        );
+        addLessons("SB3", l1);
+    }
+
+    private void buildSb4() {
+        CourseLesson l1 = lesson("sb4-l1", "SB4", 0,
+            "Securing a Spring Boot API: SecurityFilterChain and Stateless JWT",
+            "The modern lambda-DSL security config, a full JWT auth flow, and why CSRF protection depends on your auth style",
+            6,
+            List.of(
+                CourseSegment.code("s1", "Modern Spring Security config — no WebSecurityConfigurerAdapter", null, "java",
+                    "@Configuration\n" +
+                    "@EnableWebSecurity\n" +
+                    "public class SecurityConfig {\n" +
+                    "    @Bean\n" +
+                    "    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {\n" +
+                    "        http.csrf(csrf -> csrf.disable())\n" +
+                    "            .authorizeHttpRequests(auth -> auth\n" +
+                    "                .requestMatchers(\"/api/public/**\").permitAll()\n" +
+                    "                .anyRequest().authenticated())\n" +
+                    "            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));\n" +
+                    "        return http.build();\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.diagram("s2", "A stateless JWT flow, end to end", null,
+                    Diagram.flow("Login through an authenticated request",
+                        new DiagramNode("POST /login", "credentials verified"),
+                        new DiagramNode("JWT issued", "signed, carries claims + expiry"),
+                        new DiagramNode("Client stores token", "sent as Authorization: Bearer"),
+                        new DiagramNode("Custom filter validates it", "per request, no session lookup"),
+                        new DiagramNode("SecurityContext populated", "request proceeds, authenticated"))),
+                CourseSegment.concept("s3", "Why this scales horizontally without a shared session store",
+                    "There's no server-side session to look up on each request — the token itself carries everything " +
+                    "needed to verify identity, so any instance of the app can validate it independently. The real " +
+                    "weak point is revocation before natural expiry, typically mitigated with short-lived access " +
+                    "tokens plus longer-lived refresh tokens rather than a shared denylist."),
+                CourseSegment.concept("s4", "Why CSRF protection is disabled here but shouldn't be for a cookie-based app",
+                    "CSRF exploits the browser AUTOMATICALLY attaching session cookies to requests regardless of " +
+                    "which site initiated them — a real risk specifically for cookie-based session authentication. " +
+                    "A stateless API where the token is sent explicitly in an Authorization header isn't vulnerable " +
+                    "the same way, which is why disabling CSRF is standard here — but it must stay enabled for any endpoint still using cookie-based sessions."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "'Design a stateless JWT auth flow' is close to the single most common Spring Boot security " +
+                    "question — expect to whiteboard the full flow above, including the revocation weak point, unprompted.")
+            ),
+            KnowledgeCheck.of(
+                "Why is a stateless JWT-secured REST API typically configured with CSRF protection disabled, while a cookie-session-based web app should keep it enabled?",
+                1,
+                "CSRF exploits the browser automatically attaching cookies to any request regardless of origin — a JWT sent explicitly in an Authorization header isn't automatically attached by the browser the same way, so that specific attack vector doesn't apply.",
+                "Because a JWT sent in an Authorization header isn't automatically attached by the browser like a cookie is, so the classic CSRF attack vector doesn't apply the same way",
+                "CSRF protection is deprecated in modern Spring Security and should always be disabled",
+                "JWTs are inherently immune to all forms of request forgery",
+                "CSRF only matters for GET requests, not POST/PUT/DELETE"),
+            KnowledgeCheck.of(
+                "What's the main practical weakness of stateless JWT authentication compared to server-side sessions?",
+                2,
+                "Revoking a JWT before its natural expiry is hard — the server has no session state to simply delete. This is mitigated with short-lived access tokens plus refresh tokens.",
+                "JWTs can't carry any information about the user's roles",
+                "JWTs require a shared database to validate on every request",
+                "Revoking a JWT before it naturally expires is difficult, since there's no server-side session to delete",
+                "JWTs don't work with HTTPS")
+        );
+        addLessons("SB4", l1);
+    }
+
+    private void buildSb5() {
+        CourseLesson l1 = lesson("sb5-l1", "SB5", 0,
+            "Actuator and Testcontainers: Knowing Your Service Is Actually Healthy",
+            "How /actuator/health aggregates status, writing a custom health indicator, and why H2 lies to you sometimes",
+            5,
+            List.of(
+                CourseSegment.concept("s1", "The worst status wins",
+                    "/actuator/health aggregates every registered HealthIndicator — database connectivity, disk " +
+                    "space, message broker connectivity, any custom ones you add — into ONE overall status, computed " +
+                    "as the WORST of all individual results. If the database indicator reports DOWN, the whole " +
+                    "endpoint reports DOWN, which is exactly what makes it suitable as a load balancer or Kubernetes readiness probe target."),
+                CourseSegment.code("s2", "A custom health check for a downstream dependency", null, "java",
+                    "@Component\n" +
+                    "public class PaymentGatewayHealthIndicator implements HealthIndicator {\n" +
+                    "    private final PaymentGatewayClient client;\n\n" +
+                    "    @Override\n" +
+                    "    public Health health() {\n" +
+                    "        try {\n" +
+                    "            client.ping();   // should have its OWN short timeout\n" +
+                    "            return Health.up().build();\n" +
+                    "        } catch (Exception e) {\n" +
+                    "            return Health.down(e).withDetail(\"gateway\", \"unreachable\").build();\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "}"),
+                CourseSegment.story("s3", "The integration test that passed, then failed in production",
+                    "A repository test suite runs green against an embedded H2 database on every commit. The first " +
+                    "week in production against real Postgres, one query behaves differently — H2 doesn't perfectly " +
+                    "replicate Postgres's SQL dialect, functions, and constraint enforcement. Testcontainers fixes " +
+                    "this by spinning up the ACTUAL Postgres engine in Docker for the test run — slower to start, but testing against the real thing."),
+                CourseSegment.concept("s4", "Metrics for trends, logs for incidents",
+                    "Metrics (via Micrometer, exportable to Prometheus/Datadog/etc.) are numeric, aggregatable " +
+                    "time-series data — good for dashboards and alerting on TRENDS. Logs are discrete, detailed event " +
+                    "records — good for diagnosing a SPECIFIC failure after an alert already fired. A mature service needs both, not one or the other."),
+                CourseSegment.interviewCorner("s5", "Where this shows up in the interview",
+                    "'Why Testcontainers over H2' is a very common practical question — the strong answer names the " +
+                    "specific risk (dialect/behavior mismatch causing a false-positive test), not just 'it's more realistic.'")
+            ),
+            KnowledgeCheck.of(
+                "The database health indicator reports DOWN, but every other health indicator reports UP. What does /actuator/health report overall?",
+                1,
+                "DOWN — the overall health status is the WORST of all individual indicator statuses, which is exactly what makes it reliable for load balancer / readiness probe use.",
+                "DOWN — the overall status is the worst of all individual indicator statuses",
+                "UP — most indicators are healthy, so it rounds up",
+                "It shows each indicator's status with no overall summary",
+                "It throws an exception since indicators disagree"),
+            KnowledgeCheck.of(
+                "A repository integration test passes against embedded H2 but fails against real Postgres in production. What's the most likely explanation?",
+                2,
+                "H2 doesn't perfectly replicate Postgres's SQL dialect, functions, and constraint enforcement — a test passing against H2 doesn't guarantee identical behavior against the real database engine.",
+                "H2 and Postgres are always behaviorally identical, so this shouldn't be possible",
+                "The test framework has a bug",
+                "H2's SQL dialect and constraint behavior can differ from Postgres, so passing tests don't guarantee identical production behavior",
+                "Production databases are always slower, causing timeouts")
+        );
+        addLessons("SB5", l1);
+    }
+
+    private void buildSb6() {
+        CourseLesson l1 = lesson("sb6-l1", "SB6", 0,
+            "Resilient Microservices: Circuit Breakers, Sagas, and the API Gateway",
+            "The three circuit-breaker states, why distributed transactions need compensating actions instead of rollback, and layering resilience patterns together",
+            6,
+            List.of(
+                CourseSegment.code("s1", "A circuit breaker with a fallback", null, "java",
+                    "@CircuitBreaker(name = \"paymentService\", fallbackMethod = \"paymentFallback\")\n" +
+                    "public PaymentResult charge(PaymentRequest req) {\n" +
+                    "    return paymentClient.charge(req);\n" +
+                    "}\n" +
+                    "private PaymentResult paymentFallback(PaymentRequest req, Throwable t) {\n" +
+                    "    return PaymentResult.deferred(req.orderId());   // graceful degradation, not a crash\n" +
+                    "}"),
+                CourseSegment.diagram("s2", "Closed, Open, Half-Open", null,
+                    Diagram.cycle("Resilience4j circuit breaker states",
+                        new DiagramNode("CLOSED", "normal operation, failures counted"),
+                        new DiagramNode("OPEN", "threshold crossed — fail fast, no downstream call"),
+                        new DiagramNode("HALF_OPEN", "trial requests after a wait"),
+                        new DiagramNode("back to CLOSED or OPEN", "based on trial results"))),
+                CourseSegment.concept("s3", "Why failing fast protects more than just the caller",
+                    "Once OPEN, requests fail immediately with NO call to the struggling downstream service at all — " +
+                    "this protects the already-struggling service from even more load while it's trying to recover, " +
+                    "and frees the caller's own threads/resources instead of piling up blocked or timed-out calls waiting on a service that's already failing."),
+                CourseSegment.story("s4", "There's no single database to roll back across three services",
+                    "Placing an order means reserving inventory in one service, charging payment in another, and " +
+                    "scheduling shipping in a third — no traditional ACID transaction spans all three. A saga breaks " +
+                    "it into local transactions, each committing independently and publishing an event that triggers " +
+                    "the next step. If payment fails after inventory was already reserved, there's no rollback — " +
+                    "instead, a COMPENSATING action explicitly releases the inventory reservation."),
+                CourseSegment.concept("s5", "Layering resilience patterns instead of picking just one",
+                    "A production-grade call to a downstream service typically layers several patterns together: a " +
+                    "tight timeout so a slow dependency can't hang the caller indefinitely, retries WITH backoff for " +
+                    "genuinely transient failures, a circuit breaker to stop calling a persistently failing service, " +
+                    "and sometimes a bulkhead so one slow dependency can't exhaust threads needed for calls to OTHER, healthy dependencies."),
+                CourseSegment.interviewCorner("s6", "Where this shows up in the interview",
+                    "Expect a scenario question — 'the payment service is down, design how your order service handles " +
+                    "that' — where the strong answer names multiple layered patterns (timeout + retry + circuit breaker + fallback), not just one.")
+            ),
+            KnowledgeCheck.of(
+                "A circuit breaker has just tripped OPEN after the failure rate crossed its threshold. What happens to the NEXT request to that dependency?",
+                1,
+                "It fails immediately with no actual call made to the downstream service — this is the whole point of the OPEN state: protecting the struggling service from more load and freeing the caller's resources.",
+                "It fails fast immediately, without calling the downstream service at all",
+                "It's queued and retried automatically until it succeeds",
+                "It's routed to a backup service automatically",
+                "It proceeds normally — OPEN only affects logging"),
+            KnowledgeCheck.of(
+                "A saga's payment step fails after the inventory-reservation step already succeeded and committed. What undoes the inventory reservation?",
+                2,
+                "An explicit compensating action — there's no database rollback across the two independent services, so the application must explicitly define and trigger the 'undo' step for the inventory reservation.",
+                "The database automatically rolls back both steps together",
+                "Nothing — the inventory stays reserved permanently",
+                "An explicit compensating action defined by the application, since there's no shared transaction to roll back",
+                "The saga pattern doesn't handle partial failures")
+        );
+        addLessons("SB6", l1);
+    }
+
+    private void buildSpringBootPlaybook() {
+        InterviewPlaybook pb = new InterviewPlaybook("springboot",
+            "The Spring Boot Interview, Round by Round",
+            "Spring Boot roles dominate Java backend hiring today — the loop below reflects how it typically " +
+            "runs from a big-tech DSA-plus-system-design screen to a startup's 'can you actually ship this feature' pace.",
+            List.of(
+                new CompanyTrack("Big Tech / Platform Teams",
+                    "DSA-heavy coding rounds plus a Spring Boot-shaped system design round for mid-level and above.",
+                    List.of(
+                        new InterviewRound("Technical phone screen", "45-60 min",
+                            "A coding problem plus Spring Boot fundamentals woven into the discussion.",
+                            List.of("How does Spring Boot's auto-configuration decide what to wire?",
+                                     "How would you diagnose and fix an N+1 query?"),
+                            "Narrate your reasoning out loud — the interviewer is grading your thinking as much as the final answer."),
+                        new InterviewRound("System design", "45-60 min",
+                            "Designing a scalable backend service, often explicitly expecting a Spring Boot-shaped answer.",
+                            List.of("Design a rate limiter / notification service as a Spring Boot microservice",
+                                     "How would you make this service resilient to a flaky downstream dependency?"),
+                            "State your assumptions and scale numbers before drawing boxes — and name a resilience pattern by name."),
+                        new InterviewRound("Behavioral / bar-raiser", "45-60 min",
+                            "Ownership and how you've handled a production incident.",
+                            List.of("Tell me about a production incident you helped resolve"),
+                            "Prepare 3-4 STAR-format stories in advance."))),
+                new CompanyTrack("Fintech / Regulated Enterprise",
+                    "Heavy emphasis on correctness, resilience, and defending design decisions under scrutiny.",
+                    List.of(
+                        new InterviewRound("Technical screen", "45-60 min",
+                            "Spring Boot depth with a live-coding component.",
+                            List.of("Walk through @Transactional propagation with a concrete example",
+                                     "Design a stateless JWT auth flow end to end"),
+                            "Depth over breadth — a precise, mechanically correct answer beats a broad but vague one."),
+                        new InterviewRound("System design (reliability-focused)", "60 min",
+                            "A service where correctness and failure handling matter as much as scale.",
+                            List.of("Design a payment processing system — what happens if the bank API times out?",
+                                     "How do you guarantee a transaction isn't double-processed?"),
+                            "Lead with idempotency, retries, and circuit-breaker/bulkhead patterns — this audience listens for resilience thinking specifically."),
+                        new InterviewRound("Hands-on pairing", "60-120 min",
+                            "Adding a real feature to an existing small Spring Boot service, with tests.",
+                            List.of("Add a new secured endpoint to an existing service, with validation and tests"),
+                            "Write the test first if you can — it signals a habit this environment specifically values."))),
+                new CompanyTrack("Product Startup",
+                    "Fewer, faster rounds — less process, more 'can you actually ship this feature correctly, soon.'",
+                    List.of(
+                        new InterviewRound("Take-home or live coding", "2-4 hrs or 60 min live",
+                            "A small, realistic feature closer to actual product work than a generic algorithm problem.",
+                            List.of("Build a small REST API with persistence, validation, and basic auth, within a time box"),
+                            "A working, well-tested smaller solution beats an ambitious, half-finished one."),
+                        new InterviewRound("Final loop", "half day",
+                            "A mix of practical system design and team/culture fit.",
+                            List.of("How would this service evolve if we had 50x the users next quarter?"),
+                            "Bring genuine curiosity about the product — startups weigh this more than large companies do.")))
+            ),
+            List.of(
+                "Treating auto-configuration as unexplainable magic instead of describing @ConditionalOnClass/@ConditionalOnMissingBean",
+                "Not being able to diagnose an N+1 query from a code sample, or explain the fix",
+                "Assuming ddl-auto=update is fine for production",
+                "No real answer for 'what happens when this downstream call fails' — missing timeouts/retries/circuit breakers",
+                "Citing WebSecurityConfigurerAdapter instead of the modern SecurityFilterChain DSL",
+                "Exposing every Actuator endpoint in production without considering the security implications"
+            ),
+            List.of(
+                "Can you decompose @SpringBootApplication into its three annotations and explain each?",
+                "Can you spot and fix an N+1 query problem in a code sample?",
+                "Can you design a stateless JWT auth flow end to end, including the revocation weak point?",
+                "Can you explain the three circuit-breaker states and why failing fast matters?",
+                "Do you know why Flyway/Liquibase beats ddl-auto=update in production?",
+                "Can you explain the Saga pattern and what a compensating action actually does?"
+            ));
+        playbookByTopic.put("springboot", pb);
     }
 }
