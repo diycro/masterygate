@@ -112,20 +112,24 @@ export class LlmService {
       if (e instanceof TypeError) {
         throw new Error(`Request to ${s.provider} was blocked before it reached the server — this usually means that provider's API doesn't allow direct calls from a browser (CORS). Try a different provider in Settings.`);
       }
-      // Not every model on every provider supports forced tool-calling (this is exactly what a
-      // "tool calling is not supported with this model" error means) — rather than making that the
-      // user's problem to work around by hunting for a tool-capable model, fall back to asking the
-      // model to just write JSON in its plain response, which works on essentially any chat model.
-      if (this.looksLikeUnsupportedToolCalling(e)) {
+      // Tool-calling can fail two different ways, and both mean the same thing for us: this model
+      // can't be trusted to produce a valid structured tool call, so fall back to a plain-JSON
+      // prompt instead. (1) The model doesn't support tool-calling AT ALL ("tool calling is not
+      // supported with this model"). (2) The model attempted it but produced malformed arguments,
+      // which the PROVIDER'S OWN SERVER rejects before it even reaches us ("Failed to parse tool
+      // call arguments as JSON" — seen from Groq with openai/gpt-oss-120b). Neither is the user's
+      // fault or something a different max_tokens/retry on the SAME approach would reliably fix.
+      if (this.looksLikeToolCallingFailure(e)) {
         return await this.callPlainJsonWithRetry<T>(s, system, user, schema);
       }
       throw e;
     }
   }
 
-  private looksLikeUnsupportedToolCalling(e: any): boolean {
+  private looksLikeToolCallingFailure(e: any): boolean {
     const msg = String(e?.message || '').toLowerCase();
-    return msg.includes('tool') && (msg.includes('not support') || msg.includes('not enabled') || msg.includes('not available'));
+    if (!msg.includes('tool')) return false;
+    return /not support|not enabled|not available|fail(?:ed)? to parse|invalid|malformed/.test(msg);
   }
 
   /**
