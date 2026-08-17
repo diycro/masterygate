@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type LlmProvider = 'openai' | 'anthropic';
+export type LlmProvider = 'groq' | 'openai' | 'anthropic';
 
 export interface LlmSettings {
   provider: LlmProvider;
@@ -9,15 +9,24 @@ export interface LlmSettings {
 }
 
 const DEFAULT_MODEL: Record<LlmProvider, string> = {
+  groq: 'llama-3.3-70b-versatile',
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-latest'
 };
 
+const OPENAI_COMPAT_BASE_URL: Record<'groq' | 'openai', string> = {
+  groq: 'https://api.groq.com/openai/v1/chat/completions',
+  openai: 'https://api.openai.com/v1/chat/completions'
+};
+
 /**
- * Calls the learner's own OpenAI or Anthropic API key DIRECTLY from the browser — no backend involved.
- * The key is stored only in this browser's localStorage and is never sent anywhere except straight to
- * the chosen provider's API. Structured JSON output is obtained via forced tool-use/function-calling on
- * both providers, which is far more reliable than asking the model to "please reply with JSON."
+ * Calls the learner's own Groq, OpenAI, or Anthropic API key DIRECTLY from the browser — no backend
+ * involved. Groq is the default: it's free (no card required, generous rate limits) and exposes an
+ * OpenAI-compatible API, which is exactly what the original server-side version of this app used
+ * (GROQ_API_KEY against api.groq.com/openai). The key is stored only in this browser's localStorage
+ * and is never sent anywhere except straight to the chosen provider's API. Structured JSON output is
+ * obtained via forced tool-use/function-calling on all three providers, far more reliable than asking
+ * the model to "please reply with JSON."
  */
 @Injectable({ providedIn: 'root' })
 export class LlmService {
@@ -30,7 +39,7 @@ export class LlmService {
       const raw = localStorage.getItem(this.KEY);
       if (raw) return JSON.parse(raw);
     } catch { /* ignore corrupt storage */ }
-    return { provider: 'openai', apiKey: '', model: DEFAULT_MODEL.openai };
+    return { provider: 'groq', apiKey: '', model: DEFAULT_MODEL.groq };
   }
 
   save(next: LlmSettings) {
@@ -52,16 +61,18 @@ export class LlmService {
   async callStructured<T>(system: string, user: string, toolName: string, toolDescription: string, schema: any): Promise<T> {
     const s = this.settings();
     if (!s.apiKey.trim()) throw new Error('No API key configured — add one in Settings.');
-    if (s.provider === 'openai') return this.callOpenAi<T>(s, system, user, toolName, toolDescription, schema);
-    return this.callAnthropic<T>(s, system, user, toolName, toolDescription, schema);
+    if (s.provider === 'anthropic') return this.callAnthropic<T>(s, system, user, toolName, toolDescription, schema);
+    return this.callOpenAiCompatible<T>(s, system, user, toolName, toolDescription, schema);
   }
 
-  private async callOpenAi<T>(s: LlmSettings, system: string, user: string, toolName: string, toolDescription: string, schema: any): Promise<T> {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  /** Shared by Groq and OpenAI — both speak the identical OpenAI chat-completions + tool-calling format. */
+  private async callOpenAiCompatible<T>(s: LlmSettings, system: string, user: string, toolName: string, toolDescription: string, schema: any): Promise<T> {
+    const provider = s.provider === 'openai' ? 'openai' : 'groq';
+    const res = await fetch(OPENAI_COMPAT_BASE_URL[provider], {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.apiKey}` },
       body: JSON.stringify({
-        model: s.model || DEFAULT_MODEL.openai,
+        model: s.model || DEFAULT_MODEL[provider],
         messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
         tools: [{ type: 'function', function: { name: toolName, description: toolDescription, parameters: schema } }],
         tool_choice: { type: 'function', function: { name: toolName } }
@@ -70,7 +81,7 @@ export class LlmService {
     if (!res.ok) throw new Error(await this.errText(res));
     const data = await res.json();
     const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-    if (!call) throw new Error('OpenAI did not return a structured result.');
+    if (!call) throw new Error(`${provider === 'groq' ? 'Groq' : 'OpenAI'} did not return a structured result.`);
     try { return JSON.parse(call.function.arguments) as T; }
     catch { throw new Error('Could not parse the model\'s response.'); }
   }

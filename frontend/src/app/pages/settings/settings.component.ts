@@ -25,10 +25,15 @@ export class SettingsComponent {
     this.model = s.model;
   }
 
+  private readonly allProviders: LlmProvider[] = ['groq', 'openai', 'anthropic'];
+
   onProviderChange() {
-    // swap in the new provider's sane default only if the model field still holds the OTHER provider's default
-    const otherDefault = this.llm.defaultModelFor(this.provider === 'openai' ? 'anthropic' : 'openai');
-    if (!this.model.trim() || this.model === otherDefault) this.model = this.llm.defaultModelFor(this.provider);
+    // swap in the new provider's sane default only if the model field is empty or still holds
+    // some OTHER provider's default (i.e. the user hasn't typed a custom model of their own)
+    const isSomeOtherDefault = this.allProviders
+      .filter(p => p !== this.provider)
+      .some(p => this.model === this.llm.defaultModelFor(p));
+    if (!this.model.trim() || isSomeOtherDefault) this.model = this.llm.defaultModelFor(this.provider);
   }
 
   save() {
