@@ -61,8 +61,20 @@ export class LlmService {
   async callStructured<T>(system: string, user: string, toolName: string, toolDescription: string, schema: any): Promise<T> {
     const s = this.settings();
     if (!s.apiKey.trim()) throw new Error('No API key configured — add one in Settings.');
-    if (s.provider === 'anthropic') return this.callAnthropic<T>(s, system, user, toolName, toolDescription, schema);
-    return this.callOpenAiCompatible<T>(s, system, user, toolName, toolDescription, schema);
+    try {
+      if (s.provider === 'anthropic') return await this.callAnthropic<T>(s, system, user, toolName, toolDescription, schema);
+      return await this.callOpenAiCompatible<T>(s, system, user, toolName, toolDescription, schema);
+    } catch (e: any) {
+      // A raw "Failed to fetch"/"NetworkError" (no HTTP status attached) almost always means the
+      // request never reached the provider at all — the browser blocked it, most commonly a CORS
+      // rejection from that provider's API not allowing direct browser calls. Real API errors (bad
+      // key, bad request, rate limit) instead go through errText() below and already have a specific
+      // status-derived message, so they don't hit this branch.
+      if (e instanceof TypeError) {
+        throw new Error(`Request to ${s.provider} was blocked before it reached the server — this usually means that provider's API doesn't allow direct calls from a browser (CORS). Try a different provider in Settings.`);
+      }
+      throw e;
+    }
   }
 
   /** Shared by Groq and OpenAI — both speak the identical OpenAI chat-completions + tool-calling format. */

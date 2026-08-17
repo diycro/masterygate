@@ -88,22 +88,30 @@ export class GradingService {
     }
   }
 
+  /** Throws (with the real provider error message) rather than swallowing failures — callers decide how to surface it. */
   async generateMoreQa(moduleTitle: string, objectives: string[], avoidQuestions: string[], n: number): Promise<GenQaItem[]> {
-    if (!this.llm.configured) return [];
+    if (!this.llm.configured) throw new Error('No API key configured — add one in Settings.');
     const avoid = avoidQuestions.length ? avoidQuestions.join(' | ') : '(none yet)';
     const user = `MODULE: ${moduleTitle}\nOBJECTIVES: ${objectives.join('; ')}\nAVOID (already asked): ${avoid}\n\nGenerate exactly ${n} new interview questions with answers and explanations.`;
     try {
       const bank = await this.llm.callStructured<{ items: GenQaItem[] }>(QA_GEN_SYSTEM, user, 'submit_questions', 'Submit the generated interview questions.', QA_GEN_SCHEMA);
       return (bank.items || []).filter(it => it.question?.trim() && it.answer?.trim());
-    } catch { return []; }
+    } catch (e: any) {
+      console.error('generateMoreQa failed:', e);
+      throw e;
+    }
   }
 
+  /** Silently falls back to [] on failure — the caller (gate start) is designed to fall back to curated questions. */
   async generateGateQuestions(moduleTitle: string, objectives: string[], n: number): Promise<GenGateQuestion[]> {
     if (!this.llm.configured) return [];
     const user = `MODULE: ${moduleTitle}\nOBJECTIVES: ${objectives.join('; ')}\n\nGenerate exactly ${n} questions.`;
     try {
       const quiz = await this.llm.callStructured<{ questions: GenGateQuestion[] }>(GATE_GEN_SYSTEM, user, 'submit_quiz', 'Submit the generated quiz questions.', GATE_GEN_SCHEMA);
       return (quiz.questions || []).filter(q => q.question?.trim());
-    } catch { return []; }
+    } catch (e) {
+      console.error('generateGateQuestions failed, falling back to curated questions:', e);
+      return [];
+    }
   }
 }

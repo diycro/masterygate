@@ -183,9 +183,14 @@ export class ApiService {
     const mod = await this.content.getModule(moduleId);
     if (!mod) return { added: [], message: 'Unknown module.' };
     const existing = await this.loadQa(moduleId);
-    const generated = await this.grading.generateMoreQa(mod.title, mod.objectives, existing.map(q => q.question), count);
+    let generated;
+    try {
+      generated = await this.grading.generateMoreQa(mod.title, mod.objectives, existing.map(q => q.question), count);
+    } catch (e: any) {
+      return { added: [], message: 'Could not generate more questions: ' + (e?.message || 'unknown error') };
+    }
     if (!generated.length) {
-      return { added: [], message: "Couldn't generate new questions right now (check your API key in Settings). Try again shortly." };
+      return { added: [], message: "The model didn't return any new questions — try again, or try a different model in Settings." };
     }
     const added: InterviewQA[] = generated.map((g, i) => ({
       id: Date.now() + i, question: g.question, answer: g.answer, explanation: g.explanation,
