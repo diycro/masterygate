@@ -83,7 +83,19 @@ public class ModuleCatalog {
                     "reproducible installs without version clashes"),
                 q("m0q3", "Give one situation where you'd use Java/Spring AI for an LLM feature, and one where you'd use Python.",
                     "Java/Spring AI: embedding LLM into an existing JVM/Spring production backend",
-                    "Python: the AI-first library ecosystem / fast prototyping / newest tools land there first"))));
+                    "Python: the AI-first library ecosystem / fast prototyping / newest tools land there first"),
+                q("m0q4", "What does the 'usage' object in an LLM API response tell you, and why does it matter?",
+                    "a breakdown of prompt tokens, completion tokens, and total tokens for that call",
+                    "lets you compute the exact cost of the call since pricing is per-token",
+                    "essential for monitoring and budgeting once a feature is in production"),
+                q("m0q5", "At a high level, what does a Spring AI ChatClient call do under the hood?",
+                    "builds a request in Spring AI's provider-agnostic shape",
+                    "Spring AI translates it into the specific format the configured provider (OpenAI, Groq, etc.) expects",
+                    "returns a ChatResponse wrapping the generated message plus metadata like token usage"),
+                q("m0q6", "Why might the exact same prompt cost a different amount on two separate calls?",
+                    "generation is non-deterministic, so completion length (and thus output tokens) can vary between runs",
+                    "if the model or provider changed between calls, per-token pricing can differ",
+                    "cost = input tokens + output tokens, and only the output side is inherently variable"))));
 
         add(new Module("M1", t, 1, "LLM Fundamentals & Prompting",
             List.of("Tokens, context window, temperature", "Cost & determinism", "Prompting vs RAG vs fine-tuning",
@@ -113,7 +125,15 @@ public class ModuleCatalog {
                 q("q6", "When would you choose RAG over plain prompting, and over fine-tuning?",
                     "RAG when answers need external/private/up-to-date facts grounded in your documents",
                     "prompting for tasks within the model's general knowledge",
-                    "fine-tuning to change style/format/behavior at scale, not to inject facts"))));
+                    "fine-tuning to change style/format/behavior at scale, not to inject facts"),
+                q("q7", "What is the context window, and what happens when a conversation exceeds it?",
+                    "the maximum number of tokens (input + output combined) the model can process in one call",
+                    "exceeding it either truncates/drops older context or causes the call to error, depending on the client",
+                    "a longer context isn't free — cost and latency both scale with how much you send"),
+                q("q8", "How do you get an LLM to reliably return valid, parseable JSON instead of freeform prose?",
+                    "use the provider's structured-output/JSON mode or function/tool calling rather than just asking nicely in the prompt",
+                    "as a fallback, give an explicit schema/example in the prompt",
+                    "always parse defensively — even structured-output modes can occasionally produce malformed output"))));
 
         add(new Module("M2", t, 2, "Embeddings & Vector Search (pgvector)",
             List.of("Embeddings & semantic similarity", "cosine vs L2", "HNSW vs IVFFlat", "Chunking"),
@@ -135,7 +155,15 @@ public class ModuleCatalog {
                     "IVFFlat: cluster-based, cheaper/faster to build, tune probes for recall"),
                 q("m2q4", "Why not just use SQL LIKE or full-text search instead of vector search?",
                     "keyword search misses paraphrases and meaning", "vectors match semantic similarity",
-                    "hybrid search combines keyword + vector for the best of both"))));
+                    "hybrid search combines keyword + vector for the best of both"),
+                q("m2q5", "Why does chunk size matter for RAG retrieval quality?",
+                    "small chunks give precise retrieval but can lose the surrounding context a passage needs to make sense",
+                    "large chunks preserve more context but dilute relevance — a match on one sentence pulls in a lot of unrelated text",
+                    "overlapping chunk boundaries helps avoid splitting one relevant idea across two separate chunks"),
+                q("m2q6", "Does a higher-dimensional embedding always mean better search quality?",
+                    "dimensionality is fixed per embedding model (e.g., 384/768/1536) and isn't something you tune per query",
+                    "no — higher dimensionality trades off storage and compute cost against often-marginal quality gains",
+                    "the right model/dimensionality depends on the specific domain and scale, not just 'bigger is better'"))));
 
         add(new Module("M3", t, 3, "RAG End-to-End",
             List.of("Full pipeline + citations", "Hybrid search & re-ranking", "Grounding to cut hallucination", "Evaluating RAG"),
@@ -157,7 +185,15 @@ public class ModuleCatalog {
                     "scores from both are merged"),
                 q("m3q4", "How do you evaluate RAG quality and catch a regression before shipping?",
                     "an eval set scoring faithfulness/relevance/answer-correctness", "run it in CI as a gate",
-                    "golden question/answer pairs"))));
+                    "golden question/answer pairs"),
+                q("m3q5", "What does a re-ranker do in a RAG pipeline, and why run one after initial retrieval instead of just fetching more documents?",
+                    "a re-ranker is a more accurate (and more expensive) relevance model applied to a small candidate set",
+                    "initial retrieval (vector or hybrid search) is fast but approximate; re-ranking refines the top-k for precision",
+                    "running the expensive re-ranking model over the ENTIRE corpus instead of a small candidate set would be too slow/costly"),
+                q("m3q6", "How do you add citations to a RAG answer, and why does that matter?",
+                    "track which source chunk each part of the generated answer actually drew from",
+                    "surface those sources alongside the answer so the user can verify claims",
+                    "citations also help YOU debug retrieval failures when an answer looks wrong"))));
 
         add(new Module("M4", t, 4, "Agents, Tool-Calling & MCP",
             List.of("Tool/function calling", "The reason-act-observe loop", "Cost/loop guards", "MCP"),
@@ -178,7 +214,15 @@ public class ModuleCatalog {
                     "a max step/iteration limit", "a token/cost budget or timeout", "guardrails on tool use"),
                 q("m4q4", "What does MCP (Model Context Protocol) standardize?",
                     "a standard protocol/interface for connecting LLMs to tools and data sources",
-                    "replaces bespoke per-integration glue with a common client-server contract"))));
+                    "replaces bespoke per-integration glue with a common client-server contract"),
+                q("m4q5", "What's the difference between a single tool call and a full agent loop?",
+                    "a single tool call is one request -> one function execution -> one response, with no iteration",
+                    "an agent loop repeats reason -> act -> observe multiple times, deciding at each step whether to call another tool or finish",
+                    "agents are needed when a task requires several dependent steps chosen dynamically, not a single fixed action"),
+                q("m4q6", "Give a concrete example of what an MCP server exposes to an LLM client.",
+                    "an MCP server exposes resources, tools, and/or prompts over the standard protocol",
+                    "example: a GitHub MCP server exposing tools to read files, list issues, or open a PR",
+                    "the LLM client (host app) discovers and calls these capabilities without bespoke per-integration code"))));
 
         add(new Module("M5", t, 5, "Production GenAI",
             List.of("Evals & testing non-determinism", "Prompt-injection & guardrails", "Cost/latency & caching", "Observability"),
@@ -201,7 +245,15 @@ public class ModuleCatalog {
                     "shorter prompts/context; batching; streaming for perceived latency"),
                 q("m5q4", "What should you log for an LLM app, and what must you NOT log?",
                     "log prompts/responses, tokens, cost, latency for observability",
-                    "do NOT log secrets or PII (redact them)"))));
+                    "do NOT log secrets or PII (redact them)"),
+                q("m5q5", "What's the difference between exact-match caching and semantic caching for LLM calls?",
+                    "exact-match caching only hits when the request is literally identical to a prior one",
+                    "semantic caching matches semantically similar prior queries (via embedding similarity) even if worded differently",
+                    "semantic caching catches more cache hits but risks an occasional false-positive match returning a slightly wrong cached answer"),
+                q("m5q6", "Why is 'LLM-as-judge' a common evaluation technique, and what's a real risk of relying on it?",
+                    "a strong LLM grades another LLM's output at scale — much cheaper and faster than human review",
+                    "risk: the judge model has its own biases/blind spots and can be fooled by confident-sounding but wrong answers",
+                    "judge scores should be periodically validated against real human judgment, not trusted blindly"))));
 
         add(new Module("M6", t, 6, "Capstone — RAG Assistant",
             List.of("Integrate M1–M5 into one app", "Deploy on AWS", "Defend every design choice"),
@@ -216,7 +268,19 @@ public class ModuleCatalog {
                     "at scale: sharding, caching, cost controls, monitoring"),
                 q("m6q2", "How would you add cost controls and evaluation to your capstone?",
                     "caching, cheaper-model routing, per-session budgets",
-                    "an eval set (faithfulness/relevance) run in CI"))));
+                    "an eval set (faithfulness/relevance) run in CI"),
+                q("m6q3", "What are the key steps to deploy a Spring Boot GenAI app to AWS, and what's one concern specific to LLM-backed services?",
+                    "containerize the app (Docker) and deploy via ECS/EKS or a simpler PaaS like Elastic Beanstalk",
+                    "manage API keys/secrets through a secrets manager, never in env files baked into the image",
+                    "LLM-specific concern: rate limiting and cost control against a third-party API, plus handling provider timeouts/retries gracefully"),
+                q("m6q4", "In a 5-minute architecture walkthrough of your capstone, what should you cover, and in what order?",
+                    "start with the problem/user need, not the tech stack",
+                    "then the high-level data flow (ingest -> store -> retrieve -> generate)",
+                    "then your 2-3 most defensible design decisions, then a known limitation you'd fix next"),
+                q("m6q5", "What's one thing you'd change about your capstone to support 10x the current traffic?",
+                    "identify the ACTUAL bottleneck (usually the vector index or the LLM call itself) rather than scaling everything uniformly",
+                    "cache aggressively and scale the stateless app tier horizontally",
+                    "consider routing high-volume/easy queries to a cheaper, faster model with fallback to a stronger model for hard cases"))));
     }
 
     // ------------------------------------------------------------------ DSA track
@@ -243,7 +307,19 @@ public class ModuleCatalog {
                     "asymptotic growth of time/space as input grows; constants are ignored",
                     "worst case gives a guaranteed upper bound regardless of input"),
                 q("dsa1q3", "Give an example where a hash set turns an O(n^2) solution into O(n).",
-                    "e.g. two-sum or detecting duplicates", "store seen elements and check the complement/existence in O(1)"))));
+                    "e.g. two-sum or detecting duplicates", "store seen elements and check the complement/existence in O(1)"),
+                q("dsa1q4", "What's the difference between average-case and worst-case complexity for a HashMap, and when does the worst case happen?",
+                    "average O(1) assumes a reasonable hash function spreading keys evenly across buckets",
+                    "worst case O(n) (or O(log n) in Java 8+ with treeification) happens when many keys collide into the same bucket",
+                    "a poor or adversarially-chosen hashCode can trigger this"),
+                q("dsa1q5", "Why is string concatenation inside a loop often a hidden O(n^2) trap, and how do you avoid it?",
+                    "each concatenation typically creates a NEW string, copying every prior character",
+                    "doing this n times in a loop is O(n^2) total work, not O(n)",
+                    "use a mutable builder (StringBuilder, or a list joined once at the end) to get true O(n)"),
+                q("dsa1q6", "Given two arrays, what's the fastest way to check whether they share any element, and why?",
+                    "put one array's elements into a hash set — O(n) to build",
+                    "check membership for each element of the second array — O(m)",
+                    "overall O(n+m), versus the naive nested-loop comparison's O(n*m)"))));
 
         add(new Module("DSA2", t, 1, "Two Pointers & Sliding Window",
             List.of("Two-pointer technique", "Fixed & variable sliding windows", "Removing nested loops"), base,
@@ -256,7 +332,16 @@ public class ModuleCatalog {
                     "each element enters and leaves the window at most once", "both pointers only move forward"),
                 q("dsa2q3", "Two pointers vs sliding window — when would you use each?",
                     "two pointers: often sorted arrays / both ends (pair sums, partitioning)",
-                    "sliding window: optimize over a contiguous range"))));
+                    "sliding window: optimize over a contiguous range"),
+                q("dsa2q4", "In a sliding-window problem, what determines whether you shrink the window from the left?",
+                    "shrink whenever the current window violates the problem's constraint (too many distinct chars, sum too large, etc.)",
+                    "shrink until the constraint is satisfied again, then resume expanding from the right"),
+                q("dsa2q5", "Give an example of a two-pointer problem where the pointers start at OPPOSITE ends rather than both at the start.",
+                    "e.g. 'container with most water' or two-sum on a sorted array",
+                    "one pointer starts at index 0, the other at the last index, moving inward based on a comparison — exploiting the sorted/structured input"),
+                q("dsa2q6", "Why do two-pointer and sliding-window techniques typically require some structure in the input, like being sorted?",
+                    "they rely on being able to make a monotonic decision about which pointer to move next",
+                    "on unstructured input you often need to sort first (adding O(n log n)) or fall back to a different technique like hashing"))));
 
         add(new Module("DSA3", t, 2, "Stacks, Queues & Linked Lists",
             List.of("Stack/queue use-cases", "Linked-list manipulation", "Choosing the right structure"), base,
@@ -268,7 +353,18 @@ public class ModuleCatalog {
                     "Floyd's fast & slow pointers", "O(n) time, O(1) space; the pointers meet inside the cycle"),
                 q("dsa3q3", "Array vs linked list — the key trade-offs?",
                     "array: O(1) index access, contiguous, costly mid insert/delete",
-                    "linked list: O(1) insert/delete at a node, O(n) access, extra pointer memory"))));
+                    "linked list: O(1) insert/delete at a node, O(n) access, extra pointer memory"),
+                q("dsa3q4", "How do you reverse a singly linked list iteratively, and what's the space complexity?",
+                    "walk the list maintaining prev/curr/next pointers, reversing each link as you go",
+                    "O(n) time, O(1) space",
+                    "a recursive approach would instead be O(n) space due to the call stack"),
+                q("dsa3q5", "What's a monotonic stack, and give a problem it solves efficiently.",
+                    "a stack kept in strictly increasing or decreasing order by popping elements that violate the order before pushing",
+                    "classic use: 'next greater element' — solved in O(n) instead of the naive O(n^2)"),
+                q("dsa3q6", "Queue vs Deque — when do you need a deque instead of a plain queue?",
+                    "a plain queue only allows enqueue at one end and dequeue at the other (FIFO)",
+                    "a deque allows insertion/removal at BOTH ends",
+                    "needed for problems like sliding-window maximum, where you must remove from either end efficiently"))));
 
         add(new Module("DSA4", t, 3, "Trees & Binary Search Trees",
             List.of("Tree traversals (DFS/BFS)", "BST properties", "Recursion on trees"), base,
@@ -282,7 +378,18 @@ public class ModuleCatalog {
                     "DFS = deep (stack/recursion), good for path/subtree problems, less memory on wide trees"),
                 q("dsa4q3", "How would you check whether a binary tree is a valid BST?",
                     "in-order traversal must be strictly increasing, OR recurse carrying min/max bounds",
-                    "a simple parent-child check is not sufficient"))));
+                    "a simple parent-child check is not sufficient"),
+                q("dsa4q4", "How do you find the lowest common ancestor (LCA) of two nodes in a BST, using the BST property?",
+                    "start at the root; if both target values are less than the current node, go left; if both greater, go right",
+                    "the first node where the values diverge (one <=, one >) is the LCA",
+                    "O(h) time, where h is the tree's height"),
+                q("dsa4q5", "What's the difference between a balanced and an unbalanced binary tree, and why does it matter when you state complexity?",
+                    "balanced means height is O(log n) relative to the number of nodes",
+                    "unbalanced can degrade to O(n) height — effectively a linked list",
+                    "always state which case (balanced vs worst-case skewed) your complexity claim assumes"),
+                q("dsa4q6", "How would you serialize and deserialize a binary tree?",
+                    "a common approach: pre-order traversal, writing an explicit marker for missing (null) children",
+                    "deserialize by reading tokens in the same order and reconstructing recursively"))));
 
         add(new Module("DSA5", t, 4, "Graphs (BFS/DFS)",
             List.of("Graph representations", "BFS/DFS on graphs", "Shortest-path basics"), base,
@@ -295,7 +402,17 @@ public class ModuleCatalog {
                     "BFS: shortest path in an unweighted graph, level exploration",
                     "DFS: cycle detection, topological sort, connectivity, path existence"),
                 q("dsa5q3", "How do you avoid infinite loops when traversing a graph?",
-                    "keep a visited set/array and mark nodes as you go", "graphs can have cycles, unlike trees"))));
+                    "keep a visited set/array and mark nodes as you go", "graphs can have cycles, unlike trees"),
+                q("dsa5q4", "What's topological sort, and what precondition must a graph satisfy for it to exist?",
+                    "an ordering of nodes such that every directed edge points from an earlier node to a later one",
+                    "only exists for a Directed Acyclic Graph (DAG) — a cycle makes a valid topological order impossible"),
+                q("dsa5q5", "How does Dijkstra's algorithm find shortest paths, and why does it fail with negative edge weights?",
+                    "greedily expands the closest unvisited node using a priority queue, relaxing edges as it goes",
+                    "it assumes once a node's shortest distance is finalized it can't improve",
+                    "a later negative edge could still shorten a path, breaking that assumption"),
+                q("dsa5q6", "What problem does Union-Find (Disjoint Set) solve efficiently, and what's one optimization that speeds it up?",
+                    "efficiently tracks and merges groups of connected components, answering 'are these two nodes connected' quickly",
+                    "path compression and union by rank/size bring operations to near-O(1) amortized"))));
 
         add(new Module("DSA6", t, 5, "Recursion & Dynamic Programming",
             List.of("Recursion & base cases", "Memoization vs tabulation", "Spotting DP problems"), base,
@@ -308,7 +425,16 @@ public class ModuleCatalog {
                     "memoization: top-down recursion with a cache",
                     "tabulation: bottom-up iterative table; both remove recomputation"),
                 q("dsa6q3", "How does memoization change naive recursive Fibonacci's complexity?",
-                    "naive is O(2^n) exponential", "memoized is O(n) time and O(n) space by caching subresults"))));
+                    "naive is O(2^n) exponential", "memoized is O(n) time and O(n) space by caching subresults"),
+                q("dsa6q4", "What's the time/space complexity of a typical bottom-up DP solution with a 2D table, and how can you often reduce the space?",
+                    "O(rows*cols) time and space for the full table",
+                    "if each row/state only depends on the PREVIOUS row, roll the table down to O(cols) space by keeping just the last row (or two)"),
+                q("dsa6q5", "How do you identify the 'state' in a DP problem?",
+                    "the state is the minimal set of parameters that uniquely determines a subproblem's answer (e.g., index + remaining capacity for knapsack)",
+                    "getting the state definition right is usually the hardest part of solving a new DP problem"),
+                q("dsa6q6", "Give an example of a greedy approach failing where DP succeeds, and explain why.",
+                    "e.g. coin change with non-canonical denominations — greedily picking the largest coin each time doesn't always give the optimal count",
+                    "DP explores all valid combinations and keeps the best; greedy commits early without reconsidering"))));
     }
 
     // ------------------------------------------------------------------ System Design track
@@ -334,7 +460,17 @@ public class ModuleCatalog {
                     "distributes traffic across servers", "stateless servers let any server handle any request (session in shared store), enabling scale and failover"),
                 q("sd1q3", "Define latency and throughput, and give a trade-off between them.",
                     "latency = time per request; throughput = requests per second",
-                    "batching can raise throughput but increase per-request latency"))));
+                    "batching can raise throughput but increase per-request latency"),
+                q("sd1q4", "Name two load balancing algorithms and how they differ.",
+                    "round robin: cycles through servers evenly, ignoring current load",
+                    "least connections: routes to the server with the fewest active connections — better when requests cost unevenly",
+                    "consistent hashing: routes based on a key so the same client/data tends to hit the same server, useful for caching"),
+                q("sd1q5", "What's a single point of failure, and how does horizontal scaling with a load balancer address it?",
+                    "a component whose failure takes down the whole system",
+                    "running multiple server instances behind a load balancer means one instance failing doesn't take the service down — traffic routes to the survivors"),
+                q("sd1q6", "Why do back-of-envelope scale estimates matter before you start designing?",
+                    "they reveal whether you're designing for thousands or billions of requests, which drives fundamentally different architecture choices",
+                    "skipping this leads to either over-engineering a small system or under-engineering one that actually needs to scale"))));
 
         add(new Module("SD2", t, 1, "Databases & Data Modeling",
             List.of("SQL vs NoSQL", "Sharding & replication", "Indexing & consistency (CAP)"), base,
@@ -348,7 +484,17 @@ public class ModuleCatalog {
                     "replication copies data for read scaling and availability/failover"),
                 q("sd2q3", "State the CAP theorem in one sentence, with a practical implication.",
                     "under a network partition you must choose consistency or availability",
-                    "e.g. pick AP (eventual consistency) or CP depending on the use case"))));
+                    "e.g. pick AP (eventual consistency) or CP depending on the use case"),
+                q("sd2q4", "What's a database index, and what's the trade-off of adding one?",
+                    "a separate data structure (commonly a B-tree) that speeds up lookups on a column without scanning the whole table",
+                    "trade-off: extra storage, and slower writes since every index must also be updated on insert/update/delete"),
+                q("sd2q5", "Explain eventual consistency with a concrete example.",
+                    "after a write, different replicas may temporarily return different (stale) values until they converge",
+                    "example: a 'like' count that briefly shows different numbers to different users right after a like, then settles to the same value"),
+                q("sd2q6", "How would you design a schema to avoid the N+1 query problem at the database/query-design level?",
+                    "denormalize selectively (embed frequently-needed related data) where read performance matters more than write simplicity",
+                    "or ensure the query layer uses joins/batch fetches instead of one query per row",
+                    "the goal is minimizing round trips, whether through schema design or query pattern"))));
 
         add(new Module("SD3", t, 2, "Caching, Queues & Async",
             List.of("Caching strategies & invalidation", "Message queues", "Async processing"), base,
@@ -360,7 +506,17 @@ public class ModuleCatalog {
                     "decouples producers from consumers", "smooths load spikes and enables async processing, retries, and resilience"),
                 q("sd3q3", "Cache-aside vs write-through — what's the difference?",
                     "cache-aside: app loads on miss, writes DB then invalidates cache",
-                    "write-through: write cache and DB together — fresher reads, higher write latency"))));
+                    "write-through: write cache and DB together — fresher reads, higher write latency"),
+                q("sd3q4", "What's the difference between at-least-once and exactly-once delivery in a message queue, and why is exactly-once so hard?",
+                    "at-least-once may redeliver a message after a failure, so the consumer must handle duplicates / be idempotent",
+                    "exactly-once requires coordinating message delivery with the consumer's processing atomically",
+                    "true exactly-once is expensive and rarely fully guaranteed end-to-end across distributed systems"),
+                q("sd3q5", "When would you choose a write-back (write-behind) cache strategy, and what risk does it introduce?",
+                    "write to cache immediately and asynchronously flush to the database later — lowest possible write latency",
+                    "risk: data loss if the cache fails before the flush to the database happens"),
+                q("sd3q6", "What's cache stampede (thundering herd), and how do you prevent it?",
+                    "many requests simultaneously miss a just-expired cache entry and all hit the database at once",
+                    "prevented with request coalescing (only one request repopulates the cache, others wait), staggered TTLs, or a lock around repopulation"))));
 
         add(new Module("SD4", t, 3, "Scalable APIs & Microservices",
             List.of("API design & rate limiting", "Monolith vs microservices", "Resilience patterns"), base,
@@ -373,7 +529,16 @@ public class ModuleCatalog {
                     "protect from abuse/overload, ensure fairness, control cost",
                     "algorithms like token bucket or leaky bucket, applied per API key/user"),
                 q("sd4q3", "Name two resilience patterns for service-to-service calls and what they prevent.",
-                    "timeouts and retries with backoff", "circuit breaker (stop calling a failing service), bulkhead, fallback"))));
+                    "timeouts and retries with backoff", "circuit breaker (stop calling a failing service), bulkhead, fallback"),
+                q("sd4q4", "What's an API gateway, and what does it centralize in a microservices architecture?",
+                    "the single entry point clients call, which routes each request to the correct backend service",
+                    "centralizes auth, rate limiting, logging, and sometimes response aggregation, so individual services don't reimplement them"),
+                q("sd4q5", "What's the Saga pattern, and what problem does it solve?",
+                    "manages a business transaction spanning multiple microservices/databases, where a single ACID transaction isn't possible",
+                    "breaks it into local transactions with explicit compensating actions to undo prior steps if a later step fails"),
+                q("sd4q6", "How do you handle service discovery when instances scale up/down dynamically?",
+                    "a service registry (e.g. Consul, Eureka, or a cloud-native equivalent) that services register with on startup and deregister on shutdown",
+                    "callers/load balancers query the registry instead of hardcoding instance addresses"))));
 
         add(new Module("SD5", t, 4, "AI System Design",
             List.of("Design a RAG pipeline", "LLM gateway (cache/route/limit)", "Scale a vector DB"), base,
@@ -386,7 +551,17 @@ public class ModuleCatalog {
                     "a central layer for caching, model routing (cheap vs strong), rate limiting, retries/fallback",
                     "and cost/usage tracking + key management"),
                 q("sd5q3", "How would you scale a vector DB to 100M vectors with low latency?",
-                    "an ANN index (HNSW/IVF)", "sharding/partitioning + read replicas, cache hot queries, tune the recall/latency trade-off"))));
+                    "an ANN index (HNSW/IVF)", "sharding/partitioning + read replicas, cache hot queries, tune the recall/latency trade-off"),
+                q("sd5q4", "How would you design rate limiting for an LLM-backed API, where cost varies wildly per request?",
+                    "token-based limiting, not just request-count — a request with a huge context costs far more than a short one",
+                    "per-user/per-key budgets tracked against actual token usage rather than raw request counts"),
+                q("sd5q5", "What fallback strategy would you design for when your primary LLM provider is down or rate-limited?",
+                    "a secondary provider/model as a fallback, accepting a possible quality trade-off",
+                    "or a cached/degraded response when no live generation is possible",
+                    "a circuit breaker to stop hammering a failing provider and fail over quickly"),
+                q("sd5q6", "How would you keep a RAG system's knowledge fresh without re-embedding the entire document store on every update?",
+                    "incremental indexing — only re-embed and update the changed/added documents, not the whole corpus",
+                    "track document versions/timestamps to know exactly what needs re-processing"))));
     }
 
     // ------------------------------------------------------------------ Java Full-Stack track
@@ -418,7 +593,13 @@ public class ModuleCatalog {
                 q("jfs1q4", "What triggers a garbage collection, and what's the difference between minor and major/full GC?",
                     "objects are collected when no longer reachable from GC roots",
                     "minor GC: cleans the young generation, frequent and fast",
-                    "major/full GC: cleans the old generation (or the whole heap), less frequent but much more expensive/pausing"))));
+                    "major/full GC: cleans the old generation (or the whole heap), less frequent but much more expensive/pausing"),
+                q("jfs1q5", "What's type erasure in Java generics, and what's one practical consequence of it?",
+                    "generic type parameters are erased to their bound (or Object) at compile time — they don't exist at runtime",
+                    "consequence: you can't do `new T()` or `instanceof T`, and you can't overload methods that differ only by generic type parameter"),
+                q("jfs1q6", "What's a functional interface, and how does a lambda expression relate to it?",
+                    "an interface with exactly ONE abstract method (e.g. Runnable, Comparator, or a custom @FunctionalInterface)",
+                    "a lambda expression is essentially syntactic sugar providing an inline implementation of that single abstract method"))));
 
         add(new Module("JFS2", t, 1, "Spring & Spring Boot Fundamentals",
             List.of("Dependency injection & bean lifecycle", "Auto-configuration", "Profiles & externalized config", "AOP basics"),
@@ -442,7 +623,14 @@ public class ModuleCatalog {
                     "this is why adding a dependency (e.g., a JDBC driver) can automatically wire up related beans"),
                 q("jfs2q4", "Singleton vs prototype bean scope — what's the difference and a case for each?",
                     "singleton (default): one shared instance per Spring container — fine for stateless services",
-                    "prototype: a new instance every time the bean is requested — used for stateful, non-thread-safe objects"))));
+                    "prototype: a new instance every time the bean is requested — used for stateful, non-thread-safe objects"),
+                q("jfs2q5", "What are Spring profiles, and how do you activate one?",
+                    "profiles let you define environment-specific beans/configuration (dev, test, prod)",
+                    "activate via the spring.profiles.active property, an environment variable, or programmatically",
+                    "a bean annotated @Profile(\"x\") only loads when that profile is active"),
+                q("jfs2q6", "What is AOP, and give a real example of it already at work inside Spring itself.",
+                    "Aspect-Oriented Programming factors cross-cutting concerns (logging, security, transactions) out into reusable aspects applied via pointcuts",
+                    "@Transactional itself is implemented as AOP advice that wraps a method call in a transaction begin/commit/rollback"))));
 
         add(new Module("JFS3", t, 2, "Spring Data JPA & Transactions",
             List.of("Transaction propagation & isolation", "Lazy vs eager loading", "N+1 query problem", "Entity lifecycle"),
@@ -465,7 +653,15 @@ public class ModuleCatalog {
                 q("jfs3q4", "Lazy vs eager fetching in JPA — what's the trade-off, and what's the default for @OneToMany vs @ManyToOne?",
                     "lazy loads the association only when accessed (saves memory/query cost, but risks LazyInitializationException outside a session)",
                     "eager always loads it immediately (simpler, but can over-fetch and hurt performance)",
-                    "@OneToMany/@ManyToMany default to lazy; @ManyToOne/@OneToOne default to eager"))));
+                    "@OneToMany/@ManyToMany default to lazy; @ManyToOne/@OneToOne default to eager"),
+                q("jfs3q5", "Name the standard transaction isolation levels and what each additionally prevents over the one below it.",
+                    "READ_UNCOMMITTED: prevents nothing (dirty reads possible)",
+                    "READ_COMMITTED: prevents dirty reads",
+                    "REPEATABLE_READ: also prevents non-repeatable reads",
+                    "SERIALIZABLE: also prevents phantom reads — each stronger level trades concurrency/performance for consistency"),
+                q("jfs3q6", "What are the JPA entity lifecycle states, and what triggers the transition from transient to persistent?",
+                    "transient (new, not yet associated with a persistence context) -> persistent (managed, changes tracked) -> detached (was managed, session closed) -> removed",
+                    "calling entityManager.persist() (or repository.save() on a new entity) transitions it from transient to persistent"))));
 
         add(new Module("JFS4", t, 3, "REST APIs, Validation & Security",
             List.of("REST API design", "Bean validation & exception handling", "OAuth2/JWT authentication", "CORS & CSRF"),
@@ -489,7 +685,13 @@ public class ModuleCatalog {
                 q("jfs4q4", "How do you version a REST API, and what are the trade-offs of common approaches?",
                     "URI versioning (/api/v1/...): simple, visible, but can lead to code duplication",
                     "header/content-negotiation versioning: cleaner URIs but less discoverable and harder to test manually",
-                    "the choice depends on how many consumers you have and how often breaking changes occur"))));
+                    "the choice depends on how many consumers you have and how often breaking changes occur"),
+                q("jfs4q5", "How do you validate an incoming request body in a Spring Boot controller, and what happens automatically on failure?",
+                    "annotate the DTO fields with Bean Validation annotations (@NotNull, @Size, @Email, etc.) and the controller parameter with @Valid",
+                    "a failure throws MethodArgumentNotValidException before the method body runs, which Spring Boot's default handling turns into a 400 response"),
+                q("jfs4q6", "What does the OAuth2 authorization code flow protect against that the older implicit flow didn't?",
+                    "the access token exchange happens server-to-server using a confidential client secret, rather than the token being returned directly to the browser",
+                    "this keeps the long-lived, powerful access token out of browser history, referrer headers, and JS-accessible storage"))));
 
         add(new Module("JFS5", t, 4, "Testing (JUnit, Mockito, Integration)",
             List.of("Unit vs integration testing", "Mockito mocking", "@SpringBootTest & test slices", "Testcontainers basics"),
@@ -511,7 +713,13 @@ public class ModuleCatalog {
                     "Testcontainers spins up the REAL database engine (e.g., actual Postgres) in Docker for the test, giving much higher confidence the tests reflect production behavior"),
                 q("jfs5q4", "What does @SpringBootTest do, and why would you use a narrower test slice like @WebMvcTest instead?",
                     "@SpringBootTest loads the full application context — thorough but slow",
-                    "@WebMvcTest (or @DataJpaTest, etc.) loads only the relevant slice of the context — much faster, appropriate when you're only testing one layer"))));
+                    "@WebMvcTest (or @DataJpaTest, etc.) loads only the relevant slice of the context — much faster, appropriate when you're only testing one layer"),
+                q("jfs5q5", "What does @MockBean do differently from a plain Mockito.mock() call inside a Spring test?",
+                    "@MockBean replaces the real bean of that type INSIDE the Spring application context, so other autowired beans transparently receive the mock",
+                    "a plain Mockito.mock() is just a local object you construct and wire yourself — it never touches the Spring context, making it the faster choice for a pure unit test"),
+                q("jfs5q6", "Why does Spring's TestContext framework cache the ApplicationContext between test classes, and what can accidentally break that caching?",
+                    "starting a full Spring context is expensive; caching it (keyed by its exact configuration) lets many test classes share one instead of rebuilding it repeatedly",
+                    "a different @ActiveProfiles or a different set of @MockBean overrides between test classes changes the cache key, forcing a fresh (slow) context build"))));
 
         add(new Module("JFS6", t, 5, "Microservices, Resilience & Deployment",
             List.of("Service-to-service communication", "Resilience patterns (circuit breaker, retry)", "Docker & container basics", "CI/CD for a Spring app"),
@@ -534,7 +742,14 @@ public class ModuleCatalog {
                     "the goal is to catch issues as early and cheaply as possible in the pipeline"),
                 q("jfs6q4", "Synchronous REST calls vs an async message queue between microservices — when do you choose each?",
                     "sync REST: simple, immediate response needed, tighter coupling, caller blocks on the callee's availability",
-                    "async messaging: decouples services, smooths load, survives temporary downstream outages, but adds eventual-consistency complexity"))));
+                    "async messaging: decouples services, smooths load, survives temporary downstream outages, but adds eventual-consistency complexity"),
+                q("jfs6q5", "What's the difference between a bulkhead and a circuit breaker, and why might you need both?",
+                    "circuit breaker stops calling a failing dependency entirely once its failure rate crosses a threshold",
+                    "bulkhead limits how many concurrent calls/threads any ONE dependency can consume",
+                    "they solve different problems — a bulkhead stops one slow dependency from starving calls to OTHER, healthy dependencies, which a circuit breaker alone doesn't prevent"),
+                q("jfs6q6", "What's the difference between service discovery (like Eureka) and hardcoded service addresses?",
+                    "service discovery lets instances register/deregister dynamically as they scale up/down or fail, with callers querying the registry at call time",
+                    "hardcoded addresses break the moment an instance's address changes — common in cloud/container/auto-scaled environments"))));
     }
 
     // ------------------------------------------------------------------ Python track
@@ -565,7 +780,14 @@ public class ModuleCatalog {
                     "a local variable shadows an enclosing/global one of the same name; `global`/`nonlocal` keywords are needed to assign to an outer scope from inside a function"),
                 q("py1q4", "What's the difference between == and is in Python?",
                     "== compares value/content equality (calls __eq__)", "is compares object identity (same object in memory)",
-                    "small integers and interned strings may be `is`-equal due to caching, which is an implementation detail you shouldn't rely on"))));
+                    "small integers and interned strings may be `is`-equal due to caching, which is an implementation detail you shouldn't rely on"),
+                q("py1q5", "Python had no traditional switch statement before 3.10 — how did developers commonly emulate one, and what's the modern alternative?",
+                    "commonly emulated with an if/elif chain, or a dictionary mapping keys to functions/values",
+                    "Python 3.10+ added structural pattern matching via match/case as a real language-level alternative"),
+                q("py1q6", "What's the difference between an f-string and .format() for string formatting, and why are f-strings generally preferred now?",
+                    "f-strings (f\"...\") embed expressions directly inside the string literal, evaluated inline",
+                    ".format() requires placeholder syntax with separate positional/keyword arguments",
+                    "f-strings are more readable and also faster, since they're evaluated closer to bytecode level rather than via a method call"))));
 
         add(new Module("PY2", t, 1, "Data Structures & Collections",
             List.of("list/tuple/dict/set trade-offs", "Slicing", "Comprehensions", "Shallow vs deep copy"),
@@ -585,7 +807,13 @@ public class ModuleCatalog {
                     "nesting more than one or two conditions/loops hurts readability — a plain loop or a named function is clearer at that point"),
                 q("py2q4", "What's the difference between a shallow copy and a deep copy, and where does a shallow copy bite you?",
                     "a shallow copy (list(x), x.copy(), copy.copy()) creates a new outer container but reuses references to the same inner/nested objects",
-                    "mutating a nested list/dict inside a shallow copy also mutates the original", "copy.deepcopy() recursively copies nested objects to avoid this"))));
+                    "mutating a nested list/dict inside a shallow copy also mutates the original", "copy.deepcopy() recursively copies nested objects to avoid this"),
+                q("py2q5", "Why can a tuple be used as a dictionary key but a list cannot?",
+                    "dict keys must be hashable", "tuples are immutable and hashable, as long as everything inside them is also hashable",
+                    "lists are mutable, so they're explicitly made unhashable — allowing them as keys would let a key's hash silently change after insertion, corrupting the dict"),
+                q("py2q6", "What's a dict or set comprehension, and when would you reach for one over a list comprehension?",
+                    "{k: v for ...} builds a dict, {x for ...} builds a set — the same comprehension syntax as a list but with different brackets",
+                    "use a set comprehension when you need uniqueness or fast membership testing; a dict comprehension when transforming data into key-value pairs"))));
 
         add(new Module("PY3", t, 2, "Object-Oriented Python",
             List.of("Classes, __init__ & self", "Inheritance & MRO", "Dunder/magic methods", "@property & encapsulation"),
@@ -605,7 +833,13 @@ public class ModuleCatalog {
                 q("py3q4", "What does the @property decorator do, and why use it instead of plain getter/setter methods?",
                     "it lets a method be accessed like a plain attribute (obj.value instead of obj.get_value()) while still running code on access",
                     "it lets you start with plain public attributes and add validation/computed logic later without breaking the class's external API",
-                    "common use: exposing a computed value (like a circle's area from its radius) as if it were a stored attribute"))));
+                    "common use: exposing a computed value (like a circle's area from its radius) as if it were a stored attribute"),
+                q("py3q5", "What's the difference between a classmethod and a staticmethod in Python?",
+                    "a classmethod receives the class itself as its first argument (cls) and can access/modify class-level state — commonly used as an alternative constructor",
+                    "a staticmethod receives neither self nor cls — it's just a regular function namespaced inside the class for organizational purposes"),
+                q("py3q6", "Python doesn't have true private attributes like Java — how do the single- and double-underscore conventions work?",
+                    "a single leading underscore (_name) is a CONVENTION signaling 'internal use, don't touch' — it's not enforced by the language at all",
+                    "a double leading underscore (__name) triggers name mangling (rewritten internally to _ClassName__name), making accidental access/override across subclasses harder, but still not truly private"))));
 
         add(new Module("PY4", t, 3, "Decorators, Generators & Error Handling",
             List.of("Decorators & closures", "Generators & yield", "Exception handling & custom exceptions", "Context managers"),
@@ -626,7 +860,13 @@ public class ModuleCatalog {
                 q("py4q4", "How does Python's `with` statement (a context manager) work, and why is it preferred over manual try/finally for resource cleanup?",
                     "the object's __enter__ method runs at the start of the block and __exit__ runs at the end — even if an exception occurred inside the block",
                     "a common example is opening a file: it's guaranteed to be closed when the block exits, even if an error was raised while reading it",
-                    "it guarantees cleanup happens exactly once, in the right place, without the boilerplate and easy-to-forget-a-branch risk of manual try/finally"))));
+                    "it guarantees cleanup happens exactly once, in the right place, without the boilerplate and easy-to-forget-a-branch risk of manual try/finally"),
+                q("py4q5", "When does it make sense to define a custom exception class in Python, and how do you typically define one?",
+                    "when the failure represents a distinct, meaningful condition callers need to catch and handle specifically, not just a generic error",
+                    "typically a simple subclass of Exception (or a more specific built-in), often needing nothing but `pass` as the body unless it carries extra fields"),
+                q("py4q6", "What is a closure in Python, and how does it relate to decorators?",
+                    "a closure is an inner function that 'remembers' variables from its enclosing scope even after the outer function has finished executing",
+                    "decorators rely on closures — the wrapper function closes over the original function (and any decorator arguments) so it can call it later when the decorated function is actually invoked"))));
 
         add(new Module("PY5", t, 4, "Modules, Typing & Testing",
             List.of("venv & pip / packaging", "Type hints", "pytest fundamentals", "Fixtures & mocking"),
@@ -650,7 +890,13 @@ public class ModuleCatalog {
                     "it avoids duplicating the same setup/teardown code across many test functions"),
                 q("py5q4", "How would you mock an external API call in a test so it doesn't make a real network request?",
                     "replace the function/method that performs the network call with a fake (a mock or monkeypatched function) that returns a canned response",
-                    "patch it at the point where it's USED, not just where it's defined, so the test exercises your code's logic without depending on network availability or flakiness"))));
+                    "patch it at the point where it's USED, not just where it's defined, so the test exercises your code's logic without depending on network availability or flakiness"),
+                q("py5q5", "How does pytest's use of plain `assert` differ from a raw Python `assert` used for general debugging?",
+                    "pytest rewrites plain assert statements in test files to give detailed failure output, showing the actual values on both sides of the comparison",
+                    "outside pytest, Python's assert can be stripped entirely when running with the -O optimization flag, so it should never be relied on for real runtime validation"),
+                q("py5q6", "What does `pip freeze > requirements.txt` capture, and what's a downside of using it directly for a shared project?",
+                    "the EXACT versions of every package currently installed in the environment, including transitive dependencies",
+                    "downside: it pins everything rigidly and can include packages only needed for local development, making the file harder to maintain than a curated list or a tool (Poetry/uv) that separates direct from transitive dependencies"))));
 
         add(new Module("PY6", t, 5, "Concurrency & Performance",
             List.of("The GIL", "threading vs multiprocessing", "asyncio basics", "Profiling & optimization"),
@@ -674,7 +920,14 @@ public class ModuleCatalog {
                     "unlike threading, there's no preemptive context-switching or thread-safety overhead — but a single long-running CPU-bound `await`-free call will block the whole event loop"),
                 q("py6q4", "Before optimizing slow Python code, what should you do first, and why?",
                     "profile it (e.g., with cProfile or a line profiler) to find where time is ACTUALLY being spent, rather than guessing",
-                    "most code has one or two real bottlenecks — optimizing code that isn't actually slow wastes effort and adds complexity for no measurable benefit"))));
+                    "most code has one or two real bottlenecks — optimizing code that isn't actually slow wastes effort and adds complexity for no measurable benefit"),
+                q("py6q5", "What's the overhead cost of multiprocessing compared to threading, and why does it matter for choosing between them?",
+                    "each process has its own separate memory space, so data must be serialized (pickled) and copied between processes rather than shared directly",
+                    "multiprocessing pays a real startup and inter-process-communication cost, so it's worth it only when the CPU-bound work is substantial enough to outweigh that overhead"),
+                q("py6q6", "Can you mix asyncio with blocking (synchronous) code, and what happens if you do it carelessly?",
+                    "calling a blocking function directly inside an async function freezes the ENTIRE event loop for its duration",
+                    "asyncio is single-threaded cooperative multitasking, so one blocking call stalls every other coroutine waiting on that loop",
+                    "the fix is running blocking calls in a thread pool executor (loop.run_in_executor) so they don't block the rest of the event loop"))));
     }
 
     // ------------------------------------------------------------------ Core Java track (standalone)
@@ -708,7 +961,14 @@ public class ModuleCatalog {
                 q("java1q4", "== vs .equals() — what's the difference for objects, and why does it matter for String specifically?",
                     "== compares references (are these the same object in memory) for any object type",
                     ".equals() compares logical/value equality, as defined by the class's own override",
-                    "for Strings, two different literals may or may not be == depending on interning, so relying on == for string comparison is a common, subtle bug — always use .equals()"))));
+                    "for Strings, two different literals may or may not be == depending on interning, so relying on == for string comparison is a common, subtle bug — always use .equals()"),
+                q("java1q5", "What are Java's access modifiers, and what's the difference between protected and package-private (no modifier)?",
+                    "public: accessible everywhere; private: same class only",
+                    "package-private (default, no modifier): accessible within the same package only",
+                    "protected: package-private access PLUS accessible to subclasses even in a different package — broader than package-private specifically for inheritance"),
+                q("java1q6", "What does toString() do by default, and why do you almost always override it?",
+                    "Object's default toString() returns the class name plus a hex representation of the hash code — not useful for debugging",
+                    "overriding it to print meaningful field values makes logging, debugging, and println output actually readable"))));
 
         add(new Module("JAVA2", t, 1, "Collections Framework Deep Dive",
             List.of("List/Set/Map implementations & internals", "Comparable vs Comparator", "Fail-fast vs fail-safe iterators", "Choosing the right collection"),
@@ -734,7 +994,13 @@ public class ModuleCatalog {
                 q("java2q4", "Why is it usually a bad idea to use a mutable object as a HashMap key?",
                     "the key's hashCode is used to place it in a bucket at insertion time",
                     "if the key object is later mutated in a way that changes its hashCode/equals result, the map can no longer find it in the correct bucket — the entry becomes effectively lost",
-                    "prefer immutable keys (String, wrapper types, records, or objects deliberately designed to be immutable)"))));
+                    "prefer immutable keys (String, wrapper types, records, or objects deliberately designed to be immutable)"),
+                q("java2q5", "What's the difference between a fail-fast and a fail-safe iterator, with an example of each?",
+                    "fail-fast (ArrayList, HashMap): throws ConcurrentModificationException if the collection is structurally modified during iteration, detected via a modCount check",
+                    "fail-safe (CopyOnWriteArrayList, ConcurrentHashMap): iterates over a snapshot or otherwise tolerates concurrent modification without throwing"),
+                q("java2q6", "What ordering guarantee does a PriorityQueue provide, and what's a common interview use for it?",
+                    "PriorityQueue is a min-heap by default (or ordered by a supplied Comparator) — it only guarantees the smallest/highest-priority element is at the head, NOT that the whole queue is sorted",
+                    "common uses: 'k largest/smallest elements', Dijkstra's algorithm, merging k sorted lists"))));
 
         add(new Module("JAVA3", t, 2, "Exceptions, I/O & NIO",
             List.of("Checked vs unchecked exceptions", "try-with-resources & the AutoCloseable contract", "Custom exception design", "java.nio basics"),
@@ -760,7 +1026,14 @@ public class ModuleCatalog {
                 q("java3q4", "What's the difference between the older java.io streams and java.nio, at a conceptual level?",
                     "java.io is stream-based and blocking — you read/write sequentially and the thread blocks while waiting",
                     "java.nio adds buffer/channel-based I/O and (via NIO.2 in java.nio.file) a much better file API (Path, Files), plus non-blocking/selector-based I/O for scalable network servers",
-                    "for typical file operations today, java.nio.file's Files/Path API is preferred over the legacy File class"))));
+                    "for typical file operations today, java.nio.file's Files/Path API is preferred over the legacy File class"),
+                q("java3q5", "What happens if BOTH the try block AND the resource's close() throw an exception in try-with-resources?",
+                    "the try block's ORIGINAL exception propagates as the primary one",
+                    "the close() exception is attached to it as a 'suppressed exception' (retrievable via getSuppressed()), not silently lost and not replacing the original"),
+                q("java3q6", "What's the difference between Error and Exception in terms of what a well-behaved application should do with each?",
+                    "Exception represents conditions an application is expected to anticipate and handle",
+                    "Error (OutOfMemoryError, StackOverflowError) signals the JVM itself is in serious trouble",
+                    "catching/'handling' an Error is rarely correct — the right response is usually to let the process fail and be restarted/monitored"))));
 
         add(new Module("JAVA4", t, 3, "Multithreading & Concurrency",
             List.of("Thread lifecycle & creation", "ExecutorService & thread pools", "Locks, synchronized & the Java Memory Model", "CompletableFuture & async composition"),
@@ -786,7 +1059,13 @@ public class ModuleCatalog {
                 q("java4q4", "What does CompletableFuture.thenApply vs thenCompose do differently, and why does that distinction matter?",
                     "thenApply transforms the result with a plain function (T -> U) — use it when the next step is synchronous",
                     "thenCompose chains to another CompletableFuture-returning function (T -> CompletableFuture<U>) and flattens the result — use it when the next step is itself async, to avoid nested futures",
-                    "using thenApply where thenCompose is needed produces a CompletableFuture<CompletableFuture<U>>, which is almost never what you want"))));
+                    "using thenApply where thenCompose is needed produces a CompletableFuture<CompletableFuture<U>>, which is almost never what you want"),
+                q("java4q5", "What are the states in a Java thread's lifecycle, and what causes a thread to move from RUNNABLE to WAITING?",
+                    "NEW -> RUNNABLE -> (BLOCKED / WAITING / TIMED_WAITING) -> TERMINATED",
+                    "a thread moves to WAITING when it calls a blocking method without a timeout — e.g. Object.wait() or Thread.join() — until another thread notifies it or completes"),
+                q("java4q6", "What's a deadlock, and what's the standard practical technique to prevent one?",
+                    "a cycle of threads each waiting for a resource held by another, so none can proceed",
+                    "the standard fix: always acquire locks in the same, globally consistent order across every thread, eliminating the circular-wait condition a deadlock requires"))));
 
         add(new Module("JAVA5", t, 4, "JVM Internals & Memory Management",
             List.of("JVM memory areas (heap, stack, metaspace)", "Garbage collection algorithms", "Class loading", "Reading a stack trace & basic JVM tuning"),
@@ -811,7 +1090,13 @@ public class ModuleCatalog {
                     "NoClassDefFoundError: an Error thrown when a class WAS available at compile time but is missing at runtime when the JVM tries to link/use it — often a packaging/classpath mismatch between build and deploy"),
                 q("java5q4", "What's the difference between a memory leak in Java and one in a language like C, given Java has garbage collection?",
                     "Java can still leak memory — not by forgetting to free it, but by keeping unintended references alive (e.g., a growing static collection, unclosed listeners, ThreadLocal not cleared) so the GC can never reclaim those objects",
-                    "the fix is finding and breaking the unwanted reference chain (often via a heap dump analysis tool), not manual memory management"))));
+                    "the fix is finding and breaking the unwanted reference chain (often via a heap dump analysis tool), not manual memory management"),
+                q("java5q5", "What's the parent-delegation model for Java class loaders, and why does it matter?",
+                    "a class loader asks its PARENT to try loading a class first (bootstrap -> platform -> application) before attempting itself",
+                    "this is why you can't accidentally shadow a core class like java.lang.String with your own class of the same name"),
+                q("java5q6", "What JVM flags control the initial and maximum heap size, and what's a common production tuning practice around them?",
+                    "-Xms sets the INITIAL heap size, -Xmx sets the MAXIMUM heap size",
+                    "a common production practice is setting them to the SAME value, so the heap is allocated up front instead of paying the pause cost of growing gradually under load"))));
 
         add(new Module("JAVA6", t, 5, "Modern Java (8-21) Features",
             List.of("Streams & lambdas", "Optional", "Records & sealed classes", "Pattern matching & virtual threads"),
@@ -837,7 +1122,13 @@ public class ModuleCatalog {
                 q("java6q4", "What are virtual threads (Java 21), and what kind of workload benefits most from them?",
                     "virtual threads are lightweight threads managed by the JVM rather than mapped 1:1 to an OS thread — you can create millions of them cheaply",
                     "they benefit I/O-bound workloads most: a virtual thread that blocks on I/O (e.g., a DB call, an HTTP call) is 'unmounted' from its carrier OS thread, freeing that OS thread to run other virtual threads, instead of the OS thread sitting idle",
-                    "they don't speed up CPU-bound work — for that, the number of CPU cores is still the real limit"))));
+                    "they don't speed up CPU-bound work — for that, the number of CPU cores is still the real limit"),
+                q("java6q5", "What are sealed classes/interfaces, and what benefit do they provide with pattern matching in a switch?",
+                    "sealed restricts exactly which classes/interfaces are allowed to extend/implement a type, declared via a permits clause",
+                    "combined with pattern matching for switch, the compiler can verify EXHAUSTIVENESS — forgetting to handle a newly-added permitted subtype becomes a compile error instead of a silent runtime gap"),
+                q("java6q6", "What does pattern matching for instanceof (Java 16+) eliminate compared to the old style?",
+                    "the old style requires an instanceof check followed by a separate, redundant explicit cast",
+                    "pattern matching binds a pattern variable, already narrowed to the checked type, directly in the instanceof condition — removing the cast and a whole class of cast-mismatch bugs"))));
     }
 
     // ------------------------------------------------------------------ Spring Framework track (standalone)
@@ -871,7 +1162,15 @@ public class ModuleCatalog {
                 q("spr1q4", "What's the difference between @Component, @Service, @Repository and @Controller, given they all register a bean the same way?",
                     "functionally, all four are stereotypes of @Component and register a bean identically via component scanning",
                     "the more specific ones add semantic meaning for readability AND extra framework behavior — @Repository enables Spring's exception translation (wrapping JDBC/JPA exceptions into Spring's DataAccessException hierarchy)",
-                    "using the right stereotype documents the layer a class belongs to, which also helps AOP pointcuts that target a layer by annotation"))));
+                    "using the right stereotype documents the layer a class belongs to, which also helps AOP pointcuts that target a layer by annotation"),
+                q("spr1q5", "What's the difference between Java-based configuration (@Configuration/@Bean) and XML-based configuration in Spring?",
+                    "Java config is type-safe and refactorable, and lets you write real conditional/programmatic logic when constructing a bean",
+                    "XML config lives entirely outside the code with no compile-time checking, but fully separates configuration from code",
+                    "Java config is the modern default recommendation; XML is mostly seen in older/legacy Spring codebases"),
+                q("spr1q6", "What's the difference between BeanFactory and ApplicationContext?",
+                    "BeanFactory is the root, minimal IoC container interface — lazy bean instantiation, few features",
+                    "ApplicationContext extends BeanFactory and adds enterprise features used by virtually every real app: eager singleton instantiation at startup (so config errors surface immediately), event publishing, and i18n support",
+                    "in practice almost nobody works with raw BeanFactory directly"))));
 
         add(new Module("SPR2", t, 1, "AOP & Cross-Cutting Concerns",
             List.of("Aspect-oriented programming concepts", "Advice types (before/after/around)", "Proxy-based AOP (JDK dynamic vs CGLIB)", "@Transactional under the hood"),
@@ -895,7 +1194,13 @@ public class ModuleCatalog {
                     "fix by injecting a self-reference/using AopContext.currentProxy(), or better, moving the @Transactional method into a separate collaborating bean that gets called through its own proxy"),
                 q("spr2q4", "What's the difference between @Before, @AfterReturning, @AfterThrowing, @After and @Around advice?",
                     "@Before runs before the method; @AfterReturning runs after a successful return; @AfterThrowing runs only if an exception propagates out; @After runs regardless (like finally)",
-                    "@Around is the most powerful: it wraps the whole invocation, receives a ProceedingJoinPoint, and can choose whether/when to call proceed(), inspect/modify the return value, or short-circuit the call entirely"))));
+                    "@Around is the most powerful: it wraps the whole invocation, receives a ProceedingJoinPoint, and can choose whether/when to call proceed(), inspect/modify the return value, or short-circuit the call entirely"),
+                q("spr2q5", "What's a pointcut expression, and describe one that matches all public methods in a service package.",
+                    "a pointcut defines WHICH join points (method executions) an aspect's advice applies to, matched by pattern against modifiers/return type/package/class/method/parameters",
+                    "example: execution(public * com.app.service..*.*(..)) — any public method, any return type, in that package or sub-packages, any class, any method name, any parameters"),
+                q("spr2q6", "Can Spring AOP apply advice to an object created directly with `new`, outside the Spring container?",
+                    "no — Spring AOP only works on beans the container itself creates and wraps in a proxy AT CREATION TIME",
+                    "an object created with `new` bypasses the container entirely, so no proxy is ever created and no advice applies, regardless of matching pointcuts"))));
 
         add(new Module("SPR3", t, 2, "Spring MVC & Web Layer",
             List.of("DispatcherServlet request lifecycle", "@RequestMapping family & content negotiation", "Bean Validation in controllers", "Global exception handling"),
@@ -922,7 +1227,13 @@ public class ModuleCatalog {
                 q("spr3q4", "What's the difference between @RequestParam, @PathVariable and @RequestBody?",
                     "@RequestParam binds a query string parameter (?name=value) or form field",
                     "@PathVariable binds a segment of the URI path itself (e.g., /users/{id})",
-                    "@RequestBody deserializes the entire HTTP request body (typically JSON) into a Java object using an HttpMessageConverter"))));
+                    "@RequestBody deserializes the entire HTTP request body (typically JSON) into a Java object using an HttpMessageConverter"),
+                q("spr3q5", "What's content negotiation in Spring MVC, and how does the framework decide whether to return JSON or XML from the same endpoint?",
+                    "content negotiation picks the response representation format based on what the client asked for, primarily the Accept header",
+                    "Spring's ContentNegotiationManager inspects these signals and picks a registered HttpMessageConverter capable of producing that format"),
+                q("spr3q6", "What's the difference between @Controller and @RestController?",
+                    "@Controller returns a view name by default, to be resolved and rendered as HTML (e.g. via Thymeleaf) — not sent as the raw response body",
+                    "@RestController combines @Controller and @ResponseBody, so every method's return value is serialized directly into the response body — the standard choice for a JSON REST API"))));
 
         add(new Module("SPR4", t, 3, "Data Access & Transactions",
             List.of("JdbcTemplate vs ORM options", "Spring's transaction abstraction", "Transaction propagation & isolation", "Exception translation"),
@@ -948,7 +1259,13 @@ public class ModuleCatalog {
                 q("spr4q4", "When would you reach for JdbcTemplate instead of an ORM like Hibernate/Spring Data JPA?",
                     "when you need tight control over the exact SQL executed (complex reporting queries, bulk operations, performance-critical paths where ORM-generated SQL is suboptimal)",
                     "JdbcTemplate removes JDBC boilerplate (connection/statement/resultset handling, resource closing) while still letting you write raw SQL",
-                    "for typical CRUD-heavy domain-object persistence, an ORM/Spring Data JPA is usually more productive; JdbcTemplate is the pragmatic escape hatch"))));
+                    "for typical CRUD-heavy domain-object persistence, an ORM/Spring Data JPA is usually more productive; JdbcTemplate is the pragmatic escape hatch"),
+                q("spr4q5", "What are the standard transaction isolation levels, and what's Spring's default if you don't specify one?",
+                    "READ_UNCOMMITTED, READ_COMMITTED, REPEATABLE_READ, SERIALIZABLE, in increasing strictness",
+                    "Spring's default is ISOLATION_DEFAULT, which delegates to whatever the underlying database's own default isolation level is (commonly READ_COMMITTED for most relational databases)"),
+                q("spr4q6", "What does RowMapper do in JdbcTemplate?",
+                    "converts ONE row of a JDBC ResultSet into a domain object",
+                    "JdbcTemplate calls it once per row and collects the results into a list, handling ResultSet iteration and resource cleanup for you"))));
 
         add(new Module("SPR5", t, 4, "Spring Testing",
             List.of("Spring TestContext framework", "@ContextConfiguration & context caching", "Test slices (@WebMvcTest, @DataJpaTest)", "Mocking beans in a Spring test"),
@@ -968,7 +1285,16 @@ public class ModuleCatalog {
                     "a full embedded-server test (@SpringBootTest(webEnvironment=RANDOM_PORT) + a real HTTP client) is slower but verifies actual network behavior end-to-end, useful for a smaller number of true integration tests"),
                 q("spr5q3", "What's the difference between a test slice like @WebMvcTest and the full @SpringBootTest?",
                     "@WebMvcTest loads only the web layer (controllers, filters, MVC infra) and auto-configures MockMvc, leaving service/repository beans unloaded — you supply mocks (e.g., @MockBean) for them",
-                    "@SpringBootTest loads the entire application context, which is thorough but much slower — appropriate for true end-to-end integration tests, not for testing one controller in isolation")
+                    "@SpringBootTest loads the entire application context, which is thorough but much slower — appropriate for true end-to-end integration tests, not for testing one controller in isolation"),
+                q("spr5q4", "What's the difference between @MockBean and a manually created Mockito mock inside a Spring test?",
+                    "@MockBean replaces the real bean of that type INSIDE the Spring application context, so any other bean autowiring that dependency transparently gets the mock",
+                    "a plain Mockito.mock() is just a local object you wire yourself and never touches the Spring context — much faster for a pure unit test that doesn't need Spring running at all"),
+                q("spr5q5", "What does @DataJpaTest do differently from @SpringBootTest when testing a repository?",
+                    "@DataJpaTest loads only the JPA-related slice (repositories, entity scanning, a test database) and by default rolls back each test's transaction automatically",
+                    "@SpringBootTest loads the entire application, unnecessary overhead just to verify a query method returns the right rows"),
+                q("spr5q6", "Why might introducing a new @MockBean in one test class slow down the ENTIRE test suite, even though the mock itself is fast?",
+                    "@MockBean changes the effective ApplicationContext configuration for that class, and that configuration is part of Spring's test-context cache key",
+                    "a new, previously-unseen combination of mocks forces a fresh (uncached) context build instead of reusing one — and many test classes each doing this uniquely defeats caching across the whole suite")
             )));
     }
 
@@ -1002,7 +1328,15 @@ public class ModuleCatalog {
                     "understanding this order matters for debugging 'why isn't my config taking effect' issues in different environments"),
                 q("sb1q4", "How would you disable a specific auto-configuration class you don't want (e.g., the default DataSource auto-config)?",
                     "use @SpringBootApplication(exclude = DataSourceAutoConfiguration.class) or the spring.autoconfigure.exclude property",
-                    "this is common when you want to configure that concern manually, or when a starter on the classpath brings auto-configuration you don't actually want active"))));
+                    "this is common when you want to configure that concern manually, or when a starter on the classpath brings auto-configuration you don't actually want active"),
+                q("sb1q5", "How are Spring Boot's many auto-configuration classes ordered against each other, and why does that ordering matter?",
+                    "auto-configuration classes carry @AutoConfigureAfter/@AutoConfigureBefore/@AutoConfigureOrder metadata that controls the sequence they're evaluated in",
+                    "ordering matters because a later auto-configuration's conditions (like @ConditionalOnMissingBean) often depend on beans an earlier one already registered — e.g., a web auto-configuration might need to run after the base DataSource auto-configuration is in place",
+                    "spring.factories / AutoConfiguration.imports lists the candidate classes, but it's this relative ordering metadata (not file order) that determines evaluation sequence"),
+                q("sb1q6", "You have application.yml plus application-dev.yml and application-prod.yml. How does Spring Boot decide which profile-specific properties apply, and what happens on a conflict?",
+                    "the active profile(s) are selected via spring.profiles.active (set as an env var, JVM arg, or in the base file itself)",
+                    "Spring Boot loads the base application.yml first, then layers the matching profile-specific file on top — properties in the profile-specific file override the same key in the base file",
+                    "if multiple profiles are active at once, later-declared profiles in spring.profiles.active take precedence over earlier ones for the same key"))));
 
         add(new Module("SB2", t, 1, "Spring Data JPA in Boot",
             List.of("Repository interfaces & derived queries", "N+1 problem & fetch strategies", "@Transactional boundaries in a service layer", "Schema migration with Flyway/Liquibase"),
@@ -1025,7 +1359,15 @@ public class ModuleCatalog {
                 q("sb2q4", "Why use a migration tool like Flyway or Liquibase instead of letting Hibernate auto-generate/update the schema (ddl-auto=update)?",
                     "ddl-auto=update is convenient for local dev but unsafe in production — it can silently make destructive or unexpected changes, and there's no audit trail or rollback",
                     "Flyway/Liquibase store versioned, ordered migration scripts that are applied deterministically and consistently across every environment, forming a reviewable history of every schema change",
-                    "the standard practice is ddl-auto=validate (or none) in production, with real migrations owning schema evolution"))));
+                    "the standard practice is ddl-auto=validate (or none) in production, with real migrations owning schema evolution"),
+                q("sb2q5", "When would a derived query method name stop being the right tool, and what do you reach for instead?",
+                    "once the condition logic gets complex (many ANDs/ORs, joins across relationships, aggregations, or dynamic/optional filters), the method name becomes unreadable or simply can't express it",
+                    "@Query with JPQL (or native SQL) for fixed but complex queries, or the Specification/Criteria API for queries whose filters are built dynamically at runtime based on which parameters were actually supplied",
+                    "readability and maintainability, not just capability, is often the real deciding factor for switching away from derived names"),
+                q("sb2q6", "What does @Transactional(propagation = Propagation.REQUIRES_NEW) do differently from the default REQUIRED, and give a real scenario where you'd need it?",
+                    "REQUIRED (default) joins the caller's existing transaction if one is active, or starts a new one if not — so if the outer transaction rolls back, this method's work rolls back with it",
+                    "REQUIRES_NEW always suspends any existing transaction and starts a completely independent one that commits or rolls back on its own",
+                    "a real scenario: writing an audit log entry that must persist even if the surrounding business operation later fails and rolls back — running it in REQUIRES_NEW means the audit record survives regardless of the outer transaction's fate"))));
 
         add(new Module("SB3", t, 2, "REST APIs, Validation & Error Handling",
             List.of("Designing REST resources & status codes", "Bean Validation on request DTOs", "Centralized exception handling", "API documentation with OpenAPI/Swagger"),
@@ -1049,7 +1391,14 @@ public class ModuleCatalog {
                     "catch MethodArgumentNotValidException in an @ExceptionHandler and map its BindingResult/FieldErrors into a response listing each invalid field and its specific message, rather than a single generic 400"),
                 q("sb3q4", "What does OpenAPI/Swagger give you in a Spring Boot project, and how is it typically generated?",
                     "a machine-readable specification of your API's endpoints, request/response shapes, and status codes — enabling interactive docs (Swagger UI) and client-code generation",
-                    "springdoc-openapi generates it automatically from your controllers/DTOs and annotations at runtime, rather than you hand-writing a YAML/JSON spec"))));
+                    "springdoc-openapi generates it automatically from your controllers/DTOs and annotations at runtime, rather than you hand-writing a YAML/JSON spec"),
+                q("sb3q5", "How would you design pagination and sorting for a GET /orders endpoint that could return millions of rows?",
+                    "accept page/size (or a cursor) and sort query parameters rather than always returning the full collection",
+                    "Spring Data's Pageable/Page support maps these directly onto a repository method and returns metadata (total elements, total pages, current page) alongside the content",
+                    "offset-based paging (page/size) degrades on very large datasets — cursor/keyset pagination (using the last seen ID or sort key) avoids the cost of skipping millions of rows and stays stable when rows are inserted between requests"),
+                q("sb3q6", "How do you version a REST API in Spring Boot without breaking existing clients when you need to change a resource's shape?",
+                    "common approaches: a URI path segment (/api/v2/orders), a custom Accept/media-type header, or a request parameter — each with different trade-offs in visibility, cacheability, and routing complexity",
+                    "the key discipline regardless of mechanism is: never change the meaning of an existing field/endpoint out from under existing clients — add a new version (or a new field) instead, and give clients a clear deprecation window for the old one"))));
 
         add(new Module("SB4", t, 3, "Spring Security, JWT & OAuth2",
             List.of("SecurityFilterChain configuration", "Stateless JWT authentication", "OAuth2 login & resource server", "Method-level security"),
@@ -1073,7 +1422,15 @@ public class ModuleCatalog {
                     "this keeps the long-lived, powerful access token out of the browser's history/referrer headers/JS-accessible storage, reducing the attack surface versus the older, now-discouraged implicit flow"),
                 q("sb4q4", "How do you secure individual service methods (not just URLs) in Spring, and why would you want to?",
                     "@EnableMethodSecurity plus annotations like @PreAuthorize(\"hasRole('ADMIN')\") or @PostAuthorize on service methods",
-                    "URL-level security alone can't express fine-grained rules like 'a user can only edit their OWN order' — method security can evaluate the actual arguments/return value (e.g., @PreAuthorize(\"#order.ownerId == authentication.name\"))"))));
+                    "URL-level security alone can't express fine-grained rules like 'a user can only edit their OWN order' — method security can evaluate the actual arguments/return value (e.g., @PreAuthorize(\"#order.ownerId == authentication.name\"))"),
+                q("sb4q5", "How should passwords be stored in a Spring Boot app's database, and what does PasswordEncoder actually do for you?",
+                    "never store plaintext or reversibly-encrypted passwords — store a one-way salted hash produced by a slow, purpose-built algorithm",
+                    "Spring Security's PasswordEncoder (BCryptPasswordEncoder by default) handles generating a random salt per password and the hashing/verification, so you never handle raw password bytes yourself beyond the initial comparison call",
+                    "'slow by design' (BCrypt's work factor) is a deliberate defense against brute-force/rainbow-table attacks on a stolen hash dump — a fast hash like plain SHA-256 would be a mistake here"),
+                q("sb4q6", "A stateless JWT API is being called from a browser SPA on a different origin. What do you need to configure, and how does it differ from CSRF protection?",
+                    "CORS: the API must explicitly allow the SPA's origin (via a CorsConfigurationSource / @CrossOrigin) or the browser will block the response before JS ever sees it — this is a browser-enforced same-origin policy concern",
+                    "CSRF: protects against a malicious site tricking a logged-in user's browser into making unwanted state-changing requests using ambient cookie-based auth — with stateless JWT-in-header auth (not cookies), there's no ambient credential for a forged request to exploit, so CSRF protection is typically disabled for these APIs",
+                    "conflating the two is a common mistake — disabling CSRF is safe here specifically because auth isn't cookie-based, not because CORS is also configured"))));
 
         add(new Module("SB5", t, 4, "Actuator, Observability & Testing",
             List.of("Actuator endpoints (health, metrics, info)", "Custom health indicators & metrics", "Structured logging & tracing", "@SpringBootTest & Testcontainers"),
@@ -1098,7 +1455,16 @@ public class ModuleCatalog {
                 q("sb5q4", "Why reach for Testcontainers rather than an embedded H2 database when writing a Spring Boot integration test against a Postgres-backed service?",
                     "H2 doesn't perfectly replicate Postgres's SQL dialect, functions, and constraint-enforcement behavior — a test passing against H2 can still fail against real Postgres in production",
                     "Testcontainers spins up the actual Postgres engine in a throwaway Docker container for the test run, so the integration test verifies behavior against the real database technology",
-                    "the trade-off is a slower test (container startup) versus much higher confidence — typically reserved for a smaller set of true integration tests, not every test"))));
+                    "the trade-off is a slower test (container startup) versus much higher confidence — typically reserved for a smaller set of true integration tests, not every test"),
+                q("sb5q5", "What's the difference between @SpringBootTest, @WebMvcTest, and @DataJpaTest, and when would you reach for each?",
+                    "@SpringBootTest boots the full application context (or close to it) — most realistic but slowest, best for true end-to-end integration tests",
+                    "@WebMvcTest loads only the web layer (controllers, filters, MockMvc) with collaborators mocked — fast, focused on request/response mapping, validation, and status codes",
+                    "@DataJpaTest loads only the JPA layer against an in-memory or configured test datasource with transactional rollback per test — fast, focused on repository/query correctness",
+                    "the general principle: prefer the narrowest slice test that can catch the bug, and reserve @SpringBootTest for the smaller set of tests that genuinely need the whole wiring"),
+                q("sb5q6", "In a microservices system, how do you trace a single user request as it hops across multiple Spring Boot services, and why doesn't looking at each service's logs separately work well?",
+                    "each service's logs in isolation show only that service's local view — correlating them by eye across services and timestamps doesn't scale and easily misses the actual causal chain",
+                    "distributed tracing (e.g., Micrometer Tracing with a backend like Zipkin/Jaeger) propagates a shared trace ID (and per-hop span IDs) through request headers across every service the request touches",
+                    "this lets you pull up one trace and see the full waterfall — which service was slow, which call failed, and the exact order of downstream calls — instead of manually reconstructing it from scattered logs"))));
 
         add(new Module("SB6", t, 5, "Microservices, Messaging & Cloud-Native",
             List.of("Service discovery & API gateway", "Resilience patterns (circuit breaker, retry, bulkhead)", "Event-driven communication with Kafka", "Containerizing & deploying a Spring Boot service"),
@@ -1123,6 +1489,18 @@ public class ModuleCatalog {
                     "the cost is added complexity: eventual consistency, harder request tracing, and needing to reason about message ordering/idempotency/at-least-once delivery"),
                 q("sb6q4", "What's the role of an API gateway in a microservices architecture, and name two concerns it commonly centralizes.",
                     "an API gateway is the single entry point clients call, which routes each request to the correct downstream microservice — clients don't need to know the internal service topology",
-                    "it commonly centralizes cross-cutting concerns like authentication/authorization, rate limiting, request logging, and response aggregation from multiple services — so individual microservices don't each reimplement them"))));
+                    "it commonly centralizes cross-cutting concerns like authentication/authorization, rate limiting, request logging, and response aggregation from multiple services — so individual microservices don't each reimplement them"),
+                q("sb6q5", "How does a Spring Boot microservice find and call another service by name (e.g., 'order-service') instead of a hardcoded host:port, and why does that matter in a cloud-native environment?",
+                    "a service registry (Eureka, or the platform's own DNS-based discovery in Kubernetes) tracks which instances of each service are currently alive and where",
+                    "the calling service resolves the target by logical name through a client-side or platform-level load balancer, which also spreads requests across all healthy instances of that name",
+                    "this matters because in a cloud-native environment instances are constantly scaling up/down and getting rescheduled to new IPs — hardcoded addresses would break almost immediately"),
+                q("sb6q6", "What's the practical difference between a retry policy and a bulkhead, and why might combining a retry with a circuit breaker (but no bulkhead) still let one failing dependency take down a whole service?",
+                    "retry: re-attempts a failed call, useful for transient failures, but blindly retrying a truly-down dependency multiplies load on it and ties up the caller's threads/connections for longer",
+                    "bulkhead: partitions a limited resource (thread pool, connection pool) per downstream dependency, so one dependency exhausting ITS pool can't starve the threads needed to serve calls to a different, healthy dependency",
+                    "without a bulkhead, retries against a slow/failing dependency can still exhaust the caller's shared thread pool before the circuit breaker's failure-rate threshold even trips, taking down unrelated request handling in the same service"),
+                q("sb6q7", "What's the difference between a fat/uber JAR and a Spring Boot layered JAR when it comes to building a Docker image, and why does the layering matter?",
+                    "a plain fat JAR bundles application code and all dependencies into one monolithic layer — any code change invalidates and re-uploads the entire (often large) image layer",
+                    "Spring Boot's layered JAR support (spring-boot:build-image, or docker-jar layering) splits the JAR into separate Docker layers — dependencies (which rarely change) in one layer, your actual application classes (which change on every build) in another",
+                    "Docker caches unchanged layers, so with layering, a routine code change only needs to rebuild/push the small application-code layer instead of the whole image, making builds and deploys significantly faster"))));
     }
 }
